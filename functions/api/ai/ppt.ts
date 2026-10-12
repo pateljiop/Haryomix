@@ -12,18 +12,20 @@ async function withinLimit(request: Request, env: Env): Promise<boolean> {
  return Boolean(row && row.count<=8);
 }
 async function felo(path: string, key: string, init: RequestInit = {}) {
-  const response = await fetch(`https://openapi.felo.ai${path}`, { ...init, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(25_000) });
+  const response = await fetch(`https://openapi.felo.ai${path}`, { ...init, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, signal: AbortSignal.timeout(25_000) });
   const data = await response.json().catch(() => null) as any;
   if (!response.ok || data?.status === "error") throw new Error(response.status === 429 ? "rate_limit" : response.status === 402 ? "credits_required" : "provider_error");
   return data;
 }
 export async function onRequestPost({request,env}:{request:Request;env:Env}):Promise<Response>{
   if(!env.FELO_API_KEY) return reply({error:"Felo is not configured on the server.",code:"provider_not_configured"},503);
-  try { if(!await withinLimit(request,env)) return reply({error:"AI creation limit reached for this hour, or request protection is unavailable.",code:"rate_limited"},429); }
-  catch { return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
   if(!request.headers.get("content-type")?.includes("application/json")) return reply({error:"Send a JSON request."},415);
   let body:any; try { body=await request.json(); } catch { return reply({error:"Invalid JSON."},400); }
   const action=clean(body?.action,30);
+  if(action==="create"||action==="export"){
+    try { if(!await withinLimit(request,env)) return reply({error:"AI creation/export limit reached for this hour, or request protection is unavailable.",code:"rate_limited"},429); }
+    catch { return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
+  }
   try {
     if(action==="create"){
       const query=clean(body.query,5000);
