@@ -10,6 +10,10 @@
 - **Image Studio:** resize, center-crop, rotate, adjust brightness/contrast, and export PNG, JPEG, or WebP.
 - **Exam Copilot:** creates a downloadable revision sheet from supplied topic labels and offers general computer-science practice questions.
 
+## Backend and community feed
+
+Cloudflare Pages Functions provide `GET /api/health` and `GET`/`POST /api/community`. Persistent community posting requires a Cloudflare D1 database binding named `DB` and the migration in `migrations/0001_community.sql`. Follow [BACKEND_SETUP.md](./BACKEND_SETUP.md) to configure it. Until the database is attached and migrated, the API intentionally returns HTTP 503 instead of pretending persistence is available. The public community feed currently has no user accounts or moderation workflow; do not share private information.
+
 ## Privacy and document fidelity
 
 Image and PDF operations run in the browser. The initial release does not require an account or external AI API key. PDF page operations copy existing page content instead of rebuilding it as editable text, which helps preserve embedded fonts and layout. This is not a guarantee for every unusual or encrypted PDF. Arbitrary text replacement with exact font and layout preservation is not included.
@@ -42,7 +46,7 @@ npm run build
 - Exam questions are general practice items, not verified university past papers. Always check your own syllabus.
 - PPT Studio creates a starter deck with editable text, not a fully researched academic presentation.
 - PDF Studio does not claim exact font preservation when replacing arbitrary existing text. Non-destructive page operations are the supported path.
-- Files are processed locally in the browser for the current utilities; closing or refreshing the page may clear the working state.
+- Files are processed locally in the browser for the current utilities; closing or refreshing the working state may clear it. Community posts persist in Cloudflare D1 only after backend setup.
 
 ## Contributing
 
