@@ -16,6 +16,7 @@ export function FeloCreateStudio(){
  const [size,setSize]=useState("1024x1024");
  const [job,setJob]=useState<PptJob|null>(null);
  const [image,setImage]=useState("");
+ const [downloadUrl,setDownloadUrl]=useState("");
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState("");
  async function createPpt(){
@@ -36,7 +37,7 @@ export function FeloCreateStudio(){
  }
  async function checkExport(){
   if(!job)return;setBusy(true);
-  try{const data=await api("/api/ai/ppt",{action:"export-status",businessId:job.businessId});if(data.downloadUrl&&/^https:\/\//i.test(data.downloadUrl)){setMessage("PPTX ready. Download link lagbhag 30 minutes tak valid rahega.");window.open(data.downloadUrl,"_blank","noopener,noreferrer");}else setMessage(`Export status: ${data.status}`);}
+  try{const data=await api("/api/ai/ppt",{action:"export-status",businessId:job.businessId});if(data.downloadUrl&&/^https:\/\//i.test(data.downloadUrl)){setDownloadUrl(data.downloadUrl);setMessage("PPTX ready. Download link lagbhag 30 minutes tak valid rahega.");}else setMessage(`Export status: ${data.status}`);}
   catch(e){setMessage(e instanceof Error?e.message:"Could not check export.");}finally{setBusy(false);}
  }
  async function generateImage(){
@@ -53,7 +54,7 @@ export function FeloCreateStudio(){
    <div className="hmx-field"><label htmlFor="felo-ppt-slides">Target slide count</label><select id="felo-ppt-slides" className="hmx-select" value={slides} onChange={e=>setSlides(e.target.value)}>{["5","8","10","12","15","20","25","30"].map(n=><option key={n} value={n}>{n} slides</option>)}</select></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-style">Visual style</label><input id="felo-ppt-style" className="hmx-input" value={style} onChange={e=>setStyle(e.target.value)}/></div>
    <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
-   {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}</p>}
+   {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}</p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
   </>:<>
    <div className="hmx-field"><label htmlFor="felo-image-prompt">Describe the image</label><textarea id="felo-image-prompt" className="hmx-textarea" style={{minHeight:130,fontFamily:"inherit"}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Subject, composition, mood, lighting, art direction, background, aspect ratio, intended use…"/></div>
    <div className="hmx-field"><label htmlFor="felo-image-size">Image size</label><select id="felo-image-size" className="hmx-select" value={size} onChange={e=>setSize(e.target.value)}><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Portrait · 1024 × 1536</option></select></div>
