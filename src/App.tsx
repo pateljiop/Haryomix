@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { HaryomixWorkspace } from "./components/HaryomixWorkspace";
 import { CommunityFeed } from "./components/CommunityFeed";
+import { ModerationDashboard } from "./components/ModerationDashboard";
 
 type ToolId = "code" | "ppt" | "pdf" | "image" | "exam";
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
@@ -16,6 +17,7 @@ export default function App() {
   const [initialTool, setInitialTool] = useState<ToolId>("code");
   const openWorkspace = (tool: ToolId = "code") => { setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goHome = () => { setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  if (window.location.pathname === "/moderation") return <ModerationDashboard onHome={() => { window.location.href = "/"; }} />;
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
