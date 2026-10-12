@@ -40,8 +40,21 @@ export async function onRequestPost({ env, request }: { env: Env; request: Reque
     return response({ error: "Send a JSON request." }, 415);
   }
 
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (declaredLength > 8192) return response({ error: "Request body is too large." }, 413);
+
+  let rawBody: string;
+  try {
+    rawBody = await request.text();
+  } catch {
+    return response({ error: "Could not read request body." }, 400);
+  }
+  if (new TextEncoder().encode(rawBody).byteLength > 8192) {
+    return response({ error: "Request body is too large." }, 413);
+  }
+
   let input: unknown;
-  try { input = await request.json(); } catch { return response({ error: "Invalid JSON body." }, 400); }
+  try { input = JSON.parse(rawBody); } catch { return response({ error: "Invalid JSON body." }, 400); }
   if (!input || typeof input !== "object") return response({ error: "Expected a post object." }, 400);
 
   const body = input as Record<string, unknown>;
@@ -62,6 +75,9 @@ export async function onRequestPost({ env, request }: { env: Env; request: Reque
     const forwarded = request.headers.get("CF-Connecting-IP") ?? "unknown";
     const bucket = new Date().toISOString().slice(0, 13);
     const rateKey = await digest(forwarded + ":" + bucket);
+    // Keep the throttle table bounded by removing expired hourly buckets.
+    const expiredBefore = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().slice(0, 13);
+    await env.DB.prepare("DELETE FROM community_rate_limits WHERE bucket < ?").bind(expiredBefore).run();
     await env.DB.prepare(
       "INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1"
     ).bind(rateKey, bucket).run();
