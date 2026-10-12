@@ -1,0 +1,51 @@
+interface Env { FELO_API_KEY?: string }
+const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+function reply(body: unknown, status=200) { return new Response(JSON.stringify(body), {status, headers}); }
+function clean(value: unknown, max=300): string { return typeof value === "string" ? value.trim().slice(0,max) : ""; }
+async function felo(path: string, key: string, init: RequestInit = {}) {
+  const response = await fetch(`https://openapi.felo.ai${path}`, { ...init, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(25_000) });
+  const data = await response.json().catch(() => null) as any;
+  if (!response.ok || data?.status === "error") throw new Error(response.status === 429 ? "rate_limit" : response.status === 402 ? "credits_required" : "provider_error");
+  return data;
+}
+export async function onRequestPost({request,env}:{request:Request;env:Env}):Promise<Response>{
+  if(!env.FELO_API_KEY) return reply({error:"Felo is not configured on the server.",code:"provider_not_configured"},503);
+  if(!request.headers.get("content-type")?.includes("application/json")) return reply({error:"Send a JSON request."},415);
+  let body:any; try { body=await request.json(); } catch { return reply({error:"Invalid JSON."},400); }
+  const action=clean(body?.action,30);
+  try {
+    if(action==="create"){
+      const query=clean(body.query,5000);
+      if(query.length<10) return reply({error:"Add a presentation topic and useful detail."},400);
+      const count=Math.min(30,Math.max(3,Number(body.slides)||10));
+      const style=clean(body.style,100)||"clean professional";
+      const prompt=`Create a polished, accurate, editable PowerPoint presentation. Target ${count} slides. Topic and requirements: ${query}. Visual direction: ${style}. Use a strong narrative, meaningful slide titles, concise readable text, examples/data only when supportable, a clear conclusion, and no fabricated citations or statistics. Language should follow the user's prompt.`;
+      const result=await felo("/v2/ppts",env.FELO_API_KEY,{method:"POST",body:JSON.stringify({query:prompt})});
+      const data=result?.data||{};
+      if(!data.task_id||!data.ppt_business_id) return reply({error:"Felo did not return a usable presentation task.",code:"invalid_provider_response"},502);
+      return reply({taskId:data.task_id,businessId:data.ppt_business_id,liveDocId:data.livedoc_short_id||null,status:"RUNNING"});
+    }
+    const taskId=clean(body.taskId,100), businessId=clean(body.businessId,100);
+    if(action==="status"){
+      if(!taskId) return reply({error:"Task ID is required."},400);
+      const result=await felo(`/v2/tasks/${encodeURIComponent(taskId)}/status`,env.FELO_API_KEY);
+      const status=clean(result?.data?.status,40).toUpperCase();
+      const historical=status==="COMPLETED"||status==="FAILED"||status==="ERROR" ? await felo(`/v2/tasks/${encodeURIComponent(taskId)}/historical`,env.FELO_API_KEY) : null;
+      return reply({status:status||"RUNNING",liveUrl:historical?.data?.ppt_url||null,error:historical?.data?.error_message||null,businessId:historical?.data?.ppt_biz_id||businessId||null});
+    }
+    if(action==="export"){
+      if(!businessId) return reply({error:"Presentation ID is required."},400);
+      await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY,{method:"POST",body:"{}"});
+      return reply({status:"PROCESSING"});
+    }
+    if(action==="export-status"){
+      if(!businessId) return reply({error:"Presentation ID is required."},400);
+      const result=await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY);
+      return reply({status:clean(result?.data?.status,40).toUpperCase()||"PROCESSING",downloadUrl:result?.data?.download_url||null,expiresAt:result?.data?.expires_at||null});
+    }
+    return reply({error:"Unsupported action."},400);
+  } catch(error) {
+    const code=error instanceof Error?error.message:"provider_error";
+    return reply({error:code==="credits_required"?"Felo account needs credits for this generation.":code==="rate_limit"?"Felo is rate-limiting requests. Retry shortly.":"Felo could not complete the presentation request. Check the key, credits, and provider status.",code},code==="rate_limit"?429:502);
+  }
+}
