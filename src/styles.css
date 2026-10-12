@@ -14,3 +14,10 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 @media(max-width:900px){.hmx-hero{grid-template-columns:1fr;padding-top:130px;gap:38px}.hmx-hero-copy .hmx-heading{max-width:9ch}.hmx-hero-art{width:min(100%,760px);margin:0 auto}.hmx-art-note-one{left:8px}.hmx-art-note-two{right:8px}.hmx-scroll-cue{display:none}}
 @media(max-width:560px){.hmx-hero{padding:112px 20px 70px;min-height:auto}.hmx-hero-copy .hmx-heading{font-size:clamp(3.2rem,15vw,4.7rem)}.hmx-hero-actions{gap:14px}.hmx-hero-art{margin-top:8px}.hmx-art-frame{border-radius:9px}.hmx-art-note{font-size:9px;padding:8px}.hmx-byline{display:none}}
 @media(prefers-reduced-motion:reduce){.hmx-art-frame,.hmx-art-frame img{animation:none;transform:none}}
+
+/* Larger, more readable generated study notes and long-form outputs. */
+.hmx-notes-preview{font-size:clamp(16px,1.35vw,18px)!important;line-height:1.95!important;max-height:72vh;overflow:auto;padding:22px 24px;background:#fff;border:1px solid var(--hm-line);border-radius:12px;color:#30394b}
+.hmx-notes-preview::selection{background:#dfe7ff}
+.hmx-ppt-slide h3{overflow-wrap:anywhere}
+.hmx-field textarea#ppt-points{min-height:230px}
+@media(max-width:640px){.hmx-notes-preview{font-size:16px!important;line-height:1.85!important;padding:16px;max-height:65vh}}
