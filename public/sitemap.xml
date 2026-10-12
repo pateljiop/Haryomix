@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://haryomix.pages.dev/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://haryomix.pages.dev/pdf-tools/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://haryomix.pages.dev/image-resizer/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://haryomix.pages.dev/syllabus-notes/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://haryomix.pages.dev/exam-preparation/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://haryomix.pages.dev/ppt-maker/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://haryomix.pages.dev/code-debugger/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>
