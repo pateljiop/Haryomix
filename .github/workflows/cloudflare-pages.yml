@@ -115,3 +115,19 @@ jobs:
           wrangler d1 execute haryomix-db --remote --command "SELECT id FROM community_reports WHERE post_id = $post_id AND details = 'CI report endpoint smoke test' AND status = 'pending' LIMIT 1;" > /tmp/haryomix-report-db.json
           grep -q '"id"' /tmp/haryomix-report-db.json
           echo "Community report endpoint stored a private pending report."
+
+      - name: Verify moderation API rejects unauthenticated requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-moderation.json --write-out '%{http_code}' https://haryomix.pages.dev/api/moderation)"
+          cat /tmp/haryomix-moderation.json
+          if [[ "$code" != "401" && "$code" != "503" ]]; then
+            echo "Expected unauthenticated moderation access to return 401 or unconfigured 503, got HTTP $code" >&2
+            exit 1
+          fi
+          if grep -q '"reports"' /tmp/haryomix-moderation.json; then
+            echo "Unauthenticated moderation response unexpectedly contains reports." >&2
+            exit 1
+          fi
+          echo "Moderation API does not expose reports without authentication."
