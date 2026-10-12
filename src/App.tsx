@@ -2,6 +2,7 @@ import { useState } from "react";
 import { HaryomixWorkspace } from "./components/HaryomixWorkspace";
 import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
+import { HeroWorkspace } from "./components/HeroWorkspace";
 
 type ToolId = "code" | "ppt" | "pdf" | "image" | "exam";
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
@@ -27,7 +28,7 @@ export default function App() {
     </nav>
     <section id="top" className="hmx-hero">
       <div className="hmx-hero-copy"><p className="hmx-overline">Your student workspace</p><h1 className="hmx-heading">Make student work move.</h1><p className="hmx-copy">One calm workspace for code, documents, visuals and exam prep. Spend less time switching tools and more time understanding what you are building.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Explore workspace ↗</button><a className="hmx-study-launch" href="#tools">See what you can do ↓</a></div><div className="hmx-hero-tags"><span>Code</span><span>Create</span><span>Revise</span></div></div>
-      <div className="hmx-hero-art" aria-label="Illustrated student desk"><div className="hmx-art-frame"><img src="/assets/world/hero-scene.svg" alt="A laptop, notes and study materials arranged on a bright desk" /></div><span className="hmx-art-note hmx-art-note-one">01 / MAKE</span><span className="hmx-art-note hmx-art-note-two">02 / LEARN</span><span className="hmx-art-index">HMX — 001</span></div>
+      <HeroWorkspace />
       <a href="#tools" className="hmx-scroll-cue"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
     </section>
     <section className="hmx-section" id="tools"><div className="hmx-section-inner hmx-tool-layout">
