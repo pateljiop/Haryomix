@@ -21,7 +21,7 @@ export default function App() {
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
-      <a className="hmx-brand" href="#top"><img src="/assets/brand/favicon.svg" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
+      <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
       <div className="hmx-navlinks"><a href="#tools">Workspace</a><a href="#study">Study tools</a><a href="#open-source">Open source</a></div>
       <button className="hmx-nav-cta" onClick={() => openWorkspace()}>Open workspace ↗</button>
     </nav>
