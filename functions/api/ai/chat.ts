@@ -93,7 +93,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
 
   let input: unknown;
   try { input = JSON.parse(raw); } catch { return reply({ error: "Invalid JSON body." }, 400); }
-  if (!input || typeof input !== "object") return reply({ error: "Expected an AI request." }, 400);
+  if (!input || typeof input !== "object" || Array.isArray(input)) return reply({ error: "Expected an AI request object." }, 400);
 
   const body = input as Record<string, unknown>;
   const task = text(body.task, 30);
