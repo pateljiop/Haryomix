@@ -71,19 +71,17 @@ export async function onRequestPost({ env, request }: { env: Env; request: Reque
   }
 
   try {
-    // Keep only a one-way digest for abuse throttling; never store raw IP addresses.
+    // Store only a one-way digest, never a raw client IP address.
     const forwarded = request.headers.get("CF-Connecting-IP") ?? "unknown";
     const bucket = new Date().toISOString().slice(0, 13);
     const rateKey = await digest(forwarded + ":" + bucket);
-    // Keep the throttle table bounded by removing expired hourly buckets.
     const expiredBefore = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().slice(0, 13);
     await env.DB.prepare("DELETE FROM community_rate_limits WHERE bucket < ?").bind(expiredBefore).run();
-    await env.DB.prepare(
-      "INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1"
-    ).bind(rateKey, bucket).run();
+
+    // Atomic increment + returned count avoids a separate SELECT race under concurrent requests.
     const current = await env.DB.prepare(
-      "SELECT request_count AS count FROM community_rate_limits WHERE rate_key = ?"
-    ).bind(rateKey).first<{ count: number }>();
+      "INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1 RETURNING request_count AS count"
+    ).bind(rateKey, bucket).first<{ count: number }>();
     if (!current || current.count > 5) return response({ error: "Posting limit reached. Try again later." }, 429);
 
     const createdAt = new Date().toISOString();
