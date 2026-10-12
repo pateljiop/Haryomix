@@ -65,11 +65,10 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
-            response="$(curl --silent --show-error --max-time 20 --write-out \\n%{http_code}' https://haryomix.pages.dev/api/health)" || response=\\n000'
-            body="${response%\\n'*}"
-            code="${response##*\\n'}"
+            code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-health.json --write-out '%{http_code}' https://haryomix.pages.dev/api/health)" || code="000"
+            body="$(cat /tmp/haryomix-health.json 2>/dev/null || true)"
             printf 'Health check attempt %s (HTTP %s): %s\\n' "$attempt" "$code" "$body"
-            if [[ "$code" == "200" ]] && grep -q '"status":"ok"' <<< "$body" && grep -q '"database":"connected"' <<< "$body"; then
+            if [[ "$code" == "200" ]] && grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' <<< "$body" && grep -Eq '"database"[[:space:]]*:[[:space:]]*"connected"' <<< "$body"; then
               echo "Production API and D1 connection verified."
               exit 0
             fi
