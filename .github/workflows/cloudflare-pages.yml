@@ -38,6 +38,7 @@ jobs:
       - name: Set up Wrangler
         run: npm install --global wrangler@4
 
+      # D1 schema is idempotent; rerunning this workflow safely ensures tables exist.
       - name: Apply D1 community schema migration
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
