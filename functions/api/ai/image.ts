@@ -63,8 +63,14 @@ async function fromFelo(prompt: string, size: string, key: string): Promise<Resp
 }
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) return reply({ error: "Send a JSON request." }, 415);
+  const declaredLength = Number(request.headers.get("content-length") || "0");
+  if (declaredLength > 8_192) return reply({ error: "Request body is too large." }, 413);
+  let rawBody: string;
+  try { rawBody = await request.text(); } catch { return reply({ error: "Could not read request body." }, 400); }
+  if (new TextEncoder().encode(rawBody).byteLength > 8_192) return reply({ error: "Request body is too large." }, 413);
   let body: any;
-  try { body = await request.json(); } catch { return reply({ error: "Invalid JSON." }, 400); }
+  try { body = JSON.parse(rawBody); } catch { return reply({ error: "Invalid JSON." }, 400); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return reply({ error: "Expected a JSON object." }, 400);
   const prompt = typeof body?.prompt === "string" ? body.prompt.trim().slice(0, 3000) : "";
   if (prompt.length < 5) return reply({ error: "Describe the image you want to create." }, 400);
   const size = ["1024x1024", "1536x1024", "1024x1536"].includes(body?.size) ? body.size : "1024x1024";
