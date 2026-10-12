@@ -3,7 +3,8 @@ import { useState } from "react";
 type Task = "code" | "study" | "ppt" | "general";
 type Provider = "auto" | "groq" | "gemini";
 
-export function HaryomixAI({ task = "general" }: { task?: Task }) {
+export function HaryomixAI() {
+  const [task, setTask] = useState<Task>("code");
   const [prompt, setPrompt] = useState("");
   const [provider, setProvider] = useState<Provider>("auto");
   const [answer, setAnswer] = useState("");
@@ -38,6 +39,15 @@ export function HaryomixAI({ task = "general" }: { task?: Task }) {
     <div className="hmx-panel-head"><h2>Haryomix AI</h2><span style={{fontSize:11,color:"#7a8292"}}>Groq + Gemini</span></div>
     <div className="hmx-panel-body">
       <div className="hmx-note" style={{marginBottom:16}}>AI responses come from a server-side provider. Do not paste passwords, API keys, or private personal data.</div>
+      <div className="hmx-field">
+        <label htmlFor="hmx-ai-task">What do you need help with?</label>
+        <select id="hmx-ai-task" className="hmx-select" value={task} onChange={e=>setTask(e.target.value as Task)}>
+          <option value="code">Code Doctor — debug and explain code</option>
+          <option value="study">Exam Copilot — study and revision</option>
+          <option value="ppt">PPT Studio — presentation outline</option>
+          <option value="general">General assistant</option>
+        </select>
+      </div>
       <div className="hmx-field">
         <label htmlFor="hmx-ai-provider">AI provider</label>
         <select id="hmx-ai-provider" className="hmx-select" value={provider} onChange={e=>setProvider(e.target.value as Provider)}>
