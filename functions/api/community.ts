@@ -62,7 +62,7 @@ export async function onRequestPost({ env, request }: { env: Env; request: Reque
     const forwarded = request.headers.get("CF-Connecting-IP") ?? "unknown";
     const bucket = new Date().toISOString().slice(0, 13);
     const rateKey = await digest(forwarded + ":" + bucket);
-    const rate = await env.DB.prepare(
+    await env.DB.prepare(
       "INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1"
     ).bind(rateKey, bucket).run();
     const current = await env.DB.prepare(
