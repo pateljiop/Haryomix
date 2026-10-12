@@ -21,7 +21,7 @@ export default function App() {
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
-      <a className="hmx-brand" href="#top"><img src="/assets/brand/favicon.svg" alt="" /> Haryomix <span className="hmx-byline">BY HARIOM BUILDS</span></a>
+      <a className="hmx-brand" href="#top"><img src="/assets/brand/favicon.svg" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
       <div className="hmx-navlinks"><a href="#tools">Workspace</a><a href="#study">Study tools</a><a href="#open-source">Open source</a></div>
       <button className="hmx-nav-cta" onClick={() => openWorkspace()}>Open workspace ↗</button>
     </nav>
@@ -43,9 +43,9 @@ export default function App() {
         <button onClick={() => openWorkspace("exam")} className="hmx-toolbox-card"><span className="hmx-card-icon">✳</span><h3>Revision that sticks</h3><p>Make topic notes, practice questions and review weak areas.</p><span className="hmx-card-open">Start revising ↗</span></button>
       </div>
     </div></section>
-    <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><button className="hmx-study-launch" onClick={() => openWorkspace("exam")}>Create a revision plan ↗</button></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
-    <section className="hmx-cta" id="open-source"><div className="hmx-cta-inner"><div><h2 className="hmx-heading">Build skills, not busywork.</h2><p>Haryomix is a student-first toolkit. Explore the workspace, test the tools and help shape what comes next.</p></div><div><button className="hmx-cta-link" onClick={() => openWorkspace()}>Open Haryomix ↗</button><p className="hmx-cta-note">Local utilities need no external AI key.</p></div></div></section>
+    <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix by Hariom Builds supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><button className="hmx-study-launch" onClick={() => openWorkspace("exam")}>Create a revision plan ↗</button></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
+    <section className="hmx-cta" id="open-source"><div className="hmx-cta-inner"><div><h2 className="hmx-heading">Build skills, not busywork.</h2><p>Haryomix is a student-first toolkit by Hariom Builds. Explore the workspace, test the tools and help shape what comes next.</p></div><div><button className="hmx-cta-link" onClick={() => openWorkspace()}>Open Haryomix ↗</button><p className="hmx-cta-note">Local utilities need no external AI key.</p></div></div></section>
     <CommunityFeed />
-    <footer className="hmx-footer"><span><strong>Haryomix</strong> by Hariom Builds</span><span>Tools for students, built with care.</span></footer>
+    <footer className="hmx-footer"><span><strong>Hariom Builds</strong> · Haryomix Workspace</span><span>Tools for students, built with care.</span></footer>
   </main>;
 }
