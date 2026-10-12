@@ -59,3 +59,21 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: wrangler pages deploy dist --project-name=haryomix --branch=main
+
+      - name: Verify production API and D1 connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            response="$(curl --silent --show-error --max-time 20 --write-out \\n%{http_code}' https://haryomix.pages.dev/api/health)" || response=\\n000'
+            body="${response%\\n'*}"
+            code="${response##*\\n'}"
+            printf 'Health check attempt %s (HTTP %s): %s\\n' "$attempt" "$code" "$body"
+            if [[ "$code" == "200" ]] && grep -q '"status":"ok"' <<< "$body" && grep -q '"database":"connected"' <<< "$body"; then
+              echo "Production API and D1 connection verified."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production API health or D1 connection verification failed." >&2
+          exit 1
