@@ -22,7 +22,7 @@ export default function App() {
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
       <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
-      <div className="hmx-navlinks"><a href="#tools">Workspace</a><a href="#study">Study tools</a><a href="#open-source">Open source</a></div>
+      <div className="hmx-navlinks"><a href="#tools">Workspace</a><a href="#study">Study tools</a><a href="#student-tools">All student tools</a><a href="#open-source">About</a></div>
       <button className="hmx-nav-cta" onClick={() => openWorkspace()}>Open workspace ↗</button>
     </nav>
     <section id="top" className="hmx-hero">
