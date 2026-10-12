@@ -76,3 +76,33 @@ jobs:
           done
           echo "Production API health or D1 connection verification failed." >&2
           exit 1
+
+      - name: Verify community POST and persistent GET
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          marker="HARYOMIX_CI_SMOKE_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          post_id=""
+          cleanup() {
+            if [[ "${post_id:-}" =~ ^[0-9]+$ ]] && [[ "$post_id" != "0" ]]; then
+              wrangler d1 execute haryomix-db --remote --command "DELETE FROM community_posts WHERE id = $post_id;" >/dev/null
+            fi
+          }
+          trap cleanup EXIT
+
+          http_code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-post.json --write-out '%{http_code}' \
+            -X POST https://haryomix.pages.dev/api/community \
+            -H 'Content-Type: application/json' \
+            --data "$(python -c 'import json,os; print(json.dumps({"displayName":"Haryomix CI","message":os.environ["MARKER"]}))' MARKER="$marker")")"
+          cat /tmp/haryomix-post.json
+          test "$http_code" = "201"
+          post_id="$(python -c 'import json; print(json.load(open("/tmp/haryomix-post.json"))["post"]["id"])')"
+          [[ "$post_id" =~ ^[0-9]+$ ]] && [[ "$post_id" != "0" ]]
+
+          curl --fail --silent --show-error --max-time 20 https://haryomix.pages.dev/api/community > /tmp/haryomix-community.json
+          python -c 'import json,os; d=json.load(open("/tmp/haryomix-community.json")); assert any(str(p["id"]) == os.environ["POST_ID"] and p["message"] == os.environ["MARKER"] for p in d.get("posts", [])), "POST was not returned by subsequent GET"; print("Community POST persisted and was returned by GET.")' POST_ID="$post_id" MARKER="$marker"
