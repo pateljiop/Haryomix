@@ -18,3 +18,5 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 /* Larger, more readable generated study notes and long-form outputs. */
 .hmx-ppt-slide h3{overflow-wrap:anywhere}
 .hmx-field textarea#ppt-points{min-height:230px}
+
+.hmx-tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:18px}.hmx-tool-card{display:flex;flex-direction:column;gap:7px;min-height:92px;text-align:left;padding:14px;border:1px solid var(--hm-line);border-radius:10px;background:#fff;color:var(--hm-ink);transition:border-color .18s,transform .18s}.hmx-tool-card:hover:not(:disabled){border-color:#aab8f4;transform:translateY(-2px)}.hmx-tool-card:disabled{opacity:.5;cursor:not-allowed}.hmx-tool-card strong{font-size:13px}.hmx-tool-card span{font-size:11px;line-height:1.5;color:var(--hm-muted)}
