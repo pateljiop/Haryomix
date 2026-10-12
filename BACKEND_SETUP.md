@@ -25,7 +25,7 @@ Confirm the database name in the command matches the database you created. Do no
 - `GET /api/community` should return `{ "posts": [] }` on a fresh database.
 - `POST /api/community` accepts JSON: `{"displayName":"Hariom","message":"Hello Haryomix!"}`.
 
-Community posts are publicly visible and currently have no account identity or moderation queue. The endpoint validates input and applies a basic per-IP hourly throttle using a one-way digest, but this is not a substitute for full identity, moderation, abuse reporting, or CAPTCHA. Do not treat public posts as private.
+Community posts are publicly visible immediately and have no account identity. Readers can report a post for spam, harassment, personal information, or another concern; reports are stored privately in D1 with a pending status and rate-limited. There is not yet an authenticated moderator dashboard, automatic removal, or guaranteed review SLA, so reporting does not itself hide a post. Posting and reporting limits use one-way digests rather than storing raw IP addresses. Do not treat public posts or report details as private from the site operator.
 
 ## Current scope
 
