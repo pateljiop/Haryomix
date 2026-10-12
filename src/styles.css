@@ -20,3 +20,16 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .hmx-field textarea#ppt-points{min-height:230px}
 
 .hmx-tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:18px}.hmx-tool-card{display:flex;flex-direction:column;gap:7px;min-height:92px;text-align:left;padding:14px;border:1px solid var(--hm-line);border-radius:10px;background:#fff;color:var(--hm-ink);transition:border-color .18s,transform .18s}.hmx-tool-card:hover:not(:disabled){border-color:#aab8f4;transform:translateY(-2px)}.hmx-tool-card:disabled{opacity:.5;cursor:not-allowed}.hmx-tool-card strong{font-size:13px}.hmx-tool-card span{font-size:11px;line-height:1.5;color:var(--hm-muted)}
+
+/* Search-friendly student tools and accessible FAQ disclosure */
+.hmx-seo-content{background:#fff}
+.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hmx-seo-content .hmx-toolbox-card{min-height:0;background:#fbfcff}
+.hmx-seo-content .hmx-toolbox-card h3{margin-top:26px}
+.hmx-seo-faq{padding:20px 0;border-bottom:1px solid var(--hm-line)}
+.hmx-seo-faq summary{cursor:pointer;list-style:none;font-size:16px;font-weight:750;letter-spacing:-.025em}
+.hmx-seo-faq summary::-webkit-details-marker{display:none}
+.hmx-seo-faq summary:after{content:"+";float:right;color:var(--hm-blue);font-size:20px}
+.hmx-seo-faq[open] summary:after{content:"−"}
+.hmx-seo-faq p{max-width:850px;margin:14px 0 0;color:var(--hm-muted);font-size:14px;line-height:1.75}
+@media(max-width:640px){.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:1fr}.hmx-seo-faq summary{padding-right:20px;font-size:14px}}
