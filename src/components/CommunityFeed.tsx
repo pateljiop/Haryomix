@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from "react";
 
 type Post = { id: number; displayName: string; message: string; createdAt: string };
 
@@ -81,7 +81,7 @@ export function CommunityFeed() {
   </section>;
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: "100%", boxSizing: "border-box", border: "1px solid #d8dbd4", borderRadius: 10,
   background: "#fff", color: "#20251f", padding: "12px 13px", font: "inherit", outlineOffset: 2,
 };
