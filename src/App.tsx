@@ -23,11 +23,11 @@ export default function App() {
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
       <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
-      <div className="hmx-navlinks"><a href="#tools">Workspace</a><a href="#study">Study tools</a><a href="/pdf-tools/">PDF tools</a><a href="/image-resizer/">Image resizer</a><a href="/syllabus-notes/">Syllabus notes</a><a href="#student-tools">All tools</a></div>
+      <div className="hmx-navlinks"><a href="#tools">Features</a><a href="#tools">Workspace</a><a href="#study">Revision Tool</a><a href="#student-tools">Utility Hub</a></div>
       <button className="hmx-nav-cta" onClick={() => openWorkspace()}>Open workspace ↗</button>
     </nav>
     <section id="top" className="hmx-hero">
-      <div className="hmx-hero-copy"><p className="hmx-overline">Your student workspace</p><h1 className="hmx-heading">Make student work move.</h1><p className="hmx-copy">One calm workspace for code, documents, visuals and exam prep. Spend less time switching tools and more time understanding what you are building.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Explore workspace ↗</button><a className="hmx-study-launch" href="#tools">See what you can do ↓</a></div><div className="hmx-hero-tags"><span>Code</span><span>Create</span><span>Revise</span></div></div>
+      <div className="hmx-hero-copy"><p className="hmx-overline">Your student workspace</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One distraction-free workspace built for thinkers and builders. Stop switching between tabs—code, create documents, convert assets and prepare for exams in one focused canvas.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
       <HeroWorkspace />
       <a href="#tools" className="hmx-scroll-cue"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
     </section>
