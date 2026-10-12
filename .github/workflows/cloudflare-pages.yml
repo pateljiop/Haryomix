@@ -98,11 +98,11 @@ jobs:
           http_code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-post.json --write-out '%{http_code}' \
             -X POST https://haryomix.pages.dev/api/community \
             -H 'Content-Type: application/json' \
-            --data "$(python -c 'import json,os; print(json.dumps({"displayName":"Haryomix CI","message":os.environ["MARKER"]}))' MARKER="$marker")")"
+            --data "$(MARKER="$marker" python -c 'import json,os; print(json.dumps({"displayName":"Haryomix CI","message":os.environ["MARKER"]}))')")"
           cat /tmp/haryomix-post.json
           test "$http_code" = "201"
           post_id="$(python -c 'import json; print(json.load(open("/tmp/haryomix-post.json"))["post"]["id"])')"
           [[ "$post_id" =~ ^[0-9]+$ ]] && [[ "$post_id" != "0" ]]
 
           curl --fail --silent --show-error --max-time 20 https://haryomix.pages.dev/api/community > /tmp/haryomix-community.json
-          python -c 'import json,os; d=json.load(open("/tmp/haryomix-community.json")); assert any(str(p["id"]) == os.environ["POST_ID"] and p["message"] == os.environ["MARKER"] for p in d.get("posts", [])), "POST was not returned by subsequent GET"; print("Community POST persisted and was returned by GET.")' POST_ID="$post_id" MARKER="$marker"
+          POST_ID="$post_id" MARKER="$marker" python -c 'import json,os; d=json.load(open("/tmp/haryomix-community.json")); assert any(str(p["id"]) == os.environ["POST_ID"] and p["message"] == os.environ["MARKER"] for p in d.get("posts", [])), "POST was not returned by subsequent GET"; print("Community POST persisted and was returned by GET.")'
