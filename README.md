@@ -16,7 +16,7 @@ Image and PDF operations run in the browser. The initial release does not requir
 
 ## Local development
 
-Requires Node.js 20+.
+Requires Node.js 22+.
 
 ```bash
 npm install
