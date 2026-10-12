@@ -16,8 +16,5 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 @media(prefers-reduced-motion:reduce){.hmx-art-frame,.hmx-art-frame img{animation:none;transform:none}}
 
 /* Larger, more readable generated study notes and long-form outputs. */
-.hmx-notes-preview{font-size:clamp(16px,1.35vw,18px)!important;line-height:1.95!important;max-height:72vh;overflow:auto;padding:22px 24px;background:#fff;border:1px solid var(--hm-line);border-radius:12px;color:#30394b}
-.hmx-notes-preview::selection{background:#dfe7ff}
 .hmx-ppt-slide h3{overflow-wrap:anywhere}
 .hmx-field textarea#ppt-points{min-height:230px}
-@media(max-width:640px){.hmx-notes-preview{font-size:16px!important;line-height:1.85!important;padding:16px;max-height:65vh}}
