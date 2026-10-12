@@ -15,6 +15,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: CLOUDFLARE_API_TOKEN
     steps:
       - name: Checkout
         uses: actions/checkout@v4
