@@ -37,6 +37,18 @@ Community posts are publicly visible immediately and have no account identity. R
 
 The moderation API requires a Bearer token and returns no report data without successful authentication. Anyone with the moderator token can take moderation actions, so keep it private and rotate it immediately if exposed. This is a shared moderator token, not individual accounts, and the dashboard does not provide an audit trail of which human performed an action.
 
+## 5. Configure AI providers (Groq + Gemini)
+
+The workspace includes an AI assistant at **Workspace → Haryomix AI**. It can route Code Doctor, Exam Copilot, presentation-outline, and general questions to Groq or Gemini. Groq is preferred in automatic mode; Gemini is tried as a fallback when configured. Provider/model errors are returned as safe messages instead of exposing secret details.
+
+1. In Cloudflare Dashboard, open **Workers & Pages → haryomix → Settings → Variables and Secrets**.
+2. Add `GROQ_API_KEY` and/or `GEMINI_API_KEY` as encrypted secrets for **Production**. Never put provider keys in React code, `.env` committed to Git, or public GitHub secrets.
+3. Redeploy the latest `main` commit after adding the secrets.
+4. Open the workspace and select **Haryomix AI**. Choose the task and preferred provider, enter a prompt, and send it.
+5. The API uses the existing D1 `community_rate_limits` table to limit each IP digest to 10 AI requests per hour. This is a basic safeguard, not a substitute for Cloudflare rate limiting and provider spending limits.
+
+If no provider secret is configured, the API returns `503 ai_not_configured`. Provider quotas, pricing, model access and availability are controlled by Groq/Google and can change. AI responses can be wrong; verify code and study answers before relying on them. The initial version sends only the text entered in the AI prompt to the selected provider; it does not upload files or execute user code.
+
 ## Current scope
 
-This backend foundation adds persistent community posting and a health endpoint. It does **not** yet add user accounts, project/file cloud storage, an AI provider, or real AI debugging. AI features require a configured model binding/provider and server-side secret management; no API keys belong in browser code or Git.
+This backend foundation adds persistent community posting and a health endpoint. It does **not** yet add user accounts, project/file cloud storage, automatic code execution, or file uploads to AI. The AI chat endpoint requires provider secrets and server-side secret management; no API keys belong in browser code or Git.
