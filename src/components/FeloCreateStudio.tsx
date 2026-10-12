@@ -14,6 +14,7 @@ export function FeloCreateStudio(){
  const [style,setStyle]=useState("Modern, premium, editorial, clean layouts");
  const [prompt,setPrompt]=useState("");
  const [size,setSize]=useState("1024x1024");
+ const [imageProvider,setImageProvider]=useState("auto");
  const [job,setJob]=useState<PptJob|null>(null);
  const [image,setImage]=useState("");
  const [downloadUrl,setDownloadUrl]=useState("");
@@ -43,7 +44,7 @@ export function FeloCreateStudio(){
  async function generateImage(){
   if(prompt.trim().length<5){setMessage("Image ka prompt thoda detail me likho.");return;}
   setBusy(true);setMessage("Felo image generate kar raha hai…");setImage("");
-  try{const data=await api("/api/ai/image",{prompt,size});setImage(data.image?.url||data.image?.dataUrl||"");setMessage("Image generate ho gayi. Preview se save kar sakte ho.");}
+  try{const data=await api("/api/ai/image",{prompt,size,provider:imageProvider});setImage(data.image?.url||data.image?.dataUrl||"");setMessage(`Image generate ho gayi · Provider: ${data.provider||imageProvider}. Preview se save kar sakte ho.`);}
   catch(e){setMessage(e instanceof Error?e.message:"Image generation failed.");}finally{setBusy(false);}
  }
  function downloadImage(){if(!image)return;const a=document.createElement("a");a.href=image;a.download="haryomix-ai-image.png";document.body.appendChild(a);a.click();a.remove();}
@@ -57,7 +58,7 @@ export function FeloCreateStudio(){
    {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}</p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
   </>:<>
    <div className="hmx-field"><label htmlFor="felo-image-prompt">Describe the image</label><textarea id="felo-image-prompt" className="hmx-textarea" style={{minHeight:130,fontFamily:"inherit"}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Subject, composition, mood, lighting, art direction, background, aspect ratio, intended use…"/></div>
-   <div className="hmx-field"><label htmlFor="felo-image-size">Image size</label><select id="felo-image-size" className="hmx-select" value={size} onChange={e=>setSize(e.target.value)}><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Portrait · 1024 × 1536</option></select></div>
+   <div className="hmx-field"><label htmlFor="felo-image-provider">Image provider</label><select id="felo-image-provider" className="hmx-select" value={imageProvider} onChange={e=>setImageProvider(e.target.value)}><option value="auto">Auto · Felo, then Pollinations fallback</option><option value="felo">Felo</option><option value="pollinations">Pollinations</option></select><p style={{fontSize:11,color:"#7a8292",marginTop:6}}>Pollinations server-side API key is required for the fallback. Never paste the key into this prompt.</p></div>\n   <div className="hmx-field"><label htmlFor="felo-image-size">Image size</label><select id="felo-image-size" className="hmx-select" value={size} onChange={e=>setSize(e.target.value)}><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Portrait · 1024 × 1536</option></select></div>
    <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={generateImage}>{busy?"Generating…":"Generate AI image"}</button>{image&&<button className="hmx-btn" onClick={downloadImage}>Download image</button>}</div>
    {image&&<img src={image} alt="AI-generated result" style={{display:"block",width:"100%",maxWidth:760,maxHeight:650,objectFit:"contain",marginTop:20,borderRadius:14,border:"1px solid #dce3ec",background:"#f5f7fb"}}/>}
   </>}
