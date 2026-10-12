@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /moderation
+
+Sitemap: https://haryomix.pages.dev/sitemap.xml
