@@ -30,12 +30,11 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       pptx.subject=course;
       pptx.title=title;
       pptx.company="Hariom Builds";
-      pptx.lang="en-US";
-      pptx.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos",lang:"en-US"};
+      pptx.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos"};
       const C={navy:"14243A",blue:"3155D9",cyan:"38A7C8",ink:"202B3C",muted:"637083",paper:"F5F7FB",white:"FFFFFF",line:"DCE3EC",pale:"EAF0FF",green:"287A68"};
-      const W=13.333,H=7.5;
+      const H=7.5;
       const clean=(v:string)=>v.replace(/[<>]/g,"").trim();
-      function footer(slide:any,n:number,label:string){
+      function footer(slide:any,n:number){
         slide.addShape(pptx.ShapeType.line,{x:.55,y:7.08,w:12.2,h:0,line:{color:C.line,width:.7}});
         slide.addText("HARYOMIX  /  "+clean(course).toUpperCase(),{x:.58,y:7.16,w:9,h:.16,fontFace:"Aptos",fontSize:7,color:C.muted,charSpacing:.7,margin:0});
         slide.addText(String(n).padStart(2,"0"),{x:12.1,y:7.13,w:.55,h:.22,fontFace:"Aptos",fontSize:9,bold:true,color:C.blue,align:"right",margin:0});
@@ -53,7 +52,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       cover.addShape(pptx.ShapeType.rect,{x:9.55,y:1.05,w:2.7,h:4.9,rectRadius:.12,fill:{color:"203D60",transparency:5},line:{color:"365779",width:1}});
       cover.addShape(pptx.ShapeType.line,{x:9.9,y:2.0,w:2.0,h:0,line:{color:C.cyan,width:2}});
       cover.addText("HARYOMIX  /  PRESENTATION BRIEF",{x:.8,y:.75,w:7.2,h:.3,fontFace:"Aptos",fontSize:9,bold:true,color:"A9C8FF",charSpacing:2,margin:0});
-      cover.addText(clean(title),{x:.8,y:1.75,w:7.25,h:2.1,fontFace:"Aptos Display",fontSize:34,bold:true,color:C.white,breakLine:false,fit:"shrink",margin:0.02, valign:"mid"});
+      cover.addText(clean(title),{x:.8,y:1.75,w:7.25,h:2.1,fontFace:"Aptos Display",fontSize:34,bold:true,color:C.white,breakLine:false,fit:"shrink",margin:0.02, valign:"middle"});
       cover.addShape(pptx.ShapeType.line,{x:.82,y:4.15,w:1.0,h:0,line:{color:C.cyan,width:3}});
       cover.addText(clean(purpose),{x:.82,y:4.45,w:6.8,h:1.0,fontFace:"Aptos",fontSize:16,color:"D6E1EF",breakLine:false,fit:"shrink",margin:0.02,valign:"top"});
       cover.addText(clean(course),{x:.82,y:6.15,w:7.0,h:.35,fontFace:"Aptos",fontSize:10,color:"A9C8FF",margin:0});
@@ -69,7 +68,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
           agenda.addText(String(i+1).padStart(2,"0"),{x:x+.03,y:y+.12,w:.42,h:.16,fontSize:8,bold:true,color:C.blue,align:"center",margin:0});
           agenda.addText(item,{x:x+.65,y:y+.02,w:5.0,h:.4,fontFace:"Aptos",fontSize:12,bold:true,color:C.ink,fit:"shrink",margin:0.02,valign:"mid"});
         });
-        footer(agenda,slideNo++,"Agenda");
+        footer(agenda,slideNo++);
       }
       items.forEach((item,i)=>{
         const sl=base(String(i+1).padStart(2,"0")+" / "+item);
@@ -92,7 +91,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
           sl.addText(b,{x:1.52,y:y+.13,w:10.4,h:detail==="Detailed"?.46:.6,fontFace:"Aptos",fontSize:detail==="Detailed"?12:14,color:C.ink,fit:"shrink",margin:0.02,valign:"mid"});
         });
         sl.addText("AUDIENCE  /  "+clean(audience),{x:.72,y:6.15,w:8.5,h:.24,fontSize:8,color:C.muted,charSpacing:.4,margin:0});
-        footer(sl,slideNo++,"Content");
+        footer(sl,slideNo++);
         if(notes){
           sl.addNotes(`Presenter guidance: ${item}.\n\nOpen with the central message, define any necessary terms, and connect the point to the presentation objective. Use one relevant real-world example and cite reliable sources for any factual or numerical claim you add. Do not present placeholder statements as verified research.\n\nAudience: ${audience}. Purpose: ${purpose}`);
         }
@@ -105,7 +104,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       final.addShape(pptx.ShapeType.line,{x:.75,y:5.3,w:1.0,h:0,line:{color:C.cyan,width:3}});
       final.addText("Questions & discussion",{x:.75,y:5.62,w:8.8,h:.55,fontFace:"Aptos Display",fontSize:23,bold:true,color:C.white,margin:0});
       final.addText("Prepared with Haryomix · "+clean(course),{x:.75,y:6.55,w:9,h:.25,fontSize:9,color:"A9C8FF",margin:0});
-      footer(final,slideNo,"Close");
+      footer(final,slideNo);
       await pptx.writeFile({fileName:slug(title)+".pptx"});
       setNotice(`Expert-style PowerPoint exported: ${slideNo} slides, consistent layout, agenda, takeaway slide${notes?", and speaker notes":""}. The outline is professionally structured but factual claims and sources still need your review.`);
     } catch(e) {
