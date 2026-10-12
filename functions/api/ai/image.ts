@@ -1,40 +1,104 @@
-interface Env { FELO_API_KEY?: string; DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>() : Promise<T | null> } } } }
-const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
-function reply(body: unknown,status=200){return new Response(JSON.stringify(body),{status,headers});}
-async function withinLimit(request: Request, env: Env): Promise<boolean> {
- if(!env.DB) return false;
- const ip=request.headers.get("CF-Connecting-IP")||"unknown";
- const bucket=new Date().toISOString().slice(0,13);
- const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("haryomix-felo-image:"+ip+":"+bucket));
- const key=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
- const row=await env.DB.prepare("INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1 RETURNING request_count AS count").bind(key,bucket).first<{count:number}>();
- return Boolean(row && row.count<=5);
+interface Env {
+  FELO_API_KEY?: string;
+  POLLINATIONS_API_KEY?: string;
+  DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>(): Promise<T | null> } } };
 }
-export async function onRequestPost({request,env}:{request:Request;env:Env}):Promise<Response>{
-  if(!env.FELO_API_KEY)return reply({error:"Felo is not configured on the server.",code:"provider_not_configured"},503);
-  try { if(!await withinLimit(request,env)) return reply({error:"AI image limit reached for this hour, or request protection is unavailable.",code:"rate_limited"},429); }
-  catch { return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
-  if(!request.headers.get("content-type")?.includes("application/json"))return reply({error:"Send a JSON request."},415);
-  let body:any;try{body=await request.json();}catch{return reply({error:"Invalid JSON."},400);}
-  const prompt=typeof body?.prompt==="string"?body.prompt.trim().slice(0,3000):"";
-  if(prompt.length<5)return reply({error:"Describe the image you want to create."},400);
-  const size=["1024x1024","1536x1024","1024x1536"].includes(body?.size)?body.size:"1024x1024";
-  try{
-    const modelsResponse=await fetch("https://openapi.felo.ai/api/v1/models",{headers:{Authorization:`Bearer ${env.FELO_API_KEY}`},signal:AbortSignal.timeout(15000)});
-    if(!modelsResponse.ok)throw new Error(modelsResponse.status===429?"rate_limit":"provider_error");
-    const catalog=await modelsResponse.json() as {data?:{id?:string;model_kind?:string}[]};
-    const model=catalog.data?.find(item=>item.model_kind==="image_generation")?.id;
-    if(!model)return reply({error:"No image-generation model is currently enabled for this Felo key.",code:"image_model_unavailable"},503);
-    const response=await fetch("https://openapi.felo.ai/api/v1/images/generations",{method:"POST",headers:{Authorization:`Bearer ${env.FELO_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model,prompt,size,n:1}),signal:AbortSignal.timeout(55000)});
-    const data=await response.json().catch(()=>null) as any;
-    if(!response.ok)return reply({error:response.status===402?"Felo account needs credits for image generation.":response.status===429?"Felo is rate-limiting image requests. Retry shortly.":"Felo image generation failed.",code:response.status===402?"credits_required":response.status===429?"rate_limited":"provider_error"},response.status===429?429:502);
-    const image=data?.data?.[0];
-    const url=typeof image?.url==="string"&&/^https:\/\//i.test(image.url)?image.url:null;
-    const b64=typeof image?.b64_json==="string"&&image.b64_json.length<15_000_000?image.b64_json:null;
-    if(!url&&!b64)return reply({error:"Felo returned no usable image result.",code:"invalid_provider_response"},502);
-    return reply({image:url?{url}: {dataUrl:`data:image/png;base64,${b64}`},model});
-  }catch(error){
-    const code=error instanceof Error?error.message:"provider_error";
-    return reply({error:code==="rate_limit"?"Felo is rate-limiting requests. Retry shortly.":"Felo image generation is temporarily unavailable. Check your API key, model access, and credits.",code},code==="rate_limit"?429:502);
+const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+function reply(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers }); }
+async function withinLimit(request: Request, env: Env): Promise<boolean> {
+  if (!env.DB) return false;
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const bucket = new Date().toISOString().slice(0, 13);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("haryomix-ai-image:" + ip + ":" + bucket));
+  const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+  const row = await env.DB.prepare("INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1 RETURNING request_count AS count").bind(key, bucket).first<{ count: number }>();
+  return Boolean(row && row.count <= 5);
+}
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(binary);
+}
+function imageDataUrl(bytes: Uint8Array, contentType: string): string | null {
+  if (bytes.byteLength === 0 || bytes.byteLength > 12_000_000) return null;
+  const mime = /^image\/(png|jpeg|webp|avif)$/i.test(contentType) ? contentType.split(";")[0] : "image/jpeg";
+  return `data:${mime};base64,${toBase64(bytes)}`;
+}
+async function fromPollinations(prompt: string, size: string, key: string): Promise<Response> {
+  const [width, height] = size.split("x").map(Number);
+  const url = new URL(`https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}`);
+  url.searchParams.set("model", "flux");
+  url.searchParams.set("width", String(width));
+  url.searchParams.set("height", String(height));
+  url.searchParams.set("private", "true");
+  url.searchParams.set("safe", "true");
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(55_000) });
+  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status === 402 ? "credits_required" : "pollinations_error");
+  const type = response.headers.get("content-type") || "";
+  if (!type.toLowerCase().startsWith("image/")) throw new Error("invalid_provider_response");
+  const dataUrl = imageDataUrl(new Uint8Array(await response.arrayBuffer()), type);
+  if (!dataUrl) throw new Error("image_too_large");
+  return reply({ image: { dataUrl }, provider: "pollinations", model: "flux" });
+}
+async function fromFelo(prompt: string, size: string, key: string): Promise<Response> {
+  const modelsResponse = await fetch("https://openapi.felo.ai/api/v1/models", { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
+  if (!modelsResponse.ok) throw new Error(modelsResponse.status === 429 ? "rate_limit" : "felo_error");
+  const catalog = await modelsResponse.json() as { data?: { id?: string; model_kind?: string; type?: string }[] };
+  const model = catalog.data?.find(item => item.model_kind === "image_generation" || item.type === "image_generation")?.id;
+  if (!model) throw new Error("felo_image_model_unavailable");
+  const response = await fetch("https://openapi.felo.ai/api/v1/images/generations", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, prompt, size, n: 1 }),
+    signal: AbortSignal.timeout(55_000),
+  });
+  const data = await response.json().catch(() => null) as any;
+  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status === 402 ? "credits_required" : "felo_error");
+  const image = data?.data?.[0];
+  const url = typeof image?.url === "string" && /^https:\/\//i.test(image.url) ? image.url : null;
+  const b64 = typeof image?.b64_json === "string" && image.b64_json.length < 15_000_000 ? image.b64_json : null;
+  if (!url && !b64) throw new Error("invalid_provider_response");
+  return reply({ image: url ? { url } : { dataUrl: `data:image/png;base64,${b64}` }, provider: "felo", model });
+}
+export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
+  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) return reply({ error: "Send a JSON request." }, 415);
+  let body: any;
+  try { body = await request.json(); } catch { return reply({ error: "Invalid JSON." }, 400); }
+  const prompt = typeof body?.prompt === "string" ? body.prompt.trim().slice(0, 3000) : "";
+  if (prompt.length < 5) return reply({ error: "Describe the image you want to create." }, 400);
+  const size = ["1024x1024", "1536x1024", "1024x1536"].includes(body?.size) ? body.size : "1024x1024";
+  const preferred = body?.provider === "pollinations" ? "pollinations" : body?.provider === "felo" ? "felo" : "auto";
+  const providers = preferred === "pollinations" ? ["pollinations"] : preferred === "felo" ? ["felo"] : ["felo", "pollinations"];
+  if (!providers.some(p => p === "felo" ? Boolean(env.FELO_API_KEY) : Boolean(env.POLLINATIONS_API_KEY))) {
+    return reply({ error: "Configure FELO_API_KEY or POLLINATIONS_API_KEY as a Cloudflare Pages secret.", code: "provider_not_configured" }, 503);
   }
+  try {
+    if (!await withinLimit(request, env)) return reply({ error: "AI image limit reached for this hour, or request protection is unavailable.", code: "rate_limited" }, 429);
+  } catch {
+    return reply({ error: "AI request protection is temporarily unavailable.", code: "rate_limit_unavailable" }, 503);
+  }
+  const errors: string[] = [];
+  for (const provider of providers) {
+    try {
+      if (provider === "felo" && env.FELO_API_KEY) return await fromFelo(prompt, size, env.FELO_API_KEY);
+      if (provider === "pollinations" && env.POLLINATIONS_API_KEY) return await fromPollinations(prompt, size, env.POLLINATIONS_API_KEY);
+      errors.push(provider + "_not_configured");
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "provider_error";
+      errors.push(code);
+      if (code === "rate_limit") continue;
+    }
+  }
+  const status = errors.includes("rate_limit") ? 429 : errors.includes("credits_required") ? 402 : 502;
+  const error = errors.includes("credits_required")
+    ? "The selected image provider needs credits."
+    : errors.includes("felo_image_model_unavailable")
+      ? "Felo has no image-generation model enabled for this key. Add POLLINATIONS_API_KEY to enable the fallback."
+      : errors.includes("rate_limit")
+        ? "Image providers are rate-limiting requests. Retry shortly."
+        : errors.includes("image_too_large")
+          ? "Generated image exceeded the safe response-size limit. Try a smaller size."
+          : "Image generation failed. Check provider keys, model access, and credits.";
+  return reply({ error, code: errors[0] || "provider_error" }, status);
 }
