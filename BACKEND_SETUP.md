@@ -25,7 +25,17 @@ Confirm the database name in the command matches the database you created. Do no
 - `GET /api/community` should return `{ "posts": [] }` on a fresh database.
 - `POST /api/community` accepts JSON: `{"displayName":"Hariom","message":"Hello Haryomix!"}`.
 
-Community posts are publicly visible immediately and have no account identity. Readers can report a post for spam, harassment, personal information, or another concern; reports are stored privately in D1 with a pending status and rate-limited. There is not yet an authenticated moderator dashboard, automatic removal, or guaranteed review SLA, so reporting does not itself hide a post. Posting and reporting limits use one-way digests rather than storing raw IP addresses. Do not treat public posts or report details as private from the site operator.
+Community posts are publicly visible immediately and have no account identity. Readers can report a post for spam, harassment, personal information, or another concern; reports are stored in D1 with a pending status and rate-limited. Reporting does not itself hide a post; a moderator must review it. Posting and reporting limits use one-way digests rather than storing raw IP addresses. Do not treat public posts or report details as private from the site operator.
+
+## 4. Configure moderator access
+
+1. Generate a unique random token with at least 32 characters using a password manager. Do not commit it to Git or put it in frontend source.
+2. In Cloudflare Dashboard, open Workers & Pages → haryomix → Settings → Variables and Secrets (the label may vary by dashboard version).
+3. Add `HARYOMIX_MODERATOR_TOKEN` as an encrypted/secret environment variable for the Production environment. Add a separate token to Preview only if needed.
+4. Redeploy the latest `main` commit after saving the secret.
+5. Open https://haryomix.pages.dev/moderation, paste the token and sign in. The dashboard can view reports, hide/restore posts, mark reports reviewed, or dismiss reports. The token is held in page memory and is not saved in browser storage.
+
+The moderation API requires a Bearer token and returns no report data without successful authentication. Anyone with the moderator token can take moderation actions, so keep it private and rotate it immediately if exposed. This is a shared moderator token, not individual accounts, and the dashboard does not provide an audit trail of which human performed an action.
 
 ## Current scope
 
