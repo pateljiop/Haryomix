@@ -1,7 +1,16 @@
-interface Env { FELO_API_KEY?: string }
+interface Env { FELO_API_KEY?: string; DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>() : Promise<T | null> } } } }
 const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 function reply(body: unknown, status=200) { return new Response(JSON.stringify(body), {status, headers}); }
 function clean(value: unknown, max=300): string { return typeof value === "string" ? value.trim().slice(0,max) : ""; }
+async function withinLimit(request: Request, env: Env): Promise<boolean> {
+ if(!env.DB) return false;
+ const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+ const bucket=new Date().toISOString().slice(0,13);
+ const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("haryomix-felo-ppt:"+ip+":"+bucket));
+ const key=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
+ const row=await env.DB.prepare("INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1 RETURNING request_count AS count").bind(key,bucket).first<{count:number}>();
+ return Boolean(row && row.count<=8);
+}
 async function felo(path: string, key: string, init: RequestInit = {}) {
   const response = await fetch(`https://openapi.felo.ai${path}`, { ...init, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(25_000) });
   const data = await response.json().catch(() => null) as any;
@@ -10,6 +19,8 @@ async function felo(path: string, key: string, init: RequestInit = {}) {
 }
 export async function onRequestPost({request,env}:{request:Request;env:Env}):Promise<Response>{
   if(!env.FELO_API_KEY) return reply({error:"Felo is not configured on the server.",code:"provider_not_configured"},503);
+  try { if(!await withinLimit(request,env)) return reply({error:"AI creation limit reached for this hour, or request protection is unavailable.",code:"rate_limited"},429); }
+  catch { return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
   if(!request.headers.get("content-type")?.includes("application/json")) return reply({error:"Send a JSON request."},415);
   let body:any; try { body=await request.json(); } catch { return reply({error:"Invalid JSON."},400); }
   const action=clean(body?.action,30);
