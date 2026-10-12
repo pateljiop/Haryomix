@@ -1,6 +1,8 @@
 interface Env {
   GROQ_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  FELO_API_KEY?: string;
+  FELO_MODEL?: string;
   DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = Record<string, unknown>>(): Promise<T | null>; run(): Promise<unknown> } } };
 }
 
@@ -14,7 +16,7 @@ function reply(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-type Provider = "groq" | "gemini";
+type Provider = "groq" | "gemini" | "felo";
 const MAX_BODY_BYTES = 20_000;
 const MAX_PROMPT_CHARS = 12_000;
 
@@ -59,6 +61,25 @@ async function askGemini(key: string, system: string, prompt: string): Promise<s
   return answer;
 }
 
+async function askFelo(key: string, model: string, system: string, prompt: string): Promise<string> {
+  const response = await fetch("https://openapi.felo.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      max_tokens: 6000,
+      messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
+    }),
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status >= 500 ? "provider_unavailable" : "provider_request_failed");
+  const data = await response.json() as { choices?: { message?: { content?: string | null } }[] };
+  const answer = data.choices?.[0]?.message?.content?.trim();
+  if (!answer) throw new Error("empty_response");
+  return answer;
+}
+
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
   if (declaredLength > MAX_BODY_BYTES) return reply({ error: "Request is too large." }, 413);
@@ -77,7 +98,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const body = input as Record<string, unknown>;
   const task = text(body.task, 30);
   const prompt = text(body.prompt, MAX_PROMPT_CHARS);
-  const preferred = body.provider === "gemini" ? "gemini" : body.provider === "groq" ? "groq" : "auto";
+  const preferred = body.provider === "gemini" ? "gemini" : body.provider === "groq" ? "groq" : body.provider === "felo" ? "felo" : "auto";
   if (!["code", "study", "ppt", "general"].includes(task)) return reply({ error: "Choose a supported task." }, 400);
   if (prompt.length < 3) return reply({ error: "Add a question or some content first." }, 400);
 
@@ -101,10 +122,20 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   } catch {
     return reply({ error: "AI request protection is temporarily unavailable." }, 503);
   }
-  const order: Provider[] = preferred === "gemini" ? ["gemini", "groq"] : preferred === "groq" ? ["groq", "gemini"] : ["groq", "gemini"];
-  const available = order.filter(p => p === "groq" ? Boolean(env.GROQ_API_KEY) : Boolean(env.GEMINI_API_KEY));
+  const order: Provider[] = preferred === "gemini"
+    ? ["gemini", "groq", "felo"]
+    : preferred === "felo"
+      ? ["felo", "groq", "gemini"]
+      : preferred === "groq"
+        ? ["groq", "gemini", "felo"]
+        : ["groq", "gemini", "felo"];
+  const available = order.filter(p =>
+    p === "groq" ? Boolean(env.GROQ_API_KEY)
+      : p === "gemini" ? Boolean(env.GEMINI_API_KEY)
+        : Boolean(env.FELO_API_KEY)
+  );
   if (!available.length) return reply({
-    error: "AI provider is not configured yet. Add GROQ_API_KEY and/or GEMINI_API_KEY as encrypted Cloudflare Pages secrets, then redeploy.",
+    error: "AI provider is not configured yet. Add GROQ_API_KEY, GEMINI_API_KEY, and/or FELO_API_KEY as encrypted Cloudflare Pages secrets, then redeploy.",
     code: "ai_not_configured",
   }, 503);
 
@@ -113,7 +144,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     try {
       const answer = provider === "groq"
         ? await askGroq(env.GROQ_API_KEY!, system, prompt)
-        : await askGemini(env.GEMINI_API_KEY!, system, prompt);
+        : provider === "gemini"
+          ? await askGemini(env.GEMINI_API_KEY!, system, prompt)
+          : await askFelo(env.FELO_API_KEY!, env.FELO_MODEL || "claude-sonnet-4-6", system, prompt);
       return reply({ answer, provider, fallbackUsed: provider !== order[0] });
     } catch (error) {
       lastError = error instanceof Error ? error.message : "provider_unavailable";
