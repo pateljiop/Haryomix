@@ -22,8 +22,8 @@ const tabs: { id: UtilityTab; label: string }[] = [
   { id: "converter", label: "Unit converter" },
 ];
 
-export function StudentUtilities() {
-  const [tab, setTab] = useState<UtilityTab>("marks");
+export function StudentUtilities({ initialTab = "marks" }: { initialTab?: UtilityTab } = {}) {
+  const [tab, setTab] = useState<UtilityTab>(initialTab);
   const [obtained, setObtained] = useState("420");
   const [total, setTotal] = useState("500");
   const [subjects, setSubjects] = useState([
