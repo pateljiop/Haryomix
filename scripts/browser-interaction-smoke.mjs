@@ -234,7 +234,7 @@ async function run() {
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
   await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('Local review findings')", "local Code Doctor findings");
   await waitFor("Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('colon')) && Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('Unclosed bracket'))", "Code Doctor catches default syntax errors");
-  await fill("#hmx-code", "def add(a, b):\\n    return a + b\\n\\nprint(add(2, 3))", "valid Python sample");
+  await fill("#hmx-code", "def add(a, b):\n    return a + b\n\nprint(add(2, 3))", "valid Python sample");
   await clickText("button", "Inspect locally", "inspect valid Python");
   await waitFor("document.querySelector('.hmx-result li')?.textContent.includes('No obvious pattern-based issue')", "Code Doctor clean-code message");
   console.log("Code Doctor local review catches syntax patterns and handles valid code.");
