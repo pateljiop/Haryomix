@@ -51,6 +51,7 @@ export function StudentUtilities() {
   const [unitFrom, setUnitFrom] = useState("m");
   const [unitTo, setUnitTo] = useState("km");
   const [unitValue, setUnitValue] = useState("1");
+  const [unitCopyError, setUnitCopyError] = useState("");
   const unitConversion = useMemo(() => {
     if (!unitValue.trim()) return { result: "", error: "" };
     try { return { result: String(Number(convertUnit(Number(unitValue), unitCategory, unitFrom, unitTo).toPrecision(12))), error: "" }; }
@@ -144,7 +145,8 @@ export function StudentUtilities() {
           </div>
           <div className="hmx-utility-result" style={{marginTop:18,padding:22}}><strong style={{overflowWrap:"anywhere"}} aria-live="polite">{unitConversion.result || "—"}</strong><span>Converted value</span><small>{unitValue || "0"} {UNIT_OPTIONS[unitCategory].find(unit => unit.value === unitFrom)?.label} → {UNIT_OPTIONS[unitCategory].find(unit => unit.value === unitTo)?.label}</small></div>
           {unitConversion.error && <p className="hmx-utility-error" role="alert">{unitConversion.error}</p>}
-          <div className="hmx-btn-row"><button type="button" className="hmx-btn" onClick={() => { setUnitFrom(unitTo); setUnitTo(unitFrom); }}>⇄ Swap units</button><button type="button" className="hmx-btn" onClick={() => { setUnitValue("1"); setUnitCategory("length"); setUnitFrom("m"); setUnitTo("km"); }}>Reset</button><button type="button" className="hmx-btn" disabled={!unitConversion.result} onClick={() => void navigator.clipboard?.writeText(unitConversion.result).catch(() => setNotice("Clipboard access was blocked by the browser."))}>Copy result</button></div>
+          <div className="hmx-btn-row"><button type="button" className="hmx-btn" onClick={() => { setUnitFrom(unitTo); setUnitTo(unitFrom); setUnitCopyError(""); }}>⇄ Swap units</button><button type="button" className="hmx-btn" onClick={() => { setUnitValue("1"); setUnitCategory("length"); setUnitFrom("m"); setUnitTo("km"); setUnitCopyError(""); }}>Reset</button><button type="button" className="hmx-btn" disabled={!unitConversion.result} onClick={() => void navigator.clipboard?.writeText(unitConversion.result).then(() => setUnitCopyError("")).catch(() => setUnitCopyError("Clipboard access was blocked by the browser."))}>Copy result</button></div>
+          {unitCopyError && <p className="hmx-utility-error" role="alert">{unitCopyError}</p>}
           <p className="hmx-utility-footnote">Includes length, mass, temperature, area, volume, speed, time and digital storage. Storage conversions use base-1024 units (for example, 1 GB = 1024 MB) to match common operating-system file-size displays.</p>
         </div>}
       </div>
