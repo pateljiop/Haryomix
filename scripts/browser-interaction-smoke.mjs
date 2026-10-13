@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { PDFDocument } from "pdf-lib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -101,6 +102,7 @@ async function fill(selector, value, label) {
 }
 
 async function run() {
+  await createFixtures();
   const version = await getDebuggerVersion();
   socket = new WebSocket(version.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -123,6 +125,7 @@ async function run() {
   sessionId = attached.sessionId;
   await send("Page.enable", {}, sessionId);
   await send("Runtime.enable", {}, sessionId);
+  await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: profile }, sessionId);
 
   await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page WebGL canvas");
 
@@ -162,7 +165,49 @@ async function run() {
   await waitFor("document.querySelector('.hmx-focus-time strong')?.textContent==='05:00'", "timer resets to five minutes");
   console.log("Focus Timer mode/start/pause/reset flow passed.");
 
-  console.log("Browser interaction smoke tests passed.");
+  await navigate("/workspace/pdf-studio", "!!document.querySelector('#pdf-range')", "PDF Studio controls");
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
+  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('2 supported file(s) selected')", "PDF fixtures loaded");
+  await clickText("button.hmx-tool-card", "Merge PDFs", "merge PDF files");
+  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('Merged 2 PDF files')", "PDF merge completes");
+  const mergedPath = await waitForDownload("haryomix-merged.pdf");
+  const merged = await PDFDocument.load(readFileSync(mergedPath));
+  const mergedSizes = merged.getPages().map(page => [page.getWidth(), page.getHeight()]);
+  if (merged.getPageCount() !== 3 || JSON.stringify(mergedSizes) !== JSON.stringify([[100, 200], [300, 400], [500, 600]])) {
+    throw new Error("Merged PDF artifact has unexpected page count/order: " + JSON.stringify(mergedSizes));
+  }
+  console.log("PDF merge artifact verified: 3 pages with expected dimensions.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('1 supported file(s) selected')", "single PDF fixture loaded");
+  await fill("#pdf-order", "2,1", "custom PDF page order");
+  await clickText("button.hmx-tool-card", "Custom page order", "custom PDF reorder");
+  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('Saved pages in your custom order')", "custom PDF reorder completes");
+  const reorderedPath = await waitForDownload("haryomix-reordered.pdf");
+  const reordered = await PDFDocument.load(readFileSync(reorderedPath));
+  const reorderedSizes = reordered.getPages().map(page => [page.getWidth(), page.getHeight()]);
+  if (reordered.getPageCount() !== 2 || JSON.stringify(reorderedSizes) !== JSON.stringify([[300, 400], [100, 200]])) {
+    throw new Error("Reordered PDF artifact has unexpected pages: " + JSON.stringify(reorderedSizes));
+  }
+  console.log("Custom PDF reorder artifact verified: page dimensions follow requested order.");
+
+  await navigate("/workspace/image-studio", "!!document.querySelector('input.hmx-file-input')", "Image Studio upload");
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-pixel.png")]);
+  await waitFor("!!document.querySelector('#image-width') && document.querySelector('.hmx-image-preview')?.width===1", "image fixture decoded");
+  await fill("#image-width", "64", "image output width");
+  await fill("#image-height", "32", "image output height");
+  await waitFor("document.querySelector('.hmx-image-preview')?.width===64 && document.querySelector('.hmx-image-preview')?.height===32", "image canvas resizes");
+  await clickText("button.hmx-btn.primary", "Export image", "export edited image");
+  const imagePath = await waitForDownload("smoke-pixel-edited.png");
+  const imageBytes = readFileSync(imagePath);
+  const pngWidth = imageBytes.readUInt32BE(16);
+  const pngHeight = imageBytes.readUInt32BE(20);
+  if (imageBytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" || pngWidth !== 64 || pngHeight !== 32) {
+    throw new Error("Exported image artifact failed PNG signature/dimensions check: " + pngWidth + "x" + pngHeight);
+  }
+  console.log("Image export artifact verified: valid PNG with 64x32 output dimensions.");
+
+  console.log("Browser interaction and PDF/Image artifact smoke tests passed.");
 }
 
 try {
