@@ -30,6 +30,8 @@ test("study backup parser validates JSON arrays and task records", () => {
   assert.throws(() => parseStudyTasks("{"), /not valid JSON/);
   assert.throws(() => parseStudyTasks(JSON.stringify({ task: task() })), /task list/);
   assert.throws(() => parseStudyTasks(JSON.stringify([{ ...task(), estimatedMinutes: 0 }])), /invalid task/);
+  assert.throws(() => parseStudyTasks(JSON.stringify([{ ...task(), dueDate: "2026-02-30" }])), /invalid task/);
+  assert.throws(() => parseStudyTasks(JSON.stringify([{ ...task(), subject: " " }])), /invalid task/);
 });
 
 test("study backup parser rejects duplicate IDs and oversized lists", () => {
