@@ -312,8 +312,9 @@ async function run() {
   }
   console.log("Custom PDF reorder artifact verified: page dimensions follow requested order.");
 
-  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
-  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF extraction fixture loaded");
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-b.pdf"), join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('2 supported file(s) selected')", "PDF extraction fixtures loaded");
+  await chooseValue("#pdf-file", "1", "select two-page extraction fixture");
   await fill("#pdf-range", "2", "page range for extraction");
   await clickText("button.hmx-tool-card", "Extract pages", "extract selected PDF page");
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Extracted 1 page(s).')", "PDF extraction completes");
@@ -324,8 +325,9 @@ async function run() {
   }
   console.log("PDF extraction artifact verified: only requested page 2 remains.");
 
-  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
-  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF rotation fixture loaded");
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('2 supported file(s) selected')", "PDF rotation fixtures loaded");
+  await chooseValue("#pdf-file", "0", "select two-page rotation fixture");
   await fill("#pdf-range", "2", "page range for rotation");
   await clickText("button.hmx-tool-card", "Rotate selected pages", "rotate selected PDF page");
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Rotated 1 selected page(s) 90 degrees.')", "selected PDF rotation completes");
