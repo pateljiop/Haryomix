@@ -1,6 +1,6 @@
 # Haryomix
 
-**A practical student workspace by Hariom Builds.** Haryomix brings coding checks, editable presentation exports, PDF page operations, image editing, AI-assisted workflows, revision practice a local-first Study Planner, Flashcards and a Pomodoro Focus Timer into one responsive web app.
+**A practical student workspace by Hariom Builds.** Haryomix brings coding checks, editable presentation exports, PDF page operations, image editing, AI-assisted workflows, revision practice, a local-first Study Planner, Flashcards and a Pomodoro Focus Timer into one responsive web app.
 
 ## Workspace tools
 
