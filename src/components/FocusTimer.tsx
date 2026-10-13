@@ -85,9 +85,10 @@ export function FocusTimer() {
       setNotice("Timer paused.");
       return;
     }
-    if (remainingSeconds <= 0) setRemainingSeconds(durations[mode] * 60);
+    const secondsToRun = remainingSeconds <= 0 ? durations[mode] * 60 : remainingSeconds;
+    setRemainingSeconds(secondsToRun);
     handledDeadline.current = null;
-    setDeadline(Date.now() + Math.max(1, remainingSeconds) * 1000);
+    setDeadline(Date.now() + secondsToRun * 1000);
     setIsRunning(true);
     setNotice("");
   }
