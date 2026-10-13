@@ -36,7 +36,7 @@ Use the repositories below for workflow ideas. Before copying any code, inspect 
 2. **Flashcards with spaced repetition — initial version shipped:** question/answer decks, due-date queue, Again/Hard/Good/Easy ratings, local progress and JSON backup; no provider key required.
 3. **Student Utility Hub — initial version implemented:** marks percentage, credit-weighted CGPA estimate, attendance target/skips calculator, text/word counter, JSON formatter/validator and URL component encoder/decoder. Calculations run locally and have unit tests.
 4. **Study timer and sessions — initial version shipped:** 25-minute focus blocks, 5/15-minute breaks, completed-session log, daily totals and streak calculation with local JSON backup.
-5. **Local study library — next:** save notes and study resources in IndexedDB with explicit export/import and clear deletion controls. Do not promise cloud persistence unless a backend and account/privacy model exist.
+5. **Local study library — implementation under verification:** save notes, revision resources and trusted links in IndexedDB with search, edit/delete controls and explicit JSON backup/restore. Data remains local to the browser; no cloud sync is claimed.
 6. **Document-grounded study help:** only when a provider is configured; distinguish answers grounded in supplied material from general knowledge, and disclose when content is sent to the configured provider.
 
 ### Priority 2 — Evaluate carefully
