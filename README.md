@@ -12,6 +12,7 @@
 - **Study Planner:** organize tasks by subject, deadline, priority and estimated study time. Tasks are stored in this browser and can be exported/imported as JSON; there is no cloud sync or account.
 - **Flashcards:** create question/answer decks, review due cards with Again/Hard/Good/Easy ratings, and schedule intervals with a lightweight SM-2-style algorithm. Cards are stored in this browser and support JSON backup/restore.
 - **Focus Timer:** use 25-minute focus blocks, 5-minute short breaks or 15-minute long breaks. Completed focus sessions are tracked locally and can be exported/imported as JSON.\n- **Student Utility Hub:** calculate marks percentage, credit-weighted CGPA estimates and attendance targets; count words/characters/lines; format and validate JSON; and encode/decode URL components. Calculations and text processing stay in the browser.
+- **Study Library:** save, edit, search, filter, tag, import and export class notes, revision summaries and web links. Resources are stored locally in IndexedDB, with validated JSON backups.
 - **Haryomix AI and AI Create Studio:** use server-side configured provider integrations when credentials and service bindings are available.
 
 ## Backend and community
@@ -35,7 +36,7 @@ Repository Actions secrets used by the workflow:
 - CLOUDFLARE_API_TOKEN: a Cloudflare API token with permission to manage Cloudflare Pages and run the configured D1 migration/smoke-test steps.
 - CLOUDFLARE_ACCOUNT_ID: the Cloudflare account ID.
 
-The workflow deploys to the main production branch and checks the workspace directory and eleven dedicated tool URLs, the health/D1 endpoint, safe AI input validation and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
+The workflow deploys to the main production branch and checks the workspace directory and twelve dedicated tool URLs, the health/D1 endpoint, safe AI input validation and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
 
 ## Local development
 
