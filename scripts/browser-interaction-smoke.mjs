@@ -297,6 +297,28 @@ async function run() {
   await navigateHistory("back", "location.pathname === '/workspace/image-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'Image Studio'", "back follows sidebar navigation");
   await navigateHistory("forward", "location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "forward follows sidebar navigation");
 
+  await navigate("/workspace/student-utilities", "!!document.querySelector('.hmx-utility-tabs')", "Student Utility Hub");
+  if (await evaluate("document.querySelector('.hmx-utility-result strong')?.textContent") !== "84%") throw new Error("Default marks percentage is incorrect.");
+  await fill("#utility-marks-obtained", "45", "marks obtained");
+  await fill("#utility-marks-total", "50", "total marks");
+  await waitFor("document.querySelector('.hmx-utility-result strong')?.textContent==='90%'", "marks percentage recalculates");
+  await clickText("button[role=tab]", "Attendance", "attendance calculator");
+  await fill("#utility-attended", "20", "classes attended");
+  await fill("#utility-held", "40", "classes held");
+  await fill("#utility-target", "75", "attendance target");
+  await waitFor("document.querySelector('.hmx-utility-result strong')?.textContent==='50%' && document.querySelector('.hmx-utility-answer-grid strong')?.textContent==='40'", "attendance target calculation");
+  await clickText("button[role=tab]", "Text counter", "text counter");
+  await fill("textarea.hmx-utility-textarea", "one two\nthree", "word counter text");
+  await waitFor("document.querySelector('.hmx-utility-stat-grid strong')?.textContent==='3'", "word counter updates");
+  await clickText("button[role=tab]", "JSON tool", "JSON formatter");
+  await clickText("button", "Validate & format", "format JSON");
+  await waitFor("document.querySelector('textarea[readonly].hmx-utility-textarea')?.value.includes('student')", "formatted JSON result");
+  await clickText("button[role=tab]", "URL encoder", "URL encoder");
+  await fill("#utility-url-input", "A & B", "URL input");
+  await clickText("button", "Process text", "encode URL component");
+  await waitFor("document.querySelector('textarea[readonly].hmx-utility-textarea')?.value==='A%20%26%20B'", "URL component encoding");
+  console.log("Student Utility Hub marks, attendance, text, JSON and URL flows passed.");
+
   await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page for mobile viewport");
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, sessionId);
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
@@ -309,7 +331,7 @@ async function run() {
   await send("Emulation.clearDeviceMetricsOverride", {}, sessionId);
   await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
 
-  console.log("Browser interaction, history, mobile, and PDF/Image artifact smoke tests passed.");
+  console.log("Browser interaction, history, mobile, PDF/Image artifacts, and Student Utility Hub smoke tests passed.");
 }
 
 try {
