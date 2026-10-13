@@ -18,6 +18,9 @@ function mockDb(count = 1) {
         async first() {
           return { count };
         },
+        async run() {
+          return { success: true };
+        },
       };
     },
   };
@@ -57,6 +60,21 @@ test("chat API reports missing rate-limit database as configuration failure", as
   });
   assert.equal(response.status, 503);
   assert.match((await response.json()).error, /database binding/i);
+});
+
+test("chat API uses a stable hourly rate-limit key and prunes old rows", async () => {
+  const db = mockDb();
+  const response = await chatPost({
+    request: jsonRequest("https://example.test/api/ai/chat", { task: "general", prompt: "Help me study" }),
+    env: { DB: db },
+  });
+  assert.equal(response.status, 503);
+  const upsert = db.calls.find(call => call.sql.startsWith("INSERT INTO community_rate_limits"));
+  assert.ok(upsert);
+  assert.match(upsert.sql, /CASE WHEN community_rate_limits\.bucket = excluded\.bucket THEN community_rate_limits\.request_count \+ 1 ELSE 1 END/);
+  assert.equal(upsert.values[0].length, 64);
+  assert.match(upsert.values[1], /^\d{4}-\d{2}-\d{2}T\d{2}$/);
+  assert.ok(db.calls.some(call => call.sql === "DELETE FROM community_rate_limits WHERE bucket < ?"));
 });
 
 test("chat API reports missing providers without exposing secrets", async () => {
