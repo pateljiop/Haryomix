@@ -34,7 +34,7 @@ Use the repositories below for workflow ideas. Before copying any code, inspect 
 
 1. **Revision planner — initial version shipped:** Haryomix now has a local-first Study Planner for subject-tagged tasks, deadlines, priorities and estimated study time. A calendar/weekly schedule and reminders remain future work.
 2. **Flashcards with spaced repetition — initial version shipped:** user-created question/answer cards, due-date queue, Again/Hard/Good/Easy ratings, local progress and JSON backup; no provider key required.
-3. **Study timer and sessions:** focus/break timer, completed-session log and simple weekly totals.
+3. **Study timer and sessions — initial version shipped:** 25-minute focus blocks, 5/15-minute breaks, completed-session log, daily totals and streak calculation with local JSON backup.
 4. **Local study library:** save notes and study resources in IndexedDB with explicit export/import and clear deletion controls. Do not promise cloud persistence unless a backend and account/privacy model exist.
 5. **Document-grounded study help:** only when a provider is configured; distinguish answers grounded in supplied material from general knowledge, and disclose that content is sent to the configured provider.
 
