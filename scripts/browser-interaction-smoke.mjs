@@ -210,6 +210,24 @@ async function run() {
   await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: profile }, sessionId);
 
   await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page WebGL canvas");
+  const dedicatedRoutes = [
+    ["/workspace", "Your workspace"],
+    ["/workspace/code-doctor", "Code Doctor"],
+    ["/workspace/ppt-studio", "PPT Studio"],
+    ["/workspace/pdf-studio", "PDF Studio"],
+    ["/workspace/image-studio", "Image Studio"],
+    ["/workspace/exam-copilot", "Exam Copilot"],
+    ["/workspace/haryomix-ai", "Haryomix AI"],
+    ["/workspace/ai-create-studio", "AI Create Studio"],
+    ["/workspace/study-planner", "Study Planner"],
+    ["/workspace/flashcards", "Flashcards"],
+    ["/workspace/focus-timer", "Focus Timer"],
+    ["/workspace/student-utilities", "Student Utilities"],
+  ];
+  for (const [route, title] of dedicatedRoutes) {
+    await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
+  }
+  console.log("All 11 tool pages plus the workspace directory render independently without the old sidebar.");
 
   await navigate("/workspace/study-planner", "!!document.querySelector('#hmx-plan-title')", "Study Planner form");
   await fill("#hmx-plan-title", "Browser smoke study task", "planner title");
@@ -292,10 +310,18 @@ async function run() {
 
   await navigateHistory("back", "location.pathname === '/workspace/pdf-studio' && !!document.querySelector('input.hmx-file-input')", "back returns to PDF Studio");
   await navigateHistory("forward", "location.pathname === '/workspace/image-studio' && !!document.querySelector('input.hmx-file-input')", "forward returns to Image Studio");
-  await clickText(".hmx-side-tool", "PDF Studio", "workspace sidebar navigation");
-  await waitFor("location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "sidebar navigates to PDF Studio");
-  await navigateHistory("back", "location.pathname === '/workspace/image-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'Image Studio'", "back follows sidebar navigation");
-  await navigateHistory("forward", "location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "forward follows sidebar navigation");
+  await clickText(".hmx-workspace-nav-actions button", "All tools", "return to tool directory");
+  await waitFor("location.pathname === '/workspace' && !!document.querySelector('.hmx-tool-directory')", "All tools opens the workspace directory");
+  if (await evaluate("!!document.querySelector('.hmx-sidebar')")) throw new Error("Workspace directory should not show the old crowded sidebar.");
+  await clickText(".hmx-directory-card", "PDF Studio", "open PDF Studio from directory");
+  await waitFor("location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio' && !document.querySelector('.hmx-sidebar')", "PDF Studio has its own focused page");
+  await clickText(".hmx-workspace-nav-actions button", "All tools", "return from dedicated PDF page");
+  await waitFor("location.pathname === '/workspace' && !!document.querySelector('.hmx-tool-directory')", "return to workspace directory");
+  await fill(".hmx-directory-search input", "Image Studio", "tool directory search");
+  await waitFor("document.querySelectorAll('.hmx-directory-card').length===1 && document.querySelector('.hmx-directory-card strong')?.textContent==='Image Studio'", "tool directory search filters tools");
+  await clickText(".hmx-directory-card", "Image Studio", "open Image Studio from filtered directory");
+  await waitFor("location.pathname === '/workspace/image-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'Image Studio' && !document.querySelector('.hmx-sidebar')", "Image Studio has its own focused page");
+  console.log("Dedicated tool pages, workspace directory, back navigation and tool search passed.");
 
   await navigate("/workspace/student-utilities", "!!document.querySelector('.hmx-utility-tabs')", "Student Utility Hub");
   if (await evaluate("document.querySelector('.hmx-utility-result strong')?.textContent") !== "84%") throw new Error("Default marks percentage is incorrect.");
@@ -331,7 +357,7 @@ async function run() {
   await send("Emulation.clearDeviceMetricsOverride", {}, sessionId);
   await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
 
-  console.log("Browser interaction, history, mobile, PDF/Image artifacts, and Student Utility Hub smoke tests passed.");
+  console.log("Browser interaction, dedicated tool pages, history, mobile, PDF/Image artifacts, and Student Utility Hub smoke tests passed.");
 }
 
 try {

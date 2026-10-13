@@ -81,6 +81,7 @@ jobs:
         run: |
           set -euo pipefail
           routes=(
+            /workspace
             /workspace/code-doctor
             /workspace/ppt-studio
             /workspace/pdf-studio
@@ -110,7 +111,7 @@ jobs:
             fi
             echo "Verified HTTP 200 + SPA shell: $DEPLOYMENT_URL$route"
           done
-          echo "All eleven workspace URLs return the application shell."
+          echo "All twelve workspace URLs return the application shell."
 
       - name: Verify browser-rendered student workspaces
         shell: bash
@@ -129,6 +130,14 @@ jobs:
             echo "Browser-rendered UI verified: $route ($expected)"
           done <<'ROUTES'
           /|hmx-webgl-field
+          /workspace|Your workspace
+          /workspace/code-doctor|Code Doctor
+          /workspace/ppt-studio|PPT Studio
+          /workspace/pdf-studio|PDF Studio
+          /workspace/image-studio|Image Studio
+          /workspace/exam-copilot|Exam Copilot
+          /workspace/haryomix-ai|Haryomix AI
+          /workspace/ai-create-studio|AI Create Studio
           /workspace/study-planner|Study Planner
           /workspace/flashcards|Flashcards
           /workspace/focus-timer|Focus Timer

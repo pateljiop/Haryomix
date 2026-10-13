@@ -35,7 +35,7 @@ Repository Actions secrets used by the workflow:
 - CLOUDFLARE_API_TOKEN: a Cloudflare API token with permission to manage Cloudflare Pages and run the configured D1 migration/smoke-test steps.
 - CLOUDFLARE_ACCOUNT_ID: the Cloudflare account ID.
 
-The workflow deploys to the main production branch and checks the eleven workspace URLs, the health/D1 endpoint, safe AI input validation and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
+The workflow deploys to the main production branch and checks the workspace directory and eleven dedicated tool URLs, the health/D1 endpoint, safe AI input validation and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
 
 ## Local development
 
@@ -48,7 +48,7 @@ npm run typecheck
 npm run build
 ```
 
-The current CI runs dependency installation, TypeScript checks, automated regression tests (npm test) and a production build, including local Study Planner data-model tests. A dedicated lint script and browser-level end-to-end suite are not currently configured; see [the product audit](./docs/PRODUCT_AUDIT.md) for remaining verification work.
+The current CI runs dependency installation, TypeScript checks, automated regression tests (npm test) and a production build, including local Study Planner data-model tests. The deployment workflow also runs headless-Chromium interaction checks for the workspace directory, dedicated tool routes, PDF/Image exports and core student utilities; see [the product audit](./docs/PRODUCT_AUDIT.md) for remaining verification work.
 
 ## Explicit limitations
 

@@ -1152,3 +1152,55 @@ body { color-scheme: dark; }
   .hmx-utility-subject label:first-child { grid-column: 1 / -1; }
   .hmx-utility-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+
+/* Dedicated Haryomix tool pages: one focused canvas per route. */
+.hmx-workspace.is-index,
+.hmx-workspace.is-tool-page { min-height:100vh; background:radial-gradient(ellipse at 72% -8%,rgba(45,101,213,.19),transparent 38%),#070b14; }
+.hmx-workspace-nav-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.hmx-workspace-status { display:inline-flex; align-items:center; gap:8px; color:#8296b8; font-size:9px; font-weight:800; letter-spacing:.13em; }
+.hmx-workspace-status > span { width:6px; height:6px; border-radius:50%; background:#60d9b0; box-shadow:0 0 12px rgba(96,217,176,.5); }
+.hmx-workspace-nav .hmx-brand span { color:#7f91b1 !important; letter-spacing:.09em; }
+.hmx-workspace.is-tool-page .hmx-workspace-shell,
+.hmx-workspace.is-index .hmx-workspace-shell { display:block; min-height:calc(100vh - 68px); background:transparent; }
+.hmx-workspace.is-tool-page .hmx-workspace-main,
+.hmx-workspace.is-index .hmx-workspace-main { width:min(100% - 48px,1360px); max-width:1360px; padding:clamp(22px,3.6vw,52px) 0 38px; }
+.hmx-workspace.is-tool-page .hmx-workspace-head { align-items:center; margin-bottom:28px; padding-bottom:24px; }
+.hmx-workspace.is-tool-page .hmx-workspace-head h1 { font-size:clamp(30px,4vw,46px); letter-spacing:-.055em; }
+.hmx-page-eyebrow { margin:0 0 12px !important; color:#72cfff !important; font-size:10px !important; font-weight:800; letter-spacing:.17em; }
+.hmx-page-toolmark { display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid rgba(112,165,255,.22); border-radius:12px; background:linear-gradient(135deg,rgba(34,80,152,.22),rgba(57,49,128,.16)); color:#a6caff; }
+.hmx-page-toolmark > span { font-size:10px; font-weight:800; letter-spacing:.12em; }
+.hmx-directory-wrap { min-width:0; }
+.hmx-directory-intro { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; margin-bottom:22px; }
+.hmx-directory-intro h2 { margin:0; color:#edf4ff; font-size:clamp(19px,2vw,25px); letter-spacing:-.035em; }
+.hmx-directory-intro p { margin:8px 0 0; color:#8798b7; font-size:12px; line-height:1.7; }
+.hmx-directory-search { display:flex; align-items:center; gap:8px; width:min(100%,340px); min-width:240px; padding:0 12px; border:1px solid rgba(139,165,215,.19); border-radius:12px; background:rgba(12,19,33,.88); color:#8fa9d1; }
+.hmx-directory-search .hmx-input { min-width:0; width:100%; margin:0; border:0; background:transparent; box-shadow:none; color:#edf4ff; }
+.hmx-directory-search .hmx-input:focus { outline:none; }
+.hmx-tool-directory { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.hmx-directory-card { display:flex; min-width:0; min-height:208px; flex-direction:column; align-items:flex-start; gap:12px; padding:20px; border:1px solid rgba(139,165,215,.15); border-radius:17px; background:linear-gradient(145deg,rgba(17,27,45,.93),rgba(10,16,29,.96)); color:#edf4ff; text-align:left; box-shadow:0 14px 36px rgba(0,0,0,.12); transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease; cursor:pointer; }
+.hmx-directory-card:hover { transform:translateY(-3px); border-color:rgba(104,184,255,.44); background:linear-gradient(145deg,rgba(21,38,65,.97),rgba(13,19,36,.98)); box-shadow:0 18px 42px rgba(0,0,0,.24),0 0 0 1px rgba(89,157,255,.06); }
+.hmx-directory-card:focus-visible { outline:2px solid #71d6ff; outline-offset:3px; }
+.hmx-directory-card-top { display:flex; width:100%; align-items:center; justify-content:space-between; }
+.hmx-directory-icon { display:grid; width:42px; height:42px; place-items:center; border:1px solid rgba(111,175,255,.22); border-radius:13px; background:linear-gradient(145deg,rgba(39,111,201,.22),rgba(88,67,177,.17)); color:#a5d8ff; }
+.hmx-directory-number { color:#596d8e; font-size:10px; font-weight:800; letter-spacing:.12em; }
+.hmx-directory-card > strong { font-size:16px; letter-spacing:-.025em; }
+.hmx-directory-description { color:#8e9fbc; font-size:11px; line-height:1.75; }
+.hmx-directory-open { display:flex; width:100%; justify-content:space-between; align-items:center; margin-top:auto; padding-top:12px; border-top:1px solid rgba(139,165,215,.11); color:#86cfff; font-size:10px; font-weight:750; }
+.hmx-empty-tools { padding:24px; border:1px dashed rgba(139,165,215,.22); border-radius:14px; color:#91a2c0; text-align:center; }
+.hmx-directory-footnote { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:22px; padding-top:16px; border-top:1px solid rgba(139,165,215,.11); color:#7183a2; font-size:10px; line-height:1.7; }
+.hmx-directory-footnote span:first-child { color:#7ba5d9; font-size:9px; font-weight:800; letter-spacing:.13em; }
+@media (min-width:1500px) { .hmx-tool-directory { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media (max-width:900px) { .hmx-tool-directory { grid-template-columns:repeat(2,minmax(0,1fr)); } .hmx-directory-intro { align-items:stretch; flex-direction:column; } .hmx-directory-search { width:auto; min-width:0; } }
+@media (max-width:600px) {
+ .hmx-workspace-nav { align-items:flex-start; gap:12px; padding:12px 14px; }
+ .hmx-workspace-nav-actions { justify-content:flex-end; gap:6px; }
+ .hmx-workspace-status { display:none; }
+ .hmx-workspace-nav-actions .hmx-btn { padding:8px 10px; font-size:11px; }
+ .hmx-workspace.is-tool-page .hmx-workspace-main,.hmx-workspace.is-index .hmx-workspace-main { width:calc(100% - 28px); padding-top:24px; }
+ .hmx-workspace.is-tool-page .hmx-workspace-head { align-items:flex-start; flex-direction:column; gap:14px; }
+ .hmx-tool-directory { grid-template-columns:minmax(0,1fr); gap:10px; }
+ .hmx-directory-card { min-height:175px; padding:17px; }
+ .hmx-directory-footnote { align-items:flex-start; flex-direction:column; }
+}
+@media (prefers-reduced-motion:reduce) { .hmx-directory-card { transition:none; } .hmx-directory-card:hover { transform:none; } }
