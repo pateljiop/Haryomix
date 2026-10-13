@@ -184,7 +184,7 @@ export function StudyPlanner() {
             <div className="hmx-field"><label htmlFor="hmx-plan-priority">Priority</label><select id="hmx-plan-priority" className="hmx-select" value={priority} onChange={event => setPriority(event.target.value as StudyTaskPriority)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
             <div className="hmx-field"><label htmlFor="hmx-plan-minutes">Estimated minutes</label><input id="hmx-plan-minutes" className="hmx-input" type="number" min={5} max={600} step={5} value={estimatedMinutes} onChange={event => setEstimatedMinutes(Number(event.target.value))}/></div>
           </div>
-          <div className="hmx-btn-row"><button className="hmx-btn primary" type="submit">Add to plan +</button><button className="hmx-btn" type="button" onClick={exportBackup}>Export backup ↓</button><label className="hmx-btn hmx-planner-import">Import backup ↥<input type="file" accept="application/json,.json" onChange={importBackup} aria-label="Import study plan backup; replaces current list"/></label></div>
+          <div className="hmx-btn-row"><button className="hmx-btn primary" type="submit">Add to plan +</button><button className="hmx-btn" type="button" onClick={exportBackup}>Export backup ↓</button><label className="hmx-btn hmx-planner-import">Import backup (replace) ↥<input type="file" accept="application/json,.json" onChange={importBackup} aria-label="Import study plan backup; replaces current list"/></label></div>
         </form>
         <div className="hmx-planner-list-head">
           <div><h3>Your study tasks</h3><p>{stats.completed} of {stats.total} completed</p></div>
