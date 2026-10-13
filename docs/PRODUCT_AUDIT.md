@@ -73,4 +73,4 @@ Create a licensing/maintenance-reviewed GitHub research matrix before adding dep
 
 ## Verification limits
 
-As of main commit 5151bf6, CI run #170 and Cloudflare Pages deployment run #117 both completed successfully. Deployment checks confirmed all seven workspace route shells, API/D1 health, community persistence and unauthenticated moderation rejection. The regression suite passed in CI. This audit did not execute npm commands in a local checkout or independently inspect a real browser session; canvas exports, WebGL rendering and live provider credentials remain unverified.
+As of main commit 8389ca7, CI run #174 and Cloudflare Pages deployment run #119 both completed successfully. Deployment checks confirmed all seven workspace route shells, API/D1 health, safe AI input validation without provider calls, community persistence and unauthenticated moderation rejection. The 34-test regression suite passed in CI. This audit did not execute npm commands in a local checkout or independently inspect a real browser session; canvas exports, WebGL rendering and live provider credentials remain unverified.
