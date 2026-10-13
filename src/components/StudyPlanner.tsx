@@ -19,6 +19,12 @@ function readStoredTasks(): StudyTask[] {
   }
 }
 
+function localDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return String(date.getFullYear()) + "-" + month + "-" + day;
+}
+
 function formatDueDate(value: string): string {
   if (!value) return "No deadline";
   return new Date(value + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -43,7 +49,7 @@ export function StudyPlanner() {
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [notice, setNotice] = useState("");
   const [storageUnavailable, setStorageUnavailable] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey(new Date());
 
   useEffect(() => {
     try {
@@ -90,7 +96,7 @@ export function StudyPlanner() {
       subject: cleanSubject.slice(0, 80),
       dueDate,
       priority,
-      estimatedMinutes: Math.max(5, Math.min(600, Math.round(estimatedMinutes / 5) * 5)),
+      estimatedMinutes: Number.isFinite(estimatedMinutes) ? Math.max(5, Math.min(600, Math.round(estimatedMinutes / 5) * 5)) : 30,
       completed: false,
       createdAt: Date.now(),
     };
