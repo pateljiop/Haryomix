@@ -122,7 +122,6 @@ export function StudentUtilities() {
           <div className="hmx-btn-row">{["sin(","cos(","tan(","sqrt(","log(","ln(","abs(","pow("].map(fn => <button type="button" key={fn} className="hmx-btn" onClick={() => insertCalc(fn)}>{fn}</button>)}</div>
           <p className="hmx-utility-footnote">Examples: <code>sin(30)</code>, <code>sqrt(144)</code>, <code>5!</code>, <code>pow(2, 8)</code>, <code>2*pi*5</code>. Use * for multiplication and commas for multi-argument functions. Unsupported or invalid expressions show an error instead of executing code.</p>
         </div>}
-        </div>}
       </div>
     </div>
   </div>;
