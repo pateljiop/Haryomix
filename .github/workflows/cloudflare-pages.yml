@@ -108,6 +108,10 @@ jobs:
           /workspace/focus-timer|Focus Timer
           ROUTES
 
+      - name: Verify browser interactions for student tools
+        shell: bash
+        run: node scripts/browser-interaction-smoke.mjs https://haryomix.pages.dev
+
       - name: Verify production API and D1 connection
         shell: bash
         run: |
