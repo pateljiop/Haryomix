@@ -102,6 +102,30 @@ jobs:
           echo "Production API health or D1 connection verification failed." >&2
           exit 1
 
+      - name: Verify production AI input validation without provider calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_invalid_request() {
+            local route="$1"
+            local payload="$2"
+            local label="$3"
+            local code
+            code="$(curl --silent --show-error --max-time 20 --output "/tmp/haryomix-ai-$label.json" --write-out '%{http_code}' \
+              -X POST "https://haryomix.pages.dev$route" \
+              -H 'Content-Type: application/json' \
+              --data "$payload")"
+            cat "/tmp/haryomix-ai-$label.json"
+            if [[ "$code" != "400" ]]; then
+              echo "Expected HTTP 400 from safe AI validation smoke test ($label), got HTTP $code" >&2
+              exit 1
+            fi
+            echo "AI validation smoke test passed: $label (HTTP 400; no generation requested)."
+          }
+          check_invalid_request /api/ai/chat '{"task":"unsupported","prompt":"validation smoke"}' chat
+          check_invalid_request /api/ai/image '{"prompt":"x"}' image
+          check_invalid_request /api/ai/ppt '{"action":"create","query":"short"}' ppt
+
       - name: Verify community POST and persistent GET
         shell: bash
         env:
