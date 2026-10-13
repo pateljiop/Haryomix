@@ -5,6 +5,7 @@ import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 type Props = { setNotice: (message: string) => void };
 type TextPage = { page: number; text: string };
+type PageThumbnail = { page: number; dataUrl: string };
 
 function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -65,6 +66,9 @@ export function PdfExtraTools({ setNotice }: Props) {
   const [scale, setScale] = useState(1.25);
   const [ocrLanguage, setOcrLanguage] = useState("eng");
   const [compression, setCompression] = useState("balanced");
+  const [thumbnails, setThumbnails] = useState<PageThumbnail[]>([]);
+  const [dragPage, setDragPage] = useState<number | null>(null);
+  const [thumbBusy, setThumbBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [pageCount, setPageCount] = useState(0);
@@ -99,6 +103,64 @@ export function PdfExtraTools({ setNotice }: Props) {
     })();
     return () => { cancelled = true; };
   }, [file, previewPage, scale, setNotice]);
+
+  async function loadThumbnails() {
+    if (!file || thumbBusy) return;
+    setThumbBusy(true);
+    setThumbnails([]);
+    try {
+      const pdf = await openPdf(file);
+      if (pdf.numPages > 40) throw new Error("Thumbnail organizer is limited to 40 pages per file to keep memory use predictable.");
+      const result: PageThumbnail[] = [];
+      for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+        setProgress(`Building page thumbnails ${pageNo}/${pdf.numPages}…`);
+        const page = await pdf.getPage(pageNo);
+        const viewport = page.getViewport({ scale: Math.min(0.32, 110 / Math.max(page.view[2] - page.view[0], page.view[3] - page.view[1])) });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.ceil(viewport.width));
+        canvas.height = Math.max(1, Math.ceil(viewport.height));
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Canvas is not available in this browser.");
+        await page.render({ canvasContext: context, viewport }).promise;
+        result.push({ page: pageNo, dataUrl: canvas.toDataURL("image/jpeg", 0.72) });
+        canvas.width = 0; canvas.height = 0;
+      }
+      setThumbnails(result);
+      setNotice(`Loaded ${result.length} page thumbnails. Drag pages to reorder them, then export the new PDF.`);
+    } catch (error) {
+      setNotice(`Could not load thumbnails: ${error instanceof Error ? error.message : "Unknown error."}`);
+    } finally { setThumbBusy(false); setProgress(""); }
+  }
+
+  function moveThumbnail(fromPage: number, toPage: number) {
+    if (fromPage === toPage) return;
+    setThumbnails(current => {
+      const next = [...current];
+      const from = next.findIndex(item => item.page === fromPage);
+      const to = next.findIndex(item => item.page === toPage);
+      if (from < 0 || to < 0) return current;
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  }
+
+  async function exportThumbnailOrder() {
+    if (!file || !thumbnails.length || busy) return;
+    setBusy(true);
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const source = await PDFDocument.load(await file.arrayBuffer());
+      const output = await PDFDocument.create();
+      const order = thumbnails.map(item => item.page - 1);
+      const copied = await output.copyPages(source, order);
+      copied.forEach(page => output.addPage(page));
+      downloadBlob(new Blob([Uint8Array.from(await output.save()).buffer as ArrayBuffer], { type: "application/pdf" }), `${safeName(file.name)}-organized.pdf`);
+      setNotice(`Exported ${order.length} pages in the thumbnail order shown. Original page content remains intact.`);
+    } catch (error) {
+      setNotice(`Could not export page order: ${error instanceof Error ? error.message : "Unsupported or encrypted PDF."}`);
+    } finally { setBusy(false); }
+  }
 
   async function run(action: "text" | "word" | "images" | "ocr" | "compare" | "repair" | "csv" | "pptx" | "compress") {
     if (!file || busy) return;
@@ -276,8 +338,8 @@ export function PdfExtraTools({ setNotice }: Props) {
   return <div className="hmx-panel" style={{ marginTop: 18 }}>
     <div className="hmx-panel-head"><h2>PDF Pro tools</h2><span style={{ fontSize: 11, color: "#7a8292" }}>Browser-side processing</span></div>
     <div className="hmx-panel-body">
-      <div className="hmx-note" style={{ marginBottom: 16 }}>New tools: live page preview, text extraction, Word-compatible RTF export, PDF-to-JPEG, OCR, text comparison, and re-save/repair for PDFs the parser can open. Files stay in your browser; OCR downloads English language data on first use.</div>
-      <div className="hmx-field"><label htmlFor="pdf-pro-files">PDF file(s)</label><input id="pdf-pro-files" className="hmx-input" type="file" accept="application/pdf,.pdf" multiple onChange={e => { const next = Array.from(e.target.files || []); setFiles(next); setActive(0); setCompareFile(next[1] || null); setPreviewPage(1); setRange("1-3"); }} /></div>
+      <div className="hmx-note" style={{ marginBottom: 16 }}>New tools: live page preview, drag-and-drop thumbnail organizer, text extraction, Word-compatible RTF export, PDF-to-JPEG, multilingual OCR, text comparison, and re-save/repair for PDFs the parser can open. Files stay in your browser; OCR downloads language data on first use.</div>
+      <div className="hmx-field"><label htmlFor="pdf-pro-files">PDF file(s)</label><input id="pdf-pro-files" className="hmx-input" type="file" accept="application/pdf,.pdf" multiple onChange={e => { const next = Array.from(e.target.files || []); setFiles(next); setActive(0); setCompareFile(next[1] || null); setPreviewPage(1); setRange("1-3"); setThumbnails([]); }} /></div>
       {files.length > 0 && <>
         <div className="hmx-field"><label htmlFor="pdf-pro-active">Active PDF</label><select id="pdf-pro-active" className="hmx-select" value={active} onChange={e => setActive(Number(e.target.value))}>{files.map((f, i) => <option value={i} key={`${f.name}-${i}`}>{f.name} · {(f.size / 1048576).toFixed(2)} MB</option>)}</select></div>
         <div className="hmx-field"><label htmlFor="pdf-pro-range">Pages to process (1-based)</label><input id="pdf-pro-range" className="hmx-input" value={range} onChange={e => setRange(e.target.value)} placeholder="1-3,5"/><p style={{ fontSize: 11, color: "#778092" }}>Current PDF: {pageCount || "…"} pages. Range examples: 1-3,5,8-10.</p></div>
@@ -286,6 +348,7 @@ export function PdfExtraTools({ setNotice }: Props) {
         <div className="hmx-field"><label htmlFor="pdf-pro-ocr-language">OCR language</label><select id="pdf-pro-ocr-language" className="hmx-select" value={ocrLanguage} onChange={e => setOcrLanguage(e.target.value)}><option value="eng">English</option><option value="hin">Hindi</option><option value="eng+hin">English + Hindi</option></select><p style={{ fontSize: 11, color: "#778092" }}>Language data downloads from the OCR provider on first use and may take time.</p></div>
         <div className="hmx-field"><label htmlFor="pdf-pro-compression">Raster compression preset</label><select id="pdf-pro-compression" className="hmx-select" value={compression} onChange={e => setCompression(e.target.value)}><option value="small">Small file · lower resolution</option><option value="balanced">Balanced</option><option value="quality">Higher quality · larger file</option></select><p style={{ fontSize: 11, color: "#b45309" }}>Warning: this converts each page into an image. Searchable text, links, forms and vector quality are lost.</p></div>
         <div className="hmx-result"><h3>Page preview {previewReady ? "· ready" : "· rendering"}</h3><canvas ref={canvasRef} aria-label={`PDF page ${previewPage} preview`} style={{ display: "block", maxWidth: "100%", height: "auto", borderRadius: 8, background: "#fff", border: "1px solid #dce3ec" }}/></div>
+        <div className="hmx-result" style={{ marginTop: 16 }}><h3>Visual page organizer</h3><p style={{ fontSize: 12, color: "#778092", lineHeight: 1.6 }}>Load thumbnails, then drag a page onto another page to move it. Use the arrow buttons for precise ordering on touch screens. Original page numbers are shown; exporting applies the displayed order.</p><div className="hmx-btn-row" style={{ marginBottom: 12 }}><button className="hmx-btn" disabled={thumbBusy || busy} onClick={() => void loadThumbnails()}>{thumbBusy ? "Loading thumbnails…" : thumbnails.length ? "Reload thumbnails" : "Load page thumbnails"}</button><button className="hmx-btn hmx-btn-primary" disabled={busy || !thumbnails.length || thumbnails.length < 1} onClick={() => void exportThumbnailOrder()}>Export reordered PDF</button></div>{thumbnails.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(112px,1fr))", gap: 10 }}>{thumbnails.map((item, index) => <div key={item.page} draggable onDragStart={() => setDragPage(item.page)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (dragPage !== null) moveThumbnail(dragPage, item.page); setDragPage(null); }} onDragEnd={() => setDragPage(null)} style={{ border: dragPage === item.page ? "2px dashed #5578e8" : "1px solid #34415a", borderRadius: 9, padding: 7, background: "#101725", minWidth: 0, cursor: "grab" }}><img src={item.dataUrl} alt={`Original PDF page ${item.page}`} style={{ display: "block", width: "100%", height: 120, objectFit: "contain", background: "#fff", borderRadius: 5 }}/><div style={{ fontSize: 11, textAlign: "center", marginTop: 6, color: "#c4d0e6" }}>Page {item.page} · #{index + 1}</div><div className="hmx-btn-row" style={{ justifyContent: "center", gap: 4, marginTop: 6 }}><button className="hmx-btn" aria-label={`Move page ${item.page} earlier`} disabled={index === 0 || busy} onClick={() => setThumbnails(current => { const next = [...current]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; })}>←</button><button className="hmx-btn" aria-label={`Move page ${item.page} later`} disabled={index === thumbnails.length - 1 || busy} onClick={() => setThumbnails(current => { const next = [...current]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; return next; })}>→</button></div></div>)}</div>}</div>
         <div className="hmx-tool-grid">
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("text")}><strong>Extract PDF text</strong><span>Export selectable text to TXT.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("word")}><strong>PDF to Word-compatible RTF</strong><span>Editable text for Word; complex layout may change.</span></button>
