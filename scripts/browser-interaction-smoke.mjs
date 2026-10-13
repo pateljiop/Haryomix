@@ -223,11 +223,12 @@ async function run() {
     ["/workspace/flashcards", "Flashcards"],
     ["/workspace/focus-timer", "Focus Timer"],
     ["/workspace/student-utilities", "Student Utilities"],
+    ["/workspace/study-library", "Study Library"],
   ];
   for (const [route, title] of dedicatedRoutes) {
     await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
   }
-  console.log("All 11 tool pages plus the workspace directory render independently without the old sidebar.");
+  console.log("All 12 tool pages plus the workspace directory render independently without the old sidebar.");
 
   await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
@@ -249,6 +250,20 @@ async function run() {
   }
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('PowerPoint exported')", "PPT export success status");
   console.log("PPT Studio produced a downloadable .pptx artifact using the selected style.");
+
+  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-title') && !!document.querySelector('#hmx-library-search')", "Study Library editor and search");
+  await fill("#hmx-library-title", "Browser smoke note", "Study Library title");
+  await fill("#hmx-library-content", "A process is a program in execution.", "Study Library note content");
+  await fill("#hmx-library-tags", "BCA, Operating Systems", "Study Library tags");
+  await clickText("button", "Save to library +", "save Study Library note");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Study item saved')", "Study Library note save status");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Study Library saved note appears");
+  await fill("#hmx-library-search", "Browser smoke note", "search Study Library");
+  await waitFor("document.querySelectorAll('.hmx-library-list li').length===1", "Study Library search filters results");
+  await navigate("/workspace/focus-timer", "!!document.querySelector('.hmx-focus-modes')", "leave Study Library after saving");
+  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-search')", "return to Study Library");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Study Library item persists after navigation");
+  console.log("Study Library save, search and IndexedDB persistence flows passed.");
 
   await navigate("/workspace/study-planner", "!!document.querySelector('#hmx-plan-title')", "Study Planner form");
   await fill("#hmx-plan-title", "Browser smoke study task", "planner title");
