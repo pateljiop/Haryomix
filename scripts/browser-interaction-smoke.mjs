@@ -229,6 +229,11 @@ async function run() {
   }
   console.log("All 11 tool pages plus the workspace directory render independently without the old sidebar.");
 
+  await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
+  await clickText("button", "Inspect locally", "run local Code Doctor checks");
+  await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('Local review findings')", "local Code Doctor findings");
+  console.log("Code Doctor local review interaction passed.");
+
   await navigate("/workspace/study-planner", "!!document.querySelector('#hmx-plan-title')", "Study Planner form");
   await fill("#hmx-plan-title", "Browser smoke study task", "planner title");
   await fill("#hmx-plan-subject", "E2E Subject", "planner subject");
