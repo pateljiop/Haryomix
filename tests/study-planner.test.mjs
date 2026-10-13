@@ -27,7 +27,7 @@ test("study task validator accepts a well-formed local task", () => {
 
 test("study backup parser validates JSON arrays and task records", () => {
   assert.deepEqual(parseStudyTasks(JSON.stringify([task()])), [task()]);
-  assert.throws(() => parseStudyTasks("{"), SyntaxError);
+  assert.throws(() => parseStudyTasks("{"), /not valid JSON/);
   assert.throws(() => parseStudyTasks(JSON.stringify({ task: task() })), /task list/);
   assert.throws(() => parseStudyTasks(JSON.stringify([{ ...task(), estimatedMinutes: 0 }])), /invalid task/);
 });
