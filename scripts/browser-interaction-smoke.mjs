@@ -371,6 +371,7 @@ async function run() {
   await navigate("/workspace/image-studio", "!!document.querySelector('input.hmx-file-input')", "Image Studio upload");
   await setFiles("input.hmx-file-input", [join(profile, "smoke-pixel.png")]);
   await waitFor("!!document.querySelector('#image-width') && document.querySelector('.hmx-image-preview')?.width===1", "image fixture decoded");
+  await click("#image-lock-ratio", "disable aspect ratio lock for independent dimension test");
   await fill("#image-width", "64", "image output width");
   await fill("#image-height", "32", "image output height");
   await waitFor("document.querySelector('.hmx-image-preview')?.width===64 && document.querySelector('.hmx-image-preview')?.height===32", "image canvas resizes");
