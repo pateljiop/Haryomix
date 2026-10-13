@@ -232,7 +232,23 @@ async function run() {
   await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
   await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('Local review findings')", "local Code Doctor findings");
-  console.log("Code Doctor local review interaction passed.");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('colon')) && Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('Unclosed bracket'))", "Code Doctor catches default syntax errors");
+  await fill("#hmx-code", "def add(a, b):\\n    return a + b\\n\\nprint(add(2, 3))", "valid Python sample");
+  await clickText("button", "Inspect locally", "inspect valid Python");
+  await waitFor("document.querySelector('.hmx-result li')?.textContent.includes('No obvious pattern-based issue')", "Code Doctor clean-code message");
+  console.log("Code Doctor local review catches syntax patterns and handles valid code.");
+
+  await navigate("/workspace/ppt-studio", "!!document.querySelector('#ppt-title') && !!document.querySelector('#ppt-tone')", "PPT Studio editor");
+  await chooseValue("#ppt-tone", "Academic / research", "academic presentation style");
+  await fill("#ppt-title", "Haryomix Browser Smoke Deck", "PPT title");
+  await clickText("button", "Build professional .pptx", "export PowerPoint deck");
+  const pptPath = await waitForDownload("Haryomix-Browser-Smoke-Deck.pptx", 30000);
+  const pptBytes = readFileSync(pptPath);
+  if (pptBytes.length < 5000 || pptBytes.subarray(0, 2).toString() !== "PK") {
+    throw new Error("PPT Studio export is not a valid-looking PowerPoint ZIP artifact.");
+  }
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('PowerPoint exported')", "PPT export success status");
+  console.log("PPT Studio produced a downloadable .pptx artifact using the selected style.");
 
   await navigate("/workspace/study-planner", "!!document.querySelector('#hmx-plan-title')", "Study Planner form");
   await fill("#hmx-plan-title", "Browser smoke study task", "planner title");
