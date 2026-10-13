@@ -149,10 +149,20 @@ test("image API can parse a mocked Felo image-generation response", async () => 
 test("PPT API validates topic before rate limiting and provider calls", async () => {
   const response = await pptPost({
     request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "short" }),
-    env: { FELO_API_KEY: "test-felo-key" },
+    env: {},
   });
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /presentation topic/i);
+});
+
+
+test("PPT API rejects unsupported actions before checking provider configuration", async () => {
+  const response = await pptPost({
+    request: jsonRequest("https://example.test/api/ai/ppt", { action: "unknown" }),
+    env: {},
+  });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /unsupported action/i);
 });
 
 test("PPT API reports missing database as setup failure, not rate limiting", async () => {
