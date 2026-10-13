@@ -10,6 +10,7 @@
 - **Image Studio:** supports resizing, target-size compression attempts, crop, rotation, brightness/contrast and PNG, JPEG or WebP export. The tool reports the actual output size; a target size cannot be guaranteed for every image.
 - **Exam Copilot:** creates revision material from supplied topics and provides general practice questions. Questions are not verified university past papers.
 - **Study Planner:** organize tasks by subject, deadline, priority and estimated study time. Tasks are stored in this browser and can be exported/imported as JSON; there is no cloud sync or account.
+- **Flashcards:** create question/answer decks, review due cards with Again/Hard/Good/Easy ratings, and schedule intervals with a lightweight SM-2-style algorithm. Cards are stored in this browser and support JSON backup/restore.
 - **Haryomix AI and AI Create Studio:** use server-side configured provider integrations when credentials and service bindings are available.
 
 ## Backend and community
@@ -33,7 +34,7 @@ Repository Actions secrets used by the workflow:
 - CLOUDFLARE_API_TOKEN: a Cloudflare API token with permission to manage Cloudflare Pages and run the configured D1 migration/smoke-test steps.
 - CLOUDFLARE_ACCOUNT_ID: the Cloudflare account ID.
 
-The workflow deploys to the main production branch and checks the eight workspace URLs, the health/D1 endpoint, safe AI input validation and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
+The workflow deploys to the main production branch and checks the nine workspace URLs, the health/D1 endpoint, safe AI input validation and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
 
 ## Local development
 
@@ -55,7 +56,7 @@ The current CI runs dependency installation, TypeScript checks, automated regres
 - PPT Studio creates an editable starter deck, not a guarantee of fully researched or fact-checked academic content.
 - PDF text editing with exact font/layout preservation, secure redaction, certificate-backed signing, password removal, repair, OCR and PDF-to-Office conversion must not be assumed supported unless a dedicated implementation is added and tested.
 - PDF object-stream repacking is not true image-level compression. A crop box is not secure redaction.
-- PDF/image editing state may be lost when the page is refreshed or closed. Study Planner tasks persist in this browser storage only and should be backed up before clearing browser data or switching devices. Community posts persist only when the production D1 binding and migrations are available.
+- PDF/image editing state may be lost when the page is refreshed or closed. Study Planner tasks and Flashcards persist in this browser storage only and should be backed up before clearing browser data or switching devices. Community posts persist only when the production D1 binding and migrations are available.
 
 ## Contributing
 
