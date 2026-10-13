@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/workspace/:path*",
+      "destination": "/"
+    },
+    {
+      "source": "/moderation",
+      "destination": "/"
+    }
+  ]
+}
