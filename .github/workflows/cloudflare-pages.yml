@@ -65,7 +65,14 @@ jobs:
         run: |
           set -euo pipefail
           wrangler pages deploy dist --project-name=haryomix --branch=main 2>&1 | tee /tmp/haryomix-deploy.log
-          deployment_url="$(grep -Eo 'https://[[:alnum:]-]+\.haryomix\.pages\.dev' /tmp/haryomix-deploy.log | grep -v '^https://haryomix\.pages\.dev
+          deployment_url="$(grep -Eo 'https://[a-f0-9]{8}\.haryomix\.pages\.dev' /tmp/haryomix-deploy.log | tail -n 1 || true)"
+          if [[ -z "$deployment_url" ]]; then
+            echo "Could not extract the immutable Cloudflare Pages deployment URL." >&2
+            cat /tmp/haryomix-deploy.log >&2
+            exit 1
+          fi
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "Testing deployed version at $deployment_url"
 
       - name: Verify deployed workspace routes
         shell: bash
@@ -205,7 +212,7 @@ jobs:
           post_id="$(python -c 'import json; print(json.load(open("/tmp/haryomix-post.json"))["post"]["id"])')"
           [[ "$post_id" =~ ^[0-9]+$ ]] && [[ "$post_id" != "0" ]]
 
-          curl --fail --silent --show-error --max-time 20 https://haryomix.pages.dev/api/community > /tmp/haryomix-community.json
+          curl --fail --silent --show-error --max-time 20 $DEPLOYMENT_URL/api/community > /tmp/haryomix-community.json
           POST_ID="$post_id" MARKER="$marker" python -c 'import json,os; d=json.load(open("/tmp/haryomix-community.json")); assert any(str(p["id"]) == os.environ["POST_ID"] and p["message"] == os.environ["MARKER"] for p in d.get("posts", [])), "POST was not returned by subsequent GET"; print("Community POST persisted and was returned by GET.")'
 
           report_code="$(POST_ID="$post_id" python -c 'import json,os; print(json.dumps({"postId":int(os.environ["POST_ID"]),"reason":"other","details":"CI report endpoint smoke test"}))' | curl --silent --show-error --max-time 20 --output /tmp/haryomix-report.json --write-out '%{http_code}' -X POST $DEPLOYMENT_URL/api/community/report -H 'Content-Type: application/json' --data-binary @-)"
@@ -258,7 +265,7 @@ jobs:
             /workspace/focus-timer
           )
           for route in "${routes[@]}"; do
-            code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-route.html --write-out '%{http_code}' "https://haryomix.pages.dev$route")"
+            code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-route.html --write-out '%{http_code}' "$DEPLOYMENT_URL$route")"
             if [[ "$code" != "200" ]] || ! grep -q 'id="root"' /tmp/haryomix-route.html; then
               echo "Workspace route failed HTTP/SPA shell verification: $route (HTTP $code)" >&2
               exit 1
@@ -273,7 +280,7 @@ jobs:
           set -euo pipefail
           google-chrome --version
           while IFS='|' read -r route expected; do
-            html="$(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=8000 --dump-dom "https://haryomix.pages.dev$route" 2>/tmp/haryomix-chrome.log)"
+            html="$(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=8000 --dump-dom "$DEPLOYMENT_URL$route" 2>/tmp/haryomix-chrome.log)"
             if ! grep -Fq "$expected" <<< "$html"; then
               cat /tmp/haryomix-chrome.log >&2 || true
               echo "Browser-rendered UI did not contain expected marker '$expected' at $route" >&2
@@ -289,14 +296,14 @@ jobs:
 
       - name: Verify browser interactions for student tools
         shell: bash
-        run: node scripts/browser-interaction-smoke.mjs https://haryomix.pages.dev
+        run: node scripts/browser-interaction-smoke.mjs "$DEPLOYMENT_URL"
 
       - name: Verify production API and D1 connection
         shell: bash
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
-            code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-health.json --write-out '%{http_code}' https://haryomix.pages.dev/api/health)" || code="000"
+            code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-health.json --write-out '%{http_code}' $DEPLOYMENT_URL/api/health)" || code="000"
             body="$(cat /tmp/haryomix-health.json 2>/dev/null || true)"
             printf 'Health check attempt %s (HTTP %s): %s\\n' "$attempt" "$code" "$body"
             if [[ "$code" == "200" ]] && grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' <<< "$body" && grep -Eq '"database"[[:space:]]*:[[:space:]]*"connected"' <<< "$body"; then
@@ -318,7 +325,7 @@ jobs:
             local label="$3"
             local code
             code="$(curl --silent --show-error --max-time 20 --output "/tmp/haryomix-ai-$label.json" --write-out '%{http_code}' \
-              -X POST "https://haryomix.pages.dev$route" \
+              -X POST "$DEPLOYMENT_URL$route" \
               -H 'Content-Type: application/json' \
               --data "$payload")"
             cat "/tmp/haryomix-ai-$label.json"
@@ -351,7 +358,7 @@ jobs:
           trap cleanup EXIT
 
           http_code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-post.json --write-out '%{http_code}' \
-            -X POST https://haryomix.pages.dev/api/community \
+            -X POST $DEPLOYMENT_URL/api/community \
             -H 'Content-Type: application/json' \
             --data "$(MARKER="$marker" python -c 'import json,os; print(json.dumps({"displayName":"Haryomix CI","message":os.environ["MARKER"]}))')")"
           cat /tmp/haryomix-post.json
@@ -359,10 +366,10 @@ jobs:
           post_id="$(python -c 'import json; print(json.load(open("/tmp/haryomix-post.json"))["post"]["id"])')"
           [[ "$post_id" =~ ^[0-9]+$ ]] && [[ "$post_id" != "0" ]]
 
-          curl --fail --silent --show-error --max-time 20 https://haryomix.pages.dev/api/community > /tmp/haryomix-community.json
+          curl --fail --silent --show-error --max-time 20 $DEPLOYMENT_URL/api/community > /tmp/haryomix-community.json
           POST_ID="$post_id" MARKER="$marker" python -c 'import json,os; d=json.load(open("/tmp/haryomix-community.json")); assert any(str(p["id"]) == os.environ["POST_ID"] and p["message"] == os.environ["MARKER"] for p in d.get("posts", [])), "POST was not returned by subsequent GET"; print("Community POST persisted and was returned by GET.")'
 
-          report_code="$(POST_ID="$post_id" python -c 'import json,os; print(json.dumps({"postId":int(os.environ["POST_ID"]),"reason":"other","details":"CI report endpoint smoke test"}))' | curl --silent --show-error --max-time 20 --output /tmp/haryomix-report.json --write-out '%{http_code}' -X POST https://haryomix.pages.dev/api/community/report -H 'Content-Type: application/json' --data-binary @-)"
+          report_code="$(POST_ID="$post_id" python -c 'import json,os; print(json.dumps({"postId":int(os.environ["POST_ID"]),"reason":"other","details":"CI report endpoint smoke test"}))' | curl --silent --show-error --max-time 20 --output /tmp/haryomix-report.json --write-out '%{http_code}' -X POST $DEPLOYMENT_URL/api/community/report -H 'Content-Type: application/json' --data-binary @-)"
           cat /tmp/haryomix-report.json
           test "$report_code" = "201"
           wrangler d1 execute haryomix-db --remote --command "SELECT id FROM community_reports WHERE post_id = $post_id AND details = 'CI report endpoint smoke test' AND status = 'pending' LIMIT 1;" > /tmp/haryomix-report-db.json
@@ -373,7 +380,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-moderation.json --write-out '%{http_code}' https://haryomix.pages.dev/api/moderation)"
+          code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-moderation.json --write-out '%{http_code}' $DEPLOYMENT_URL/api/moderation)"
           cat /tmp/haryomix-moderation.json
           if [[ "$code" != "401" && "$code" != "503" ]]; then
             echo "Expected unauthenticated moderation access to return 401 or unconfigured 503, got HTTP $code" >&2
