@@ -4,8 +4,8 @@ import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create" | "planner" | "flashcards" | "focus" | "utilities" | "library";
-const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", planner: "/workspace/study-planner", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", library: "/workspace/study-library" };
+type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create" | "planner" | "flashcards" | "focus" | "utilities" | "calculator" | "converter" | "library";
+const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", planner: "/workspace/study-planner", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter", library: "/workspace/study-library" };
 function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
@@ -19,7 +19,9 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "flashcards", n: "09", title: "Flashcards", desc: "Practice active recall with a spaced-repetition queue stored in your browser." },
   { id: "focus", n: "10", title: "Focus Timer", desc: "Use Pomodoro focus blocks, short/long breaks and a local session history." },
   { id: "utilities", n: "11", title: "Student Utilities", desc: "Calculate marks, CGPA and attendance; count words; format JSON and encode URLs." },
-  { id: "library", n: "12", title: "Study Library", desc: "Save and search notes, definitions, links and revision resources in your browser." },
+  { id: "calculator", n: "12", title: "Scientific Calculator", desc: "Evaluate scientific calculations locally without AI or an API key." },
+  { id: "converter", n: "13", title: "Unit Converter", desc: "Convert length, mass, temperature, area, volume, speed, time and digital storage." },
+  { id: "library", n: "14", title: "Study Library", desc: "Save and search notes, definitions, links and revision resources in your browser." },
 ];
 
 export default function App() {

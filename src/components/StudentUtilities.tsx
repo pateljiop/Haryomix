@@ -9,8 +9,9 @@ import {
   formatJson,
 } from "../lib/student-utilities";
 import { calculateScientificExpression, type AngleMode } from "../lib/scientific-calculator";
+import { convertUnit, UNIT_OPTIONS, type UnitCategory } from "../lib/unit-converter";
 
-type UtilityTab = "marks" | "attendance" | "text" | "json" | "url" | "calculator";
+type UtilityTab = "marks" | "attendance" | "text" | "json" | "url" | "calculator" | "converter";
 const tabs: { id: UtilityTab; label: string }[] = [
   { id: "marks", label: "Marks & CGPA" },
   { id: "attendance", label: "Attendance" },
@@ -18,10 +19,11 @@ const tabs: { id: UtilityTab; label: string }[] = [
   { id: "json", label: "JSON tool" },
   { id: "url", label: "URL encoder" },
   { id: "calculator", label: "Scientific calculator" },
+  { id: "converter", label: "Unit converter" },
 ];
 
-export function StudentUtilities() {
-  const [tab, setTab] = useState<UtilityTab>("marks");
+export function StudentUtilities({ initialTab = "marks" }: { initialTab?: UtilityTab } = {}) {
+  const [tab, setTab] = useState<UtilityTab>(initialTab);
   const [obtained, setObtained] = useState("420");
   const [total, setTotal] = useState("500");
   const [subjects, setSubjects] = useState([
@@ -45,6 +47,16 @@ export function StudentUtilities() {
   const [calcResult, setCalcResult] = useState<string>("");
   const [calcError, setCalcError] = useState("");
   const [angleMode, setAngleMode] = useState<AngleMode>("deg");
+  const [unitCategory, setUnitCategory] = useState<UnitCategory>("length");
+  const [unitFrom, setUnitFrom] = useState("m");
+  const [unitTo, setUnitTo] = useState("km");
+  const [unitValue, setUnitValue] = useState("1");
+  const [unitCopyError, setUnitCopyError] = useState("");
+  const unitConversion = useMemo(() => {
+    if (!unitValue.trim()) return { result: "", error: "" };
+    try { return { result: String(Number(convertUnit(Number(unitValue), unitCategory, unitFrom, unitTo).toPrecision(12))), error: "" }; }
+    catch (error) { return { result: "", error: error instanceof Error ? error.message : "Could not convert this value." }; }
+  }, [unitValue, unitCategory, unitFrom, unitTo]);
   function runScientificCalculation() {
     try { const result = calculateScientificExpression(calcExpression, angleMode); setCalcResult(String(Number(result.toPrecision(12)))); setCalcError(""); }
     catch (error) { setCalcResult(""); setCalcError(error instanceof Error ? error.message : "Could not evaluate this expression."); }
@@ -121,6 +133,21 @@ export function StudentUtilities() {
           <div className="hmx-btn-row" aria-label="Calculator keypad">{["7","8","9","/","4","5","6","*","1","2","3","-","0",".","(",")","+","^","!","%","pi","e"].map(key => <button type="button" key={key} className="hmx-btn" onClick={() => insertCalc(key === "pi" ? "pi" : key)}>{key}</button>)}</div>
           <div className="hmx-btn-row">{["sin(","cos(","tan(","sqrt(","log(","ln(","abs(","pow("].map(fn => <button type="button" key={fn} className="hmx-btn" onClick={() => insertCalc(fn)}>{fn}</button>)}</div>
           <p className="hmx-utility-footnote">Examples: <code>sin(30)</code>, <code>sqrt(144)</code>, <code>5!</code>, <code>pow(2, 8)</code>, <code>2*pi*5</code>. Use * for multiplication and commas for multi-argument functions. Unsupported or invalid expressions show an error instead of executing code.</p>
+        </div>}
+
+        {tab === "converter" && <div className="hmx-utility-section">
+          <div className="hmx-utility-section-head"><div><h3>Unit converter</h3><p>Convert everyday study measurements instantly in your browser. No AI, account or upload required.</p></div><span className="hmx-planner-local">LOCAL MATH</span></div>
+          <div className="hmx-utility-fields">
+            <label>Measurement category<select className="hmx-select" value={unitCategory} onChange={event => { const category = event.target.value as UnitCategory; const options = UNIT_OPTIONS[category]; setUnitCategory(category); setUnitFrom(options[0].value); setUnitTo(options[Math.min(1, options.length - 1)].value); }}>{([{id:"length",label:"Length"},{id:"mass",label:"Mass / weight"},{id:"temperature",label:"Temperature"},{id:"area",label:"Area"},{id:"volume",label:"Volume"},{id:"speed",label:"Speed"},{id:"time",label:"Time"},{id:"storage",label:"Digital storage"}] as {id:UnitCategory;label:string}[]).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+            <label>Value<input className="hmx-input" type="number" value={unitValue} onChange={event => setUnitValue(event.target.value)} placeholder="Enter a value"/></label>
+            <label>From<select className="hmx-select" value={unitFrom} onChange={event => setUnitFrom(event.target.value)}>{UNIT_OPTIONS[unitCategory].map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>
+            <label>To<select className="hmx-select" value={unitTo} onChange={event => setUnitTo(event.target.value)}>{UNIT_OPTIONS[unitCategory].map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>
+          </div>
+          <div className="hmx-utility-result" style={{marginTop:18,padding:22}}><strong style={{overflowWrap:"anywhere"}} aria-live="polite">{unitConversion.result || "—"}</strong><span>Converted value</span><small>{unitValue || "0"} {UNIT_OPTIONS[unitCategory].find(unit => unit.value === unitFrom)?.label} → {UNIT_OPTIONS[unitCategory].find(unit => unit.value === unitTo)?.label}</small></div>
+          {unitConversion.error && <p className="hmx-utility-error" role="alert">{unitConversion.error}</p>}
+          <div className="hmx-btn-row"><button type="button" className="hmx-btn" onClick={() => { setUnitFrom(unitTo); setUnitTo(unitFrom); setUnitCopyError(""); }}>⇄ Swap units</button><button type="button" className="hmx-btn" onClick={() => { setUnitValue("1"); setUnitCategory("length"); setUnitFrom("m"); setUnitTo("km"); setUnitCopyError(""); }}>Reset</button><button type="button" className="hmx-btn" disabled={!unitConversion.result} onClick={() => void navigator.clipboard?.writeText(unitConversion.result).then(() => setUnitCopyError("")).catch(() => setUnitCopyError("Clipboard access was blocked by the browser."))}>Copy result</button></div>
+          {unitCopyError && <p className="hmx-utility-error" role="alert">{unitCopyError}</p>}
+          <p className="hmx-utility-footnote">Includes length, mass, temperature, area, volume, speed, time and digital storage. Storage conversions use base-1024 units (for example, 1 GB = 1024 MB) to match common operating-system file-size displays.</p>
         </div>}
       </div>
     </div>
