@@ -168,6 +168,38 @@ export function StudyLibrary() {
     reader.readAsText(file);
   }
 
+  function exportMarkdown(item: StudyResource) {
+    const content = [
+      "# " + item.title,
+      "",
+      "> Type: " + item.kind,
+      "> Tags: " + (item.tags.join(", ") || "none"),
+      "",
+      item.content,
+      "",
+      item.sourceUrl ? "Source: " + item.sourceUrl : "",
+      "",
+      "_Exported from Haryomix Study Library._",
+    ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n");
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + ".md";
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice("Downloaded “" + item.title + "” as Markdown. No AI call was made.");
+  }
+
+  async function copySelectedContent(item: StudyResource) {
+    try {
+      await navigator.clipboard.writeText(item.content || item.sourceUrl || item.title);
+      setNotice("Copied “" + item.title + "” to clipboard.");
+    } catch {
+      setNotice("Clipboard access was blocked by the browser. Use Download Markdown instead.");
+    }
+  }
+
   async function clearLibrary() {
     if (!items.length) { setNotice("The library is already empty."); return; }
     if (!window.confirm("Delete all " + items.length + " study items from this browser? This cannot be undone. Export a backup first if needed.")) return;
@@ -233,7 +265,7 @@ export function StudyLibrary() {
                   <button type="button" className="hmx-library-item-open" onClick={() => setSelectedId(item.id)}><span className="hmx-library-kind">{item.kind === "note" ? "NOTE" : item.kind === "resource" ? "RESOURCE" : "LINK"}</span><strong>{item.title}</strong><small>Updated {formatDate(item.updatedAt)}</small><span className="hmx-library-tags">{item.tags.map(tag => <span key={tag}>{tag}</span>)}</span></button>
                   <div className="hmx-library-item-actions"><button type="button" className="hmx-btn" onClick={() => startEdit(item)} disabled={busy}>Edit</button><button type="button" className="hmx-planner-delete" onClick={() => void remove(item)} disabled={busy} aria-label={"Delete " + item.title}>×</button></div>
                 </li>)}</ul>}
-              {selected && <article className="hmx-library-detail"><div className="hmx-library-detail-head"><div><span className="hmx-library-kind">{selected.kind.toUpperCase()}</span><h3>{selected.title}</h3></div><button type="button" className="hmx-btn" onClick={() => startEdit(selected)} disabled={busy}>Edit item</button></div>
+              {selected && <article className="hmx-library-detail"><div className="hmx-library-detail-head"><div><span className="hmx-library-kind">{selected.kind.toUpperCase()}</span><h3>{selected.title}</h3></div><div className="hmx-btn-row"><button type="button" className="hmx-btn" onClick={() => exportMarkdown(selected)}>Download .md ↓</button><button type="button" className="hmx-btn" onClick={() => void copySelectedContent(selected)}>Copy</button><button type="button" className="hmx-btn" onClick={() => startEdit(selected)} disabled={busy}>Edit item</button></div></div>
                 {selected.content && <p className="hmx-library-detail-content">{selected.content}</p>}
                 {selected.sourceUrl && <a href={selected.sourceUrl} target="_blank" rel="noreferrer noopener" className="hmx-library-source">Open source ↗</a>}
                 <div className="hmx-library-detail-foot"><span>Created {formatDate(selected.createdAt)}</span><span>Updated {formatDate(selected.updatedAt)}</span></div>
