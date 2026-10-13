@@ -62,7 +62,7 @@ async function askGemini(key: string, system: string, prompt: string): Promise<s
     }),
     signal: AbortSignal.timeout(25_000),
   });
-  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status >= 500 ? "provider_unavailable" : "provider_request_failed");
+  if (!response.ok) throw new Error(providerStatusReason(response.status));
   const data = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   const answer = data.candidates?.[0]?.content?.parts?.map(p => p.text ?? "").join("").trim();
   if (!answer) throw new Error("empty_response");
@@ -81,7 +81,7 @@ async function askFelo(key: string, model: string, system: string, prompt: strin
     }),
     signal: AbortSignal.timeout(25_000),
   });
-  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status >= 500 ? "provider_unavailable" : "provider_request_failed");
+  if (!response.ok) throw new Error(providerStatusReason(response.status));
   const data = await response.json() as { choices?: { message?: { content?: string | null } }[] };
   const answer = data.choices?.[0]?.message?.content?.trim();
   if (!answer) throw new Error("empty_response");
