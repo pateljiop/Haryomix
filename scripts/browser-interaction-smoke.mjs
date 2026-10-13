@@ -14,7 +14,7 @@ const chrome = spawn("google-chrome", [
   "--remote-allow-origins=*",
   "--user-data-dir=" + profile,
   "about:blank",
-], { stdio: "ignore" });
+], { stdio: "ignore", detached: true });
 
 let chromeError = null;
 chrome.on("error", error => { chromeError = error; });
@@ -169,12 +169,17 @@ try {
   await run();
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
-  if (chrome.exitCode === null && chrome.signalCode === null) {
+  if (chrome.pid && chrome.exitCode === null && chrome.signalCode === null) {
     await new Promise(resolve => {
-      const timeout = setTimeout(() => { chrome.kill("SIGKILL"); resolve(); }, 4000);
+      const timeout = setTimeout(() => { try { process.kill(-chrome.pid, "SIGKILL"); } catch {} resolve(); }, 5000);
       chrome.once("exit", () => { clearTimeout(timeout); resolve(); });
-      chrome.kill("SIGTERM");
+      try { process.kill(-chrome.pid, "SIGTERM"); } catch { chrome.kill("SIGTERM"); }
     });
   }
-  rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 });
+  try {
+    rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+  } catch (error) {
+    if (!error || !["ENOTEMPTY", "EBUSY", "EPERM"].includes(error.code)) throw error;
+    console.warn("Chrome profile cleanup deferred to the ephemeral GitHub runner cleanup.");
+  }
 }
