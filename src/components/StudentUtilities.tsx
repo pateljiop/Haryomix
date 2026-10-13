@@ -8,14 +8,16 @@ import {
   encodeUrlComponent,
   formatJson,
 } from "../lib/student-utilities";
+import { calculateScientificExpression, type AngleMode } from "../lib/scientific-calculator";
 
-type UtilityTab = "marks" | "attendance" | "text" | "json" | "url";
+type UtilityTab = "marks" | "attendance" | "text" | "json" | "url" | "calculator";
 const tabs: { id: UtilityTab; label: string }[] = [
   { id: "marks", label: "Marks & CGPA" },
   { id: "attendance", label: "Attendance" },
   { id: "text", label: "Text counter" },
   { id: "json", label: "JSON tool" },
   { id: "url", label: "URL encoder" },
+  { id: "calculator", label: "Scientific calculator" },
 ];
 
 export function StudentUtilities() {
@@ -39,6 +41,15 @@ export function StudentUtilities() {
   const [urlOutput, setUrlOutput] = useState("");
   const [urlError, setUrlError] = useState("");
   const [urlMode, setUrlMode] = useState<"encode" | "decode">("encode");
+  const [calcExpression, setCalcExpression] = useState("sin(30) + sqrt(81)");
+  const [calcResult, setCalcResult] = useState<string>("");
+  const [calcError, setCalcError] = useState("");
+  const [angleMode, setAngleMode] = useState<AngleMode>("deg");
+  function runScientificCalculation() {
+    try { const result = calculateScientificExpression(calcExpression, angleMode); setCalcResult(String(Number(result.toPrecision(12)))); setCalcError(""); }
+    catch (error) { setCalcResult(""); setCalcError(error instanceof Error ? error.message : "Could not evaluate this expression."); }
+  }
+  function insertCalc(value: string) { setCalcExpression(current => current + value); setCalcError(""); }
   const textStats = useMemo(() => countText(text), [text]);
   let percentage: number | null = null;
   let cgpa: number | null = null;
@@ -99,6 +110,16 @@ export function StudentUtilities() {
           <label className="hmx-utility-block-label">Input<textarea id="utility-url-input" className="hmx-textarea hmx-utility-textarea" value={urlInput} onChange={e => { setUrlInput(e.target.value); setUrlOutput(""); setUrlError(""); }}/></label>
           <div className="hmx-btn-row"><button type="button" className="hmx-btn primary" onClick={() => { try { setUrlOutput(urlMode === "encode" ? encodeUrlComponent(urlInput) : decodeUrlComponent(urlInput)); setUrlError(""); } catch (error) { setUrlOutput(""); setUrlError(error instanceof Error ? error.message : "Could not process URL text."); } }}>Process text</button><button type="button" className="hmx-btn" onClick={() => { setUrlInput(""); setUrlOutput(""); setUrlError(""); }}>Clear</button></div>
           {urlError && <p className="hmx-utility-error" role="alert">{urlError}</p>}{urlOutput && <label className="hmx-utility-block-label">Result<textarea className="hmx-textarea hmx-utility-textarea" readOnly value={urlOutput}/></label>}
+        {tab === "calculator" && <div className="hmx-utility-section">
+          <div className="hmx-utility-section-head"><div><h3>Scientific calculator</h3><p>Runs locally—no AI, API key or network request. Supports arithmetic, powers, factorials, percentages, constants and scientific functions.</p></div><div className="hmx-btn-row"><button type="button" className={"hmx-btn " + (angleMode === "deg" ? "primary" : "")} onClick={() => { setAngleMode("deg"); setCalcResult(""); }}>DEG</button><button type="button" className={"hmx-btn " + (angleMode === "rad" ? "primary" : "")} onClick={() => { setAngleMode("rad"); setCalcResult(""); }}>RAD</button></div></div>
+          <div className="hmx-field"><label htmlFor="hmx-scientific-expression">Expression</label><input id="hmx-scientific-expression" className="hmx-input" inputMode="decimal" value={calcExpression} onChange={event => { setCalcExpression(event.target.value); setCalcResult(""); setCalcError(""); }} onKeyDown={event => { if (event.key === "Enter") runScientificCalculation(); }} placeholder="e.g. sin(30) + sqrt(81)"/></div>
+          <div className="hmx-utility-answer-grid"><div><span>Result</span><strong style={{overflowWrap:"anywhere"}} aria-live="polite">{calcResult || "—"}</strong><small>{angleMode === "deg" ? "Trigonometry uses degrees." : "Trigonometry uses radians."}</small></div><div><span>Supported functions</span><strong style={{fontSize:14}}>sin cos tan · asin acos atan</strong><small>sqrt, abs, ln, log, exp, floor, ceil, round, pow</small></div></div>
+          {calcError && <p className="hmx-utility-error" role="alert">{calcError}</p>}
+          <div className="hmx-btn-row"><button type="button" className="hmx-btn primary" onClick={runScientificCalculation}>Calculate =</button><button type="button" className="hmx-btn" onClick={() => { setCalcExpression(""); setCalcResult(""); setCalcError(""); }}>Clear</button><button type="button" className="hmx-btn" onClick={() => { setCalcExpression(current => current.slice(0, -1)); setCalcResult(""); setCalcError(""); }}>Backspace</button><button type="button" className="hmx-btn" disabled={!calcResult} onClick={() => void navigator.clipboard?.writeText(calcResult).catch(() => setCalcError("Clipboard access was blocked by the browser."))}>Copy result</button></div>
+          <div className="hmx-btn-row" aria-label="Calculator keypad">{["7","8","9","/","4","5","6","*","1","2","3","-","0",".","(",")","+","^","!","%","pi","e"].map(key => <button type="button" key={key} className="hmx-btn" onClick={() => insertCalc(key === "pi" ? "pi" : key)}>{key}</button>)}</div>
+          <div className="hmx-btn-row">{["sin(","cos(","tan(","sqrt(","log(","ln(","abs(","pow("].map(fn => <button type="button" key={fn} className="hmx-btn" onClick={() => insertCalc(fn)}>{fn}</button>)}</div>
+          <p className="hmx-utility-footnote">Examples: <code>sin(30)</code>, <code>sqrt(144)</code>, <code>5!</code>, <code>pow(2, 8)</code>, <code>2*pi*5</code>. Use * for multiplication and commas for multi-argument functions. Unsupported or invalid expressions show an error instead of executing code.</p>
+        </div>}
         </div>}
       </div>
     </div>
