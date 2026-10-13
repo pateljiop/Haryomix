@@ -64,12 +64,13 @@ A licensing/maintenance-reviewed GitHub research matrix is documented. The first
 
 ## Recommended next implementation sequence
 
-1. Add browser-level E2E and visual checks for direct routes, mobile navigation, PDF/Image downloads and WebGL fallback/reduced-motion behavior.
-2. Perform artifact-level PDF/Image QA with representative real files.
-3. Verify live AI provider configuration safely, without exposing secrets or spending credits without approval.
-4. Decide and document branch protection/required checks.
-5. Research and prioritize student utilities using a licensing/security-reviewed GitHub research matrix.
-6. Re-run production verification after each release.
+1. Perform manual desktop/mobile visual QA, including actual GPU/WebGL behavior and the focused tool pages.
+2. Extend artifact-level PDF/Image QA with representative real files, especially scanned, large and mixed-page PDFs.
+3. Audit AI endpoint rate-limit retention and clean up expired per-hour rows without changing enforcement semantics.
+4. Verify live AI provider configuration safely; do not expose secrets or trigger billable generation without approval.
+5. Decide and document branch protection/required checks.
+6. Extend student utilities only after reviewing accuracy, edge cases and demand; candidate next tools are scientific calculations, date difference and text cleanup.
+7. Re-run production verification after each release.
 
 ## Verification limits
 
