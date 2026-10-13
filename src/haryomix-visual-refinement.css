@@ -861,3 +861,29 @@ body { color-scheme: dark; }
 @media (max-width:900px) { .hmx-workspace-shell { grid-template-columns:210px minmax(0,1fr); } .hmx-sidebar { padding:20px 12px; } .hmx-workspace-main { padding:22px 18px; } }
 @media (max-width:680px) { .hmx-workspace-shell { display:flex; flex-direction:column; } .hmx-sidebar { position:static; width:100%; height:auto; max-height:none; border-right:0; border-bottom:1px solid rgba(151,174,220,.13); padding:14px 16px; } .hmx-sidebar-label { margin-top:8px !important; } .hmx-sidebar > button.hmx-side-tool { width:auto; min-width:145px; display:inline-flex; margin-right:5px; } .hmx-sidebar > button.hmx-side-tool span:last-child { display:none; } .hmx-workspace-head { flex-direction:column; gap:12px; } .hmx-workspace-main { padding:20px 14px 30px; } .hmx-workspace-nav .hmx-brand span { display:none; } }
 @media (prefers-reduced-motion:reduce) { .hmx-side-tool { transition:none; } }
+
+
+/* Real GPU-rendered particle sphere behind the existing 3D workspace composition. */
+.hmx-hero-workspace { position: relative; isolation: isolate; }
+.hmx-webgl-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: .9;
+  mix-blend-mode: screen;
+}
+.hmx-hero-workspace .hmx-scene-glow { z-index: 0; }
+.hmx-hero-workspace .hmx-scene-orbit { z-index: 1; }
+.hmx-hero-workspace .hmx-3d-scene { z-index: 2; }
+.hmx-hero-workspace .hmx-art-note,
+.hmx-hero-workspace .hmx-art-index { z-index: 5; }
+@media (max-width: 560px) {
+  .hmx-webgl-field { opacity: .72; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hmx-webgl-field { opacity: .42; }
+}
