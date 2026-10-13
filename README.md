@@ -45,7 +45,7 @@ npm run typecheck
 npm run build
 ```
 
-The current CI runs dependency installation, TypeScript checks and a production build. A dedicated automated unit/integration test suite and lint script are not currently configured; see [the product audit](./docs/PRODUCT_AUDIT.md) for prioritized follow-up work.
+The current CI runs dependency installation, TypeScript checks, automated regression tests (npm test) and a production build. A dedicated lint script and browser-level end-to-end suite are not currently configured; see [the product audit](./docs/PRODUCT_AUDIT.md) for remaining verification work.
 
 ## Explicit limitations
 
