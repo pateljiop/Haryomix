@@ -139,7 +139,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     code: "ai_not_configured",
   }, 503);
 
-  let lastError = "provider_unavailable";
+  const failures: Array<{ provider: Provider; reason: string }> = [];
   for (const provider of available) {
     try {
       const answer = provider === "groq"
@@ -149,16 +149,23 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           : await askFelo(env.FELO_API_KEY!, env.FELO_MODEL || "claude-sonnet-4-6", system, prompt);
       return reply({ answer, provider, fallbackUsed: provider !== order[0] });
     } catch (error) {
-      lastError = error instanceof Error ? error.message : "provider_unavailable";
-      if (lastError === "rate_limit") continue;
-      // Provider failures are intentionally not exposed verbatim to clients.
+      const message = error instanceof Error ? error.message : "";
+      const reason = message === "rate_limit" ? "rate_limited"
+        : message === "provider_request_failed" ? "request_rejected"
+        : message === "provider_unavailable" ? "upstream_unavailable"
+        : message === "empty_response" ? "empty_response"
+        : error instanceof SyntaxError ? "invalid_upstream_response"
+        : "provider_error";
+      failures.push({ provider, reason });
+      // Return only safe provider names and failure categories, never raw upstream text or credentials.
     }
   }
-  const status = lastError === "rate_limit" ? 429 : 502;
+  const allRateLimited = failures.length > 0 && failures.every(failure => failure.reason === "rate_limited");
   return reply({
-    error: status === 429
+    error: allRateLimited
       ? "AI providers are rate-limited right now. Wait a little and retry."
-      : "AI providers could not complete the request. Check provider status/model access and try again.",
-    code: status === 429 ? "rate_limited" : "provider_error",
-  }, status);
+      : "AI providers could not complete the request. Provider diagnostics are included to help fix the configuration.",
+    code: allRateLimited ? "rate_limited" : "provider_error",
+    providerIssues: failures,
+  }, allRateLimited ? 429 : 502);
 }
