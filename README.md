@@ -11,7 +11,9 @@
 - **Exam Copilot:** creates revision material from supplied topics and provides general practice questions. Questions are not verified university past papers.
 - **Study Planner:** organize tasks by subject, deadline, priority and estimated study time. Tasks are stored in this browser and can be exported/imported as JSON; there is no cloud sync or account.
 - **Flashcards:** create question/answer decks, review due cards with Again/Hard/Good/Easy ratings, and schedule intervals with a lightweight SM-2-style algorithm. Cards are stored in this browser and support JSON backup/restore.
-- **Focus Timer:** use 25-minute focus blocks, 5-minute short breaks or 15-minute long breaks. Completed focus sessions are tracked locally and can be exported/imported as JSON.\n- **Student Utility Hub:** calculate marks percentage, credit-weighted CGPA estimates and attendance targets; count words/characters/lines; format and validate JSON; and encode/decode URL components. Calculations and text processing stay in the browser.
+- **Focus Timer:** use 25-minute focus blocks, 5-minute short breaks or 15-minute long breaks. Completed focus sessions are tracked locally and can be exported/imported as JSON.
+- **Study Library:** save class notes, revision summaries and trusted web links in browser IndexedDB. Search and filter items, edit or delete them, and export/import a JSON backup. Data is local to this browser and is not synced.
+- **Student Utility Hub:** calculate marks percentage, credit-weighted CGPA estimates and attendance targets; count words/characters/lines; format and validate JSON; and encode/decode URL components. Calculations and text processing stay in the browser.
 - **Haryomix AI and AI Create Studio:** use server-side configured provider integrations when credentials and service bindings are available.
 
 ## Backend and community
