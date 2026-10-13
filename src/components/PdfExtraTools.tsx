@@ -63,6 +63,8 @@ export function PdfExtraTools({ setNotice }: Props) {
   const [range, setRange] = useState("1-3");
   const [previewPage, setPreviewPage] = useState(1);
   const [scale, setScale] = useState(1.25);
+  const [ocrLanguage, setOcrLanguage] = useState("eng");
+  const [compression, setCompression] = useState("balanced");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [pageCount, setPageCount] = useState(0);
@@ -98,7 +100,7 @@ export function PdfExtraTools({ setNotice }: Props) {
     return () => { cancelled = true; };
   }, [file, previewPage, scale, setNotice]);
 
-  async function run(action: "text" | "word" | "images" | "ocr" | "compare" | "repair" | "csv" | "pptx") {
+  async function run(action: "text" | "word" | "images" | "ocr" | "compare" | "repair" | "csv" | "pptx" | "compress") {
     if (!file || busy) return;
     setBusy(true);
     setProgress("Preparing PDF…");
@@ -139,7 +141,7 @@ export function PdfExtraTools({ setNotice }: Props) {
         const selected = parsePages(range, pdf.numPages);
         if (selected.length > 10) throw new Error("OCR is limited to 10 pages per batch to keep browser memory under control.");
         const { createWorker } = await import("tesseract.js");
-        const worker = await createWorker("eng", 1, { logger: event => setProgress(event.status ? `OCR: ${event.status}${event.progress ? ` ${Math.round(event.progress * 100)}%` : ""}` : "Running OCR…") });
+        const worker = await createWorker(ocrLanguage, 1, { logger: event => setProgress(event.status ? `OCR: ${event.status}${event.progress ? ` ${Math.round(event.progress * 100)}%` : ""}` : "Running OCR…") });
         try {
           const result: string[] = [];
           for (let i = 0; i < selected.length; i++) {
@@ -222,6 +224,39 @@ export function PdfExtraTools({ setNotice }: Props) {
         const blob = await pptx.write({ outputType: "blob" }) as Blob;
         downloadBlob(blob, `${safeName(file.name)}-converted.pptx`);
         setNotice(`Created ${selected.length} PowerPoint slide(s) from PDF page images. Visuals are preserved, but text and objects on each slide are not individually editable.`);
+      } else if (action === "compress") {
+        const pdf = await openPdf(file);
+        if (pdf.numPages > 25) throw new Error("Raster compression is limited to 25 pages per file in this browser version.");
+        const profiles: Record<string, { scale: number; quality: number; label: string }> = {
+          small: { scale: 0.95, quality: 0.42, label: "Small file" },
+          balanced: { scale: 1.25, quality: 0.62, label: "Balanced" },
+          quality: { scale: 1.7, quality: 0.82, label: "Higher quality" },
+        };
+        const profile = profiles[compression] || profiles.balanced;
+        const { PDFDocument } = await import("pdf-lib");
+        const output = await PDFDocument.create();
+        for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+          setProgress(`Compressing page ${pageNo} of ${pdf.numPages} (${profile.label})…`);
+          const page = await pdf.getPage(pageNo);
+          const originalViewport = page.getViewport({ scale: 1 });
+          const viewport = page.getViewport({ scale: profile.scale });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Canvas is not available in this browser.");
+          await page.render({ canvasContext: context, viewport }).promise;
+          const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("Could not encode compressed page.")), "image/jpeg", profile.quality));
+          const image = await output.embedJpg(await blob.arrayBuffer());
+          const outPage = output.addPage([originalViewport.width, originalViewport.height]);
+          outPage.drawImage(image, { x: 0, y: 0, width: originalViewport.width, height: originalViewport.height });
+          canvas.width = 0; canvas.height = 0;
+        }
+        const bytes = await output.save({ useObjectStreams: true });
+        const result = new Blob([Uint8Array.from(bytes).buffer as ArrayBuffer], { type: "application/pdf" });
+        downloadBlob(result, `${safeName(file.name)}-compressed-raster.pdf`);
+        const ratio = file.size ? Math.round((1 - result.size / file.size) * 100) : 0;
+        setNotice(`Raster-compressed PDF exported: ${(file.size / 1024).toFixed(0)} KB → ${(result.size / 1024).toFixed(0)} KB (${ratio >= 0 ? `${ratio}% smaller` : `${Math.abs(ratio)}% larger`}). Text, links, vector graphics, forms and accessibility structure are converted to page images; verify the result before using it.`);
       } else if (action === "repair") {
         const input = await file.arrayBuffer();
         const { PDFDocument } = await import("pdf-lib");
@@ -248,6 +283,8 @@ export function PdfExtraTools({ setNotice }: Props) {
         <div className="hmx-field"><label htmlFor="pdf-pro-range">Pages to process (1-based)</label><input id="pdf-pro-range" className="hmx-input" value={range} onChange={e => setRange(e.target.value)} placeholder="1-3,5"/><p style={{ fontSize: 11, color: "#778092" }}>Current PDF: {pageCount || "…"} pages. Range examples: 1-3,5,8-10.</p></div>
         <div className="hmx-field"><label htmlFor="pdf-pro-preview-page">Preview page</label><input id="pdf-pro-preview-page" className="hmx-input" type="number" min={1} max={Math.max(1, pageCount)} value={previewPage} onChange={e => setPreviewPage(Math.max(1, Math.min(pageCount || 1, Number(e.target.value) || 1)))}/></div>
         <div className="hmx-field"><label htmlFor="pdf-pro-scale">Preview / export resolution · {scale.toFixed(2)}×</label><input id="pdf-pro-scale" className="hmx-input" type="range" min={0.75} max={2} step={0.25} value={scale} onChange={e => setScale(Number(e.target.value))}/></div>
+        <div className="hmx-field"><label htmlFor="pdf-pro-ocr-language">OCR language</label><select id="pdf-pro-ocr-language" className="hmx-select" value={ocrLanguage} onChange={e => setOcrLanguage(e.target.value)}><option value="eng">English</option><option value="hin">Hindi</option><option value="eng+hin">English + Hindi</option></select><p style={{ fontSize: 11, color: "#778092" }}>Language data downloads from the OCR provider on first use and may take time.</p></div>
+        <div className="hmx-field"><label htmlFor="pdf-pro-compression">Raster compression preset</label><select id="pdf-pro-compression" className="hmx-select" value={compression} onChange={e => setCompression(e.target.value)}><option value="small">Small file · lower resolution</option><option value="balanced">Balanced</option><option value="quality">Higher quality · larger file</option></select><p style={{ fontSize: 11, color: "#b45309" }}>Warning: this converts each page into an image. Searchable text, links, forms and vector quality are lost.</p></div>
         <div className="hmx-result"><h3>Page preview {previewReady ? "· ready" : "· rendering"}</h3><canvas ref={canvasRef} aria-label={`PDF page ${previewPage} preview`} style={{ display: "block", maxWidth: "100%", height: "auto", borderRadius: 8, background: "#fff", border: "1px solid #dce3ec" }}/></div>
         <div className="hmx-tool-grid">
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("text")}><strong>Extract PDF text</strong><span>Export selectable text to TXT.</span></button>
@@ -255,14 +292,15 @@ export function PdfExtraTools({ setNotice }: Props) {
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("images")}><strong>PDF to JPG</strong><span>Render selected pages to JPEG images.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("pptx")}><strong>PDF to PowerPoint</strong><span>Convert selected pages to image-based slides (up to 20 pages).</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("csv")}><strong>PDF text to CSV / Excel</strong><span>Export selectable text and page coordinates as CSV.</span></button>
-          <button className="hmx-tool-card" disabled={busy} onClick={() => void run("ocr")}><strong>OCR scanned pages</strong><span>Recognize English text from page images (up to 10 pages).</span></button>
+          <button className="hmx-tool-card" disabled={busy} onClick={() => void run("ocr")}><strong>OCR scanned pages</strong><span>Recognize English or Hindi text from page images (up to 10 pages).</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("compare")}><strong>Compare two PDFs</strong><span>Report page-by-page extracted-text differences.</span></button>
+          <button className="hmx-tool-card" disabled={busy} onClick={() => void run("compress")}><strong>Compress scanned / image PDF</strong><span>Reduce image quality and resolution; output is no longer searchable text.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("repair")}><strong>Re-save / repair PDF</strong><span>Rewrite PDFs that the parser can successfully open.</span></button>
         </div>
         {files.length > 1 && <div className="hmx-field" style={{ marginTop: 18 }}><label htmlFor="pdf-pro-compare">Second PDF for comparison</label><select id="pdf-pro-compare" className="hmx-select" value={compareFile ? String(files.indexOf(compareFile)) : ""} onChange={e => setCompareFile(files[Number(e.target.value)] || null)}><option value="">Choose a PDF</option>{files.map((f, i) => i !== active && <option key={`${f.name}-compare-${i}`} value={i}>{f.name}</option>)}</select></div>}
       </>}
       {busy && <div className="hmx-note" role="status" style={{ marginTop: 14 }}>{progress || "Working…"}</div>}
-      <p style={{ fontSize: 11, color: "#778092", marginTop: 14, lineHeight: 1.6 }}>Limits: OCR is English-only in this version; text extraction and comparison cannot read scanned pages without OCR. RTF export preserves text, not the original PDF layout. PDF password removal/protection, secure redaction, and image recompression are not claimed by these tools.</p>
+      <p style={{ fontSize: 11, color: "#778092", marginTop: 14, lineHeight: 1.6 }}>Limits: OCR supports English and Hindi; text extraction and comparison cannot read scanned pages without OCR. RTF export preserves text, not the original PDF layout. PDF password removal/protection and secure redaction are not included. Raster compression intentionally sacrifices selectable text and vector quality.</p>
     </div>
   </div>;
 }
