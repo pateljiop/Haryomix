@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 type Task = "code" | "study" | "ppt" | "general";
-type Provider = "auto" | "groq" | "gemini";
+type Provider = "auto" | "groq" | "gemini" | "felo";
 
 export function HaryomixAI() {
   const [task, setTask] = useState<Task>("code");
@@ -36,7 +36,7 @@ export function HaryomixAI() {
   }
 
   return <section className="hmx-panel" aria-label="Haryomix AI assistant">
-    <div className="hmx-panel-head"><h2>Haryomix AI</h2><span style={{fontSize:11,color:"#7a8292"}}>Groq + Gemini</span></div>
+    <div className="hmx-panel-head"><h2>Haryomix AI</h2><span style={{fontSize:11,color:"#7a8292"}}>Groq · Gemini · Felo</span></div>
     <div className="hmx-panel-body">
       <div className="hmx-note" style={{marginBottom:16}}>AI responses come from a server-side provider. Do not paste passwords, API keys, or private personal data.</div>
       <div className="hmx-field">
@@ -51,9 +51,10 @@ export function HaryomixAI() {
       <div className="hmx-field">
         <label htmlFor="hmx-ai-provider">AI provider</label>
         <select id="hmx-ai-provider" className="hmx-select" value={provider} onChange={e=>setProvider(e.target.value as Provider)}>
-          <option value="auto">Automatic (Groq, then Gemini)</option>
+          <option value="auto">Automatic (Groq, Gemini, then Felo)</option>
           <option value="groq">Prefer Groq</option>
           <option value="gemini">Prefer Gemini</option>
+          <option value="felo">Prefer Felo</option>
         </select>
       </div>
       <div className="hmx-field">
