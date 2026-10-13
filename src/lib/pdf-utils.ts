@@ -1,7 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 
 export function safePdfName(name: string): string {
-  return name.replace(/\\.pdf$/i, "").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "").slice(0, 50) || "document";
+  return name.replace(/\.pdf$/i, "").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "").slice(0, 50) || "document";
 }
 
 function parsePageTokens(value: string, count: number): number[][] {
@@ -10,12 +10,12 @@ function parsePageTokens(value: string, count: number): number[][] {
   const tokens = value.split(",");
   const ranges: number[][] = [];
   for (const token of tokens) {
-    const match = token.trim().match(/^(\\d+)(?:\\s*-\\s*(\\d+))?$/);
+    const match = token.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
     if (!match) throw new Error("Page range format: 1-3,5,8-10");
     const start = Number(match[1]);
     const end = Number(match[2] ?? match[1]);
     if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 1 || end < start || end > count) {
-      throw new Error(`Page numbers must be between 1 and ${count}.`);
+      throw new Error("Page numbers must be between 1 and " + count + ".");
     }
     const range: number[] = [];
     for (let page = start; page <= end; page++) range.push(page);
@@ -38,12 +38,12 @@ export function escapeRtfText(value: string): string {
     .replace(/\\/g, "\\\\")
     .replace(/{/g, "\\{")
     .replace(/}/g, "\\}")
-    .replace(/[^\\x00-\\x7F]/g, char => `\\u${char.charCodeAt(0)}?`)
-    .replace(/\\r?\\n/g, "\\par\n");
+    .replace(/[^\x00-\x7F]/g, char => "\\u" + char.charCodeAt(0) + "?")
+    .replace(/\r?\n/g, "\\par\n");
 }
 
 export function csvCell(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
+  return "\"" + value.replace(/"/g, "\"\"") + "\"";
 }
 
 export async function reorderPdfDocument(sourceBytes: ArrayBuffer | Uint8Array, pageNumbers: readonly number[]): Promise<Uint8Array> {
@@ -52,7 +52,7 @@ export async function reorderPdfDocument(sourceBytes: ArrayBuffer | Uint8Array, 
   const pageCount = source.getPageCount();
   for (const page of pageNumbers) {
     if (!Number.isSafeInteger(page) || page < 1 || page > pageCount) {
-      throw new Error(`Page numbers must be between 1 and ${pageCount}.`);
+      throw new Error("Page numbers must be between 1 and " + pageCount + ".");
     }
   }
   const output = await PDFDocument.create();
