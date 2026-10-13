@@ -1204,3 +1204,49 @@ body { color-scheme: dark; }
  .hmx-directory-footnote { align-items:flex-start; flex-direction:column; }
 }
 @media (prefers-reduced-motion:reduce) { .hmx-directory-card { transition:none; } .hmx-directory-card:hover { transform:none; } }
+
+.hmx-study-library { width: 100%; min-width: 0; }
+.hmx-library-subtitle { margin: 6px 0 0; color: #8f9db7; font-size: 12px; line-height: 1.6; }
+.hmx-library-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.hmx-library-count { color: #8f9db7; font-size: 11px; }
+.hmx-library-count strong { color: #edf4ff; font-size: 24px; letter-spacing: -.04em; }
+.hmx-library-toolbar .hmx-btn-row { align-items: center; }
+.hmx-library-import { position: relative; overflow: hidden; cursor: pointer; }
+.hmx-library-import input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.hmx-library-layout { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr); align-items: start; gap: 16px; }
+.hmx-library-editor, .hmx-library-browser { min-width: 0; padding: 18px; border: 1px solid rgba(143, 166, 206, .15); border-radius: 16px; background: rgba(7, 12, 23, .46); }
+.hmx-library-editor > h3, .hmx-library-browser-head h3 { margin: 0; color: #edf4ff; font-size: 15px; }
+.hmx-library-form { display: grid; gap: 0; margin-top: 16px; }
+.hmx-library-form .hmx-field { min-width: 0; }
+.hmx-library-form .hmx-textarea { min-height: 130px; resize: vertical; }
+.hmx-library-browser-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.hmx-library-browser-head > span { color: #8293b1; font-size: 10px; }
+.hmx-library-list { display: grid; gap: 8px; max-height: 470px; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.hmx-library-item { display: flex; align-items: flex-start; gap: 9px; min-width: 0; padding: 11px; border: 1px solid rgba(143, 166, 206, .13); border-radius: 12px; background: rgba(16, 24, 41, .72); }
+.hmx-library-item.selected { border-color: rgba(105, 150, 255, .42); background: rgba(36, 57, 98, .27); }
+.hmx-library-item-open { display: grid; flex: 1; min-width: 0; justify-items: start; gap: 6px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.hmx-library-kind { display: inline-block; color: #85adff; font-size: 9px; font-weight: 850; letter-spacing: .12em; }
+.hmx-library-item-open > strong { color: #edf4ff; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.hmx-library-item-open > small { color: #7f8eaa; font-size: 10px; }
+.hmx-library-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.hmx-library-tags > span { padding: 3px 6px; border: 1px solid rgba(143, 166, 206, .13); border-radius: 6px; color: #9eacc5; font-size: 9px; }
+.hmx-library-item-actions { display: flex; align-items: center; gap: 5px; }
+.hmx-library-item-actions .hmx-btn { padding: 6px 8px; font-size: 10px; }
+.hmx-library-item-actions .hmx-planner-delete { flex: 0 0 26px; }
+.hmx-library-detail { margin-top: 13px; padding: 16px; border: 1px solid rgba(120, 153, 222, .2); border-radius: 13px; background: radial-gradient(ellipse at 50% 0%, rgba(46, 83, 160, .13), transparent 65%), rgba(8, 14, 26, .76); }
+.hmx-library-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.hmx-library-detail-head h3 { margin: 7px 0 0; color: #edf4ff; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.hmx-library-detail-content { margin: 15px 0; color: #bac7dc; font-size: 12px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hmx-library-source { display: inline-block; margin: 5px 0 10px; color: #8eb4ff; font-size: 12px; overflow-wrap: anywhere; }
+.hmx-library-detail-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 7px; margin-top: 13px; padding-top: 11px; border-top: 1px solid rgba(143, 166, 206, .12); color: #73839e; font-size: 9px; }
+@media (max-width: 900px) {
+  .hmx-library-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .hmx-library-editor, .hmx-library-browser { padding: 13px; }
+  .hmx-library-toolbar { align-items: flex-start; }
+  .hmx-library-toolbar .hmx-btn-row { width: 100%; flex-wrap: wrap; }
+  .hmx-library-toolbar .hmx-btn { font-size: 10px; padding: 8px 10px; }
+  .hmx-library-item { padding: 9px; }
+  .hmx-library-detail { padding: 12px; }
+}
