@@ -79,8 +79,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   if (!providers.some(p => p === "felo" ? Boolean(env.FELO_API_KEY) : Boolean(env.POLLINATIONS_API_KEY))) {
     return reply({ error: "Configure FELO_API_KEY or POLLINATIONS_API_KEY as a Cloudflare Pages secret.", code: "provider_not_configured" }, 503);
   }
+  if (!env.DB) return reply({ error: "AI request protection is not configured. Database binding is required.", code: "rate_limit_unavailable" }, 503);
   try {
-    if (!await withinLimit(request, env)) return reply({ error: "AI image limit reached for this hour, or request protection is unavailable.", code: "rate_limited" }, 429);
+    if (!await withinLimit(request, env)) return reply({ error: "AI image limit reached for this hour. Please retry later.", code: "rate_limited" }, 429);
   } catch {
     return reply({ error: "AI request protection is temporarily unavailable.", code: "rate_limit_unavailable" }, 503);
   }
