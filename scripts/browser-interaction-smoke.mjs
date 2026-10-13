@@ -85,6 +85,16 @@ async function waitFor(expression, label, timeoutMs = 20000) {
   throw new Error("Browser check timed out: " + label);
 }
 
+async function navigateHistory(direction, expression, label) {
+  const history = await send("Page.getNavigationHistory", {}, sessionId);
+  const nextIndex = history.currentIndex + (direction === "back" ? -1 : 1);
+  const entry = history.entries[nextIndex];
+  if (!entry) throw new Error("No browser history entry available for " + direction);
+  await send("Page.navigateToHistoryEntry", { entryId: entry.id }, sessionId);
+  await waitFor(expression, label);
+  console.log("Browser history " + direction + " passed: " + label);
+}
+
 async function navigate(path, expression, label) {
   await send("Page.navigate", { url: baseUrl + path }, sessionId);
   await waitFor(expression, label);
@@ -280,7 +290,22 @@ async function run() {
   }
   console.log("Image export artifact verified: valid PNG with 64x32 output dimensions.");
 
-  console.log("Browser interaction and PDF/Image artifact smoke tests passed.");
+  await navigateHistory("back", "location.pathname === '/workspace/pdf-studio' && !!document.querySelector('input.hmx-file-input')", "back returns to PDF Studio");
+  await navigateHistory("forward", "location.pathname === '/workspace/image-studio' && !!document.querySelector('input.hmx-file-input')", "forward returns to Image Studio");
+
+  await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page for mobile viewport");
+  await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, sessionId);
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+  await waitFor("matchMedia('(prefers-reduced-motion: reduce)').matches", "reduced-motion preference is active");
+  const mobileLayout = await evaluate("({width:window.innerWidth,documentWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth})");
+  if (mobileLayout.documentWidth > mobileLayout.width + 1 || mobileLayout.bodyWidth > mobileLayout.width + 1) {
+    throw new Error("Landing page overflows 390px mobile viewport: " + JSON.stringify(mobileLayout));
+  }
+  console.log("Mobile landing layout and reduced-motion preference verified: " + JSON.stringify(mobileLayout));
+  await send("Emulation.clearDeviceMetricsOverride", {}, sessionId);
+  await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+
+  console.log("Browser interaction, history, mobile, and PDF/Image artifact smoke tests passed.");
 }
 
 try {
