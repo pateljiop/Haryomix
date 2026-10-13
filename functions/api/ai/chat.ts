@@ -121,12 +121,17 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   try {
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
     const bucket = new Date().toISOString().slice(0, 13);
-    const digestBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("haryomix-ai:" + ip + ":" + bucket));
+    const digestBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("haryomix-ai:" + ip));
     const rateKey = Array.from(new Uint8Array(digestBytes), b => b.toString(16).padStart(2, "0")).join("");
     const count = await env.DB.prepare(
-      "INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1 RETURNING request_count AS count"
+      "INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = CASE WHEN community_rate_limits.bucket = excluded.bucket THEN community_rate_limits.request_count + 1 ELSE 1 END, bucket = excluded.bucket RETURNING request_count AS count"
     ).bind(rateKey, bucket).first<{ count: number }>();
-    if (!count || count.count > 10) return reply({ error: "AI request limit reached for this hour. Please retry later.", code: "rate_limited" }, 429);
+    if (!count) return reply({ error: "AI request protection is temporarily unavailable." }, 503);
+    if (count.count === 1) {
+      const expiredBefore = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().slice(0, 13);
+      try { await env.DB.prepare("DELETE FROM community_rate_limits WHERE bucket < ?").bind(expiredBefore).run(); } catch { /* Best-effort cleanup; the rate limit itself is already recorded. */ }
+    }
+    if (count.count > 10) return reply({ error: "AI request limit reached for this hour. Please retry later.", code: "rate_limited" }, 429);
   } catch {
     return reply({ error: "AI request protection is temporarily unavailable." }, 503);
   }
