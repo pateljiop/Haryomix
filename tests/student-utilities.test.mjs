@@ -46,8 +46,8 @@ test("text counter handles empty strings, Unicode, whitespace and reading time",
   assert.deepEqual(countText(""), { words: 0, characters: 0, charactersWithoutSpaces: 0, lines: 0, readingMinutes: 0 });
   assert.deepEqual(countText("Hello   world\nनमस्ते"), {
     words: 3,
-    characters: 21,
-    charactersWithoutSpaces: 18,
+    characters: 20,
+    charactersWithoutSpaces: 16,
     lines: 2,
     readingMinutes: 1,
   });
