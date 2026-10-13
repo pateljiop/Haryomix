@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { csvCell, escapeRtfText, parsePdfPageRange, reorderPdfDocument, safePdfName } from "../lib/pdf-utils";
 
 
 type Props = { setNotice: (message: string) => void };
@@ -16,24 +17,6 @@ function downloadBlob(blob: Blob, name: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-function safeName(name: string) {
-  return name.replace(/\.pdf$/i, "").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "").slice(0, 50) || "document";
-}
-
-function parsePages(value: string, count: number): number[] {
-  const pages = new Set<number>();
-  for (const part of value.split(",")) {
-    const match = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
-    if (!match) throw new Error("Page range format: 1-3,5,8-10");
-    const start = Number(match[1]);
-    const end = Number(match[2] ?? match[1]);
-    if (start < 1 || end < start || end > count) throw new Error(`Page numbers must be between 1 and ${count}.`);
-    for (let page = start; page <= end; page++) pages.add(page);
-  }
-  if (!pages.size) throw new Error("Enter at least one page.");
-  return [...pages].sort((a, b) => a - b);
-}
-
 async function openPdf(file: File): Promise<PDFDocumentProxy> {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -42,7 +25,7 @@ async function openPdf(file: File): Promise<PDFDocumentProxy> {
 
 async function extractText(file: File, range: string): Promise<TextPage[]> {
   const pdf = await openPdf(file);
-  const pageNumbers = parsePages(range, pdf.numPages);
+  const pageNumbers = parsePdfPageRange(range, pdf.numPages);
   const output: TextPage[] = [];
   for (const pageNo of pageNumbers) {
     const page = await pdf.getPage(pageNo);
@@ -51,10 +34,6 @@ async function extractText(file: File, range: string): Promise<TextPage[]> {
     output.push({ page: pageNo, text });
   }
   return output;
-}
-
-function rtfEscape(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/{/g, "\\{").replace(/}/g, "\\}").replace(/[^\x00-\x7F]/g, char => `\\u${char.charCodeAt(0)}?`).replace(/\r?\n/g, "\\par\n");
 }
 
 export function PdfExtraTools({ setNotice }: Props) {
@@ -149,14 +128,9 @@ export function PdfExtraTools({ setNotice }: Props) {
     if (!file || !thumbnails.length || busy) return;
     setBusy(true);
     try {
-      const { PDFDocument } = await import("pdf-lib");
-      const source = await PDFDocument.load(await file.arrayBuffer());
-      const output = await PDFDocument.create();
-      const order = thumbnails.map(item => item.page - 1);
-      const copied = await output.copyPages(source, order);
-      copied.forEach(page => output.addPage(page));
-      downloadBlob(new Blob([Uint8Array.from(await output.save()).buffer as ArrayBuffer], { type: "application/pdf" }), `${safeName(file.name)}-organized.pdf`);
-      setNotice(`Exported ${order.length} pages in the thumbnail order shown. Original page content remains intact.`);
+      const bytes = await reorderPdfDocument(await file.arrayBuffer(), thumbnails.map(item => item.page));
+      downloadBlob(new Blob([Uint8Array.from(bytes).buffer as ArrayBuffer], { type: "application/pdf" }), `${safePdfName(file.name)}-organized.pdf`);
+      setNotice(`Exported ${thumbnails.length} pages in the thumbnail order shown. Original page content remains intact.`);
     } catch (error) {
       setNotice(`Could not export page order: ${error instanceof Error ? error.message : "Unsupported or encrypted PDF."}`);
     } finally { setBusy(false); }
@@ -171,17 +145,17 @@ export function PdfExtraTools({ setNotice }: Props) {
         const pages = await extractText(file, range);
         const output = pages.map(p => `--- Page ${p.page} ---\n${p.text || "[No selectable text on this page. It may be a scanned image; try OCR.]"}`).join("\n\n");
         if (action === "text") {
-          downloadBlob(new Blob([output], { type: "text/plain;charset=utf-8" }), `${safeName(file.name)}-text.txt`);
+          downloadBlob(new Blob([output], { type: "text/plain;charset=utf-8" }), `${safePdfName(file.name)}-text.txt`);
           setNotice(`Extracted text from ${pages.length} page(s). Scanned pages may need OCR.`);
         } else {
-          const body = pages.map(p => `\\b Page ${p.page} \\b0\\par\n${rtfEscape(p.text || "[No selectable text; run OCR for scanned pages.]")}`).join("\\par\n");
+          const body = pages.map(p => `\\b Page ${p.page} \\b0\\par\n${escapeRtfText(p.text || "[No selectable text; run OCR for scanned pages.]")}`).join("\\par\n");
           const rtf = `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Arial;}}\\f0\\fs22 ${body}}`;
-          downloadBlob(new Blob([rtf], { type: "application/rtf;charset=utf-8" }), `${safeName(file.name)}-text.rtf`);
+          downloadBlob(new Blob([rtf], { type: "application/rtf;charset=utf-8" }), `${safePdfName(file.name)}-text.rtf`);
           setNotice(`Exported editable text to an RTF file for Word (${pages.length} page(s)). Original PDF layout/images are not preserved.`);
         }
       } else if (action === "images") {
         const pdf = await openPdf(file);
-        const selected = parsePages(range, pdf.numPages);
+        const selected = parsePdfPageRange(range, pdf.numPages);
         if (selected.length > 10) throw new Error("For browser safety, export at most 10 pages per batch.");
         for (let i = 0; i < selected.length; i++) {
           setProgress(`Rendering page ${i + 1} of ${selected.length}…`);
@@ -194,13 +168,13 @@ export function PdfExtraTools({ setNotice }: Props) {
           if (!context) throw new Error("Canvas is not available in this browser.");
           await page.render({ canvasContext: context, viewport }).promise;
           const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("Could not export rendered page.")), "image/jpeg", 0.92));
-          downloadBlob(blob, `${safeName(file.name)}-page-${selected[i]}.jpg`);
+          downloadBlob(blob, `${safePdfName(file.name)}-page-${selected[i]}.jpg`);
           await new Promise(resolve => window.setTimeout(resolve, 200));
         }
         setNotice(`Exported ${selected.length} page image(s) as JPEG. Allow multiple downloads if your browser asks.`);
       } else if (action === "ocr") {
         const pdf = await openPdf(file);
-        const selected = parsePages(range, pdf.numPages);
+        const selected = parsePdfPageRange(range, pdf.numPages);
         if (selected.length > 10) throw new Error("OCR is limited to 10 pages per batch to keep browser memory under control.");
         const { createWorker } = await import("tesseract.js");
         const worker = await createWorker(ocrLanguage, 1, { logger: event => setProgress(event.status ? `OCR: ${event.status}${event.progress ? ` ${Math.round(event.progress * 100)}%` : ""}` : "Running OCR…") });
@@ -220,7 +194,7 @@ export function PdfExtraTools({ setNotice }: Props) {
             result.push(`--- Page ${selected[i]} ---\n${recognized.data.text.trim()}`);
             canvas.width = 0; canvas.height = 0;
           }
-          downloadBlob(new Blob([result.join("\n\n")], { type: "text/plain;charset=utf-8" }), `${safeName(file.name)}-ocr.txt`);
+          downloadBlob(new Blob([result.join("\n\n")], { type: "text/plain;charset=utf-8" }), `${safePdfName(file.name)}-ocr.txt`);
           setNotice(`OCR completed for ${selected.length} page(s). Review recognized text for errors before relying on it.`);
         } finally { await worker.terminate(); }
       } else if (action === "compare") {
@@ -235,11 +209,11 @@ export function PdfExtraTools({ setNotice }: Props) {
           if (a !== b) { differences++; lines.push(`PAGE ${i + 1} DIFFERS`, `A: ${a || "[no selectable text]"}`, `B: ${b || "[no selectable text]"}`, ""); }
         }
         lines.unshift(`${differences} page(s) differ out of ${max} compared page positions.`);
-        downloadBlob(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }), `${safeName(file.name)}-comparison.txt`);
+        downloadBlob(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }), `${safePdfName(file.name)}-comparison.txt`);
         setNotice(`Comparison report exported. ${differences} page position(s) differ by extracted text.`);
       } else if (action === "csv") {
         const pdf = await openPdf(file);
-        const selected = parsePages(range, pdf.numPages);
+        const selected = parsePdfPageRange(range, pdf.numPages);
         const csvRows = [["page", "x", "y", "text"]];
         for (const pageNo of selected) {
           setProgress(`Extracting text positions from page ${pageNo}…`);
@@ -252,11 +226,11 @@ export function PdfExtraTools({ setNotice }: Props) {
             csvRows.push(cells);
           }
         }
-        downloadBlob(new Blob([csvRows.map(row => row.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }), `${safeName(file.name)}-text-positions.csv`);
+        downloadBlob(new Blob([csvRows.map(row => row.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }), `${safePdfName(file.name)}-text-positions.csv`);
         setNotice("Exported selectable text and approximate PDF coordinates to CSV. This is not automatic table recognition; review columns in Excel.");
       } else if (action === "pptx") {
         const pdf = await openPdf(file);
-        const selected = parsePages(range, pdf.numPages);
+        const selected = parsePdfPageRange(range, pdf.numPages);
         if (selected.length > 20) throw new Error("PDF-to-PowerPoint is limited to 20 pages per export.");
         const pptxModule = await import("pptxgenjs");
         const pptx = new pptxModule.default();
@@ -284,7 +258,7 @@ export function PdfExtraTools({ setNotice }: Props) {
           canvas.width = 0; canvas.height = 0;
         }
         const blob = await pptx.write({ outputType: "blob" }) as Blob;
-        downloadBlob(blob, `${safeName(file.name)}-converted.pptx`);
+        downloadBlob(blob, `${safePdfName(file.name)}-converted.pptx`);
         setNotice(`Created ${selected.length} PowerPoint slide(s) from PDF page images. Visuals are preserved, but text and objects on each slide are not individually editable.`);
       } else if (action === "compress") {
         const pdf = await openPdf(file);
@@ -316,7 +290,7 @@ export function PdfExtraTools({ setNotice }: Props) {
         }
         const bytes = await output.save({ useObjectStreams: true });
         const result = new Blob([Uint8Array.from(bytes).buffer as ArrayBuffer], { type: "application/pdf" });
-        downloadBlob(result, `${safeName(file.name)}-compressed-raster.pdf`);
+        downloadBlob(result, `${safePdfName(file.name)}-compressed-raster.pdf`);
         const ratio = file.size ? Math.round((1 - result.size / file.size) * 100) : 0;
         setNotice(`Raster-compressed PDF exported: ${(file.size / 1024).toFixed(0)} KB → ${(result.size / 1024).toFixed(0)} KB (${ratio >= 0 ? `${ratio}% smaller` : `${Math.abs(ratio)}% larger`}). Text, links, vector graphics, forms and accessibility structure are converted to page images; verify the result before using it.`);
       } else if (action === "repair") {
@@ -324,7 +298,7 @@ export function PdfExtraTools({ setNotice }: Props) {
         const { PDFDocument } = await import("pdf-lib");
         const doc = await PDFDocument.load(input, { ignoreEncryption: false, throwOnInvalidObject: false, updateMetadata: false });
         const bytes = await doc.save({ useObjectStreams: true, addDefaultPage: false });
-        downloadBlob(new Blob([Uint8Array.from(bytes).buffer as ArrayBuffer], { type: "application/pdf" }), `${safeName(file.name)}-repaired.pdf`);
+        downloadBlob(new Blob([Uint8Array.from(bytes).buffer as ArrayBuffer], { type: "application/pdf" }), `${safePdfName(file.name)}-repaired.pdf`);
         setNotice("PDF successfully opened and re-saved. This can rewrite valid PDFs, but cannot recover every corrupted or encrypted file.");
       }
     } catch (error) {
