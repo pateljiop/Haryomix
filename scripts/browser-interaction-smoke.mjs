@@ -243,6 +243,25 @@ async function run() {
   }
   console.log("Image export artifact verified: valid PNG with 64x32 output dimensions.");
 
+  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-title')", "Study Library editor");
+  await waitFor("!document.querySelector('.hmx-study-library .hmx-library-count')?.textContent.includes('Opening')", "Study Library initialization");
+  await fill("#hmx-library-title", "Browser smoke study note", "library note title");
+  await fill("#hmx-library-content", "IndexedDB smoke note body for regression testing.", "library note content");
+  await fill("#hmx-library-tags", "smoke, IndexedDB", "library tags");
+  await click("form.hmx-library-form button[type='submit']", "save Study Library item");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open > strong')).some(el=>el.textContent==='Browser smoke study note')", "Study Library item appears");
+  await waitFor("(async()=>{const db=await new Promise((resolve,reject)=>{const request=indexedDB.open('haryomix-study-library',1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});return await new Promise(resolve=>{const request=db.transaction('resources','readonly').objectStore('resources').getAll();request.onsuccess=()=>resolve(request.result.some(item=>item.title==='Browser smoke study note'&&item.tags.includes('IndexedDB')));})})()", "Study Library IndexedDB persistence");
+  await fill("#hmx-library-search", "IndexedDB", "search Study Library");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open > strong')).some(el=>el.textContent==='Browser smoke study note')", "Study Library search finds tag");
+  await fill("#hmx-library-search", "no-such-study-item", "empty Study Library search");
+  await waitFor("!Array.from(document.querySelectorAll('.hmx-library-item-open > strong')).some(el=>el.textContent==='Browser smoke study note')", "Study Library search filters results");
+  await fill("#hmx-library-search", "", "clear Study Library search");
+  await evaluate("window.confirm=()=>true; true");
+  await click("[aria-label='Delete Browser smoke study note']", "delete Study Library item");
+  await waitFor("!Array.from(document.querySelectorAll('.hmx-library-item-open > strong')).some(el=>el.textContent==='Browser smoke study note')", "Study Library item deletion");
+  await waitFor("(async()=>{const db=await new Promise((resolve,reject)=>{const request=indexedDB.open('haryomix-study-library',1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});return await new Promise(resolve=>{const request=db.transaction('resources','readonly').objectStore('resources').getAll();request.onsuccess=()=>resolve(!request.result.some(item=>item.title==='Browser smoke study note'));})})()", "Study Library deletion persists");
+  console.log("Study Library create/search/IndexedDB/delete flow passed.");
+
   console.log("Browser interaction and PDF/Image artifact smoke tests passed.");
 }
 
