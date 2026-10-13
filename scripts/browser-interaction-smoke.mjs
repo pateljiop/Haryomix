@@ -107,9 +107,15 @@ async function click(selector, label) {
 }
 
 async function fill(selector, value, label) {
-  const expression = "(()=>{const el=document.querySelector(" + JSON.stringify(selector) + ");if(!el)return false;const descriptor=Object.getOwnPropertyDescriptor(el.constructor.prototype,'value');if(!descriptor||!descriptor.set)return false;descriptor.set.call(el," + JSON.stringify(value) + ");el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return true})()";
-  const ok = await evaluate(expression);
-  if (!ok) throw new Error("Could not fill " + label + " (" + selector + ")");
+  const ok = await evaluate("(()=>{const el=document.querySelector(" + JSON.stringify(selector) + ");if(!el)return false;el.focus();return true})()");
+  if (!ok) throw new Error("Could not focus " + label + " (" + selector + ")");
+  // Use real browser input events so React-controlled fields receive the edit
+  // exactly as they would from a keyboard, rather than mutating the DOM value.
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Control", code: "ControlLeft", windowsVirtualKeyCode: 17 }, sessionId);
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "a", code: "KeyA", windowsVirtualKeyCode: 65, modifiers: 2 }, sessionId);
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA", windowsVirtualKeyCode: 65, modifiers: 2 }, sessionId);
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Control", code: "ControlLeft", windowsVirtualKeyCode: 17 }, sessionId);
+  await send("Input.insertText", { text: value }, sessionId);
 }
 
 async function setFiles(selector, paths) {
