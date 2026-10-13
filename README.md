@@ -1,57 +1,65 @@
 # Haryomix
 
-**A practical student workspace by Hariom Builds.** Haryomix brings coding checks, editable presentation exports, PDF page operations, image editing, and study practice into one responsive web app.
+**A practical student workspace by Hariom Builds.** Haryomix brings coding checks, editable presentation exports, PDF page operations, image editing, AI-assisted workflows and study practice into one responsive web app.
 
-## Tools
+## Workspace tools
 
-- **Code Doctor:** local pattern checks for common syntax mistakes and debugging leads. It does not execute code or call an AI model.
-- **PPT Studio:** creates editable `.pptx` presentations from a title, course, and slide outline.
-- **PDF Studio:** merges PDFs, splits them into one-page files, rotates pages, reverses page order, removes the final page, and inspects page count.
-- **Image Studio:** resize, center-crop, rotate, adjust brightness/contrast, and export PNG, JPEG, or WebP.
-- **Exam Copilot:** creates a downloadable revision sheet from supplied topic labels and offers general computer-science practice questions.
+- **Code Doctor:** local pattern checks for common syntax mistakes and debugging leads. It does not execute or compile code. AI-assisted debugging is a separate server-backed Haryomix AI workflow.
+- **PPT Studio:** creates an editable starter .pptx deck from a title, course and slide outline. It is not a guarantee of fully researched academic content.
+- **PDF Studio:** supports merge, split, page extraction/removal, custom page order, rotation, page numbers, text watermarks, crop-box margins, visual signature placement, metadata inspection/clearing, images-to-PDF and basic object-stream repacking. Repacking is not the same as image-level compression.
+- **Image Studio:** supports resizing, target-size compression attempts, crop, rotation, brightness/contrast and PNG, JPEG or WebP export. The tool reports the actual output size; a target size cannot be guaranteed for every image.
+- **Exam Copilot:** creates revision material from supplied topics and provides general practice questions. Questions are not verified university past papers.
+- **Haryomix AI and AI Create Studio:** use server-side configured provider integrations when credentials and service bindings are available.
 
-## Backend and community feed
+## Backend and community
 
-Cloudflare Pages Functions provide `GET /api/health` and `GET`/`POST /api/community`. Persistent community posting requires a Cloudflare D1 database binding named `DB` and the migration in `migrations/0001_community.sql`. Follow [BACKEND_SETUP.md](./BACKEND_SETUP.md) to configure it. Until the database is attached and migrated, the API intentionally returns HTTP 503 instead of pretending persistence is available. The public community feed currently has no user accounts or moderation workflow; do not share private information.
+Cloudflare Pages Functions provide health, AI, community, reporting and moderation endpoints. The Pages Functions expect a Cloudflare D1 database binding named **DB**. The deployment workflow applies the SQL files in migrations/ and runs production smoke checks, including API health/D1 connectivity and community persistence.
+
+The community feed does not require a user account. Do not post private or sensitive information. Moderator endpoints require the configured HARYOMIX_MODERATOR_TOKEN secret.
 
 ## Privacy and document fidelity
 
-Image and PDF operations run in the browser. The initial release does not require an account or external AI API key. PDF page operations copy existing page content instead of rebuilding it as editable text, which helps preserve embedded fonts and layout. This is not a guarantee for every unusual or encrypted PDF. Arbitrary text replacement with exact font and layout preservation is not included.
+PDF and image editing operations are performed in the browser for the supported local workflows. AI workflows send the submitted prompt/content to the configured provider through server-side functions; do not submit sensitive content unless you are comfortable with that provider's data handling. API credentials must remain in encrypted server-side environment secrets and must never be placed in client code.
 
-## Deploy to your own Cloudflare account
+PDF page operations copy existing page content rather than rebuilding it as editable text, which can help preserve embedded fonts and layout. This is not a guarantee for every unusual or encrypted PDF. A visual signature is an image/appearance, not a certificate-backed cryptographic digital signature.
 
-The production hosting target is **Cloudflare Pages**, with the project name `haryomix`. The GitHub Actions workflow in `.github/workflows/cloudflare-pages.yml` builds the static Vite app and deploys the `dist/` directory on pushes to `main`.
+## Deploy to Cloudflare Pages
 
-Before the first deployment, add these repository Actions secrets in **GitHub → Settings → Secrets and variables → Actions**:
+The production hosting target is **Cloudflare Pages**, with the project name haryomix. The GitHub Actions workflow in .github/workflows/cloudflare-pages.yml builds the Vite app and deploys the dist/ directory on pushes to main.
 
-- `CLOUDFLARE_API_TOKEN`: a Cloudflare API token with permission to manage Cloudflare Pages for the intended account.
-- `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID.
+Repository Actions secrets used by the workflow:
 
-The workflow creates the Pages project if it does not already exist, then deploys to the `main` production branch. The default public address will be `https://haryomix.pages.dev`; attach a custom domain later in Cloudflare Pages if desired. Do not commit API tokens or paste them into source files.
+- CLOUDFLARE_API_TOKEN: a Cloudflare API token with permission to manage Cloudflare Pages and run the configured D1 migration/smoke-test steps.
+- CLOUDFLARE_ACCOUNT_ID: the Cloudflare account ID.
+
+The workflow deploys to the main production branch and checks the seven workspace URLs, the health/D1 endpoint and community persistence. The default public address is https://haryomix.pages.dev. Custom-domain status must be checked separately in Cloudflare Pages. Never commit API tokens or paste them into source files.
 
 ## Local development
 
 Requires Node.js 22+.
 
 ```bash
-npm install
+npm ci
 npm run dev
 npm run typecheck
 npm run build
 ```
 
-## Limitations
+The current CI runs dependency installation, TypeScript checks and a production build. A dedicated automated unit/integration test suite and lint script are not currently configured; see [the product audit](./docs/PRODUCT_AUDIT.md) for prioritized follow-up work.
 
-- Code Doctor is a lightweight static-pattern helper, not a compiler, sandbox, or AI debugger.
-- Exam questions are general practice items, not verified university past papers. Always check your own syllabus.
-- PPT Studio creates a starter deck with editable text, not a fully researched academic presentation.
-- PDF Studio does not claim exact font preservation when replacing arbitrary existing text. Non-destructive page operations are the supported path.
-- Files are processed locally in the browser for the current utilities; closing or refreshing the working state may clear it. Community posts persist in Cloudflare D1 only after backend setup.
+## Explicit limitations
+
+- Code Doctor is a lightweight static-pattern helper, not a compiler, execution sandbox or proof that code works.
+- Exam questions are general practice items, not verified university past papers. Always compare generated material with the official syllabus.
+- PPT Studio creates an editable starter deck, not a guarantee of fully researched or fact-checked academic content.
+- PDF text editing with exact font/layout preservation, secure redaction, certificate-backed signing, password removal, repair, OCR and PDF-to-Office conversion must not be assumed supported unless a dedicated implementation is added and tested.
+- PDF object-stream repacking is not true image-level compression. A crop box is not secure redaction.
+- Local editing state may be lost when the page is refreshed or closed. Community posts persist only when the production D1 binding and migrations are available.
 
 ## Contributing
 
-Bug reports and focused pull requests are welcome. Include reproduction steps, expected behavior, browser/runtime details, and tests for changed behavior. Keep student documents private in test fixtures.
+Bug reports and focused pull requests are welcome. Include reproduction steps, expected behavior, browser/runtime details and tests for changed behavior. Keep student documents private in test fixtures.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](./LICENSE).
