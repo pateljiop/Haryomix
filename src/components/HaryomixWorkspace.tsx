@@ -181,7 +181,7 @@ ${quizInstruction}`;
   try{
    const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"study",prompt,provider:"auto"})});
    const raw=await response.text();
-   let data:{answer?:string;error?:string;code?:string};
+   let data:{answer?:string;error?:string;code?:string;providerIssues?:Array<{provider:string;reason:string}>};
    try { data=JSON.parse(raw) as typeof data; }
    catch {
     const contentType=response.headers.get("content-type")||"";
@@ -189,7 +189,10 @@ ${quizInstruction}`;
       throw new Error("Study API returned a web page instead of JSON. Refresh Haryomix; if this continues, the API route needs redeployment.");
     throw new Error("Study API returned an unreadable response. Please retry in a moment.");
    }
-   if(!response.ok)throw new Error(data.error||(response.status>=500?"AI service is temporarily unavailable. Please retry shortly.":"Study guide generation failed."));
+   if(!response.ok){
+    const diagnostics=data.providerIssues?.map(item=>`${item.provider}: ${item.reason.replace(/_/g," ")}`).join("; ");
+    throw new Error([data.error||(response.status>=500?"AI service is temporarily unavailable. Please retry shortly.":"Study guide generation failed."),diagnostics].filter(Boolean).join(" "));
+   }
    if(!data.answer)throw new Error("The AI returned an empty study guide.");
    setNotes(data.answer);setNotice(includeQuiz?"Detailed study guide and 25-question optional quiz generated. Review time-sensitive facts and syllabus alignment.":"Detailed study guide generated. Quiz was skipped as requested.");
   }catch(e){setError(e instanceof Error?e.message:"Could not generate the study guide. Please retry.");}
