@@ -91,6 +91,7 @@ jobs:
             /workspace/study-planner
             /workspace/flashcards
             /workspace/focus-timer
+            /workspace/student-utilities
           )
           for route in "${routes[@]}"; do
             verified=false
@@ -109,7 +110,7 @@ jobs:
             fi
             echo "Verified HTTP 200 + SPA shell: $DEPLOYMENT_URL$route"
           done
-          echo "All ten workspace URLs return the application shell."
+          echo "All eleven workspace URLs return the application shell."
 
       - name: Verify browser-rendered student workspaces
         shell: bash
@@ -131,6 +132,7 @@ jobs:
           /workspace/study-planner|Study Planner
           /workspace/flashcards|Flashcards
           /workspace/focus-timer|Focus Timer
+          /workspace/student-utilities|Student Utility Hub
           ROUTES
 
       - name: Verify browser interactions for student tools
