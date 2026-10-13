@@ -34,7 +34,7 @@ export function isStudyResource(value: unknown): value is StudyResource {
   if (item.kind !== "note" && item.kind !== "resource" && item.kind !== "link") return false;
   if (typeof item.content !== "string" || item.content.length > 100000) return false;
   if (item.kind !== "link" && item.content.trim().length < 1) return false;
-  if (item.kind === "link" && !item.content.trim() && (typeof item.sourceUrl !== "string" || !validHttpUrl(item.sourceUrl) || !item.sourceUrl)) return false;
+  if (item.kind === "link" && (typeof item.sourceUrl !== "string" || !validHttpUrl(item.sourceUrl) || !item.sourceUrl)) return false;
   if (!Array.isArray(item.tags) || item.tags.length > 12 || !item.tags.every(tag => typeof tag === "string" && tag.trim().length > 0 && tag.length <= 32)) return false;
   if (new Set((item.tags as string[]).map(tag => tag.trim().toLowerCase())).size !== item.tags.length) return false;
   if (typeof item.sourceUrl !== "string" || item.sourceUrl.length > 2048 || !validHttpUrl(item.sourceUrl)) return false;
