@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { inspectCode } from "../lib/code-doctor";
+import { inspectCode, type CodeLanguage } from "../lib/code-doctor";
 import { HaryomixAI } from "./HaryomixAI";
 import { FeloCreateStudio } from "./FeloCreateStudio";
 import { PdfExtraTools } from "./PdfExtraTools";
@@ -44,7 +44,7 @@ export function HaryomixWorkspace({onHome,initialTool="code"}:{onHome:()=>void;i
 </main>}
 
 function CodeTool({setNotice}:{setNotice:(s:string)=>void}){
- const [lang,setLang]=useState("Python");
+ const [lang,setLang]=useState<CodeLanguage>("Python");
  const [code,setCode]=useState("def add(a, b)\n    return a + b\n\nprint(add(2, 3)");
  const [context,setContext]=useState("");
  const [findings,setFindings]=useState<string[]>([]);
@@ -72,7 +72,7 @@ function CodeTool({setNotice}:{setNotice:(s:string)=>void}){
   finally{setAiBusy(false)}
  }
  return <div className="hmx-panel">
-  <div className="hmx-panel-head"><h2>Code Doctor</h2><select aria-label="Programming language" className="hmx-select" style={{width:"auto",padding:"7px 10px"}} value={lang} onChange={e=>setLang(e.target.value)}>{["Python","JavaScript","Java","C","C++"].map(x=><option key={x}>{x}</option>)}</select></div>
+  <div className="hmx-panel-head"><h2>Code Doctor</h2><select aria-label="Programming language" className="hmx-select" style={{width:"auto",padding:"7px 10px"}} value={lang} onChange={e=>setLang(e.target.value as CodeLanguage)}>{["Python","JavaScript","Java","C","C++"].map(x=><option key={x}>{x}</option>)}</select></div>
   <div className="hmx-panel-body">
    <div className="hmx-note" style={{marginBottom:20}}>Run quick local pattern checks for free, or request an AI diagnosis through the configured server-side provider. AI review sends the code and context you enter to that provider only when you click the AI button. Neither mode executes your program.</div>
    <div className="hmx-field"><label htmlFor="hmx-code">Paste your code</label><textarea id="hmx-code" className="hmx-textarea" spellCheck={false} maxLength={9000} value={code} onChange={e=>{setCode(e.target.value);setAiError("");}}/></div>
