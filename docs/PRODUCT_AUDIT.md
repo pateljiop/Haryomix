@@ -56,7 +56,7 @@
 1. Code Doctor is documented as heuristic/static pattern analysis, not a compiler or sandbox.
 2. PPT Studio is documented as an editable starter deck rather than a researched presentation generator.
 3. Exam Copilot's questions are general practice, not verified university past papers; syllabus claims must be source-grounded.
-4. Persistent personal notes, revision progress and study schedules need an explicit storage/privacy design before being presented as saved features.
+4. The Study Planner, Flashcards and Focus Timer currently store data in browser-local storage only. Cloud sync, accounts, cross-device sync and a persistent personal notes library need an explicit storage/privacy design before being presented as saved features.
 
 ### P2 — Research and utility expansion
 
@@ -73,4 +73,4 @@ Create a licensing/maintenance-reviewed GitHub research matrix before adding dep
 
 ## Verification limits
 
-As of main commit 8389ca7, CI run #174 and Cloudflare Pages deployment run #119 both completed successfully. Deployment checks confirmed all seven workspace route shells, API/D1 health, safe AI input validation without provider calls, community persistence and unauthenticated moderation rejection. The 34-test regression suite passed in CI. This audit did not execute npm commands in a local checkout or independently inspect a real browser session; canvas exports, WebGL rendering and live provider credentials remain unverified.
+As of main commit b94dbf6, CI run #184 and Cloudflare Pages deployment run #123 both completed successfully. Deployment checks confirmed all ten workspace route shells, API/D1 health, safe AI input validation without provider calls, community persistence and unauthenticated moderation rejection. The 49-test regression suite passed in CI. This audit did not execute npm commands in a local checkout or independently inspect a real browser session; canvas exports, WebGL rendering, timer interactions and live provider credentials remain unverified.
