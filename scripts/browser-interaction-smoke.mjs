@@ -167,9 +167,9 @@ async function run() {
 
   await navigate("/workspace/pdf-studio", "!!document.querySelector('#pdf-range')", "PDF Studio controls");
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
-  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('2 supported file(s) selected')", "PDF fixtures loaded");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('2 supported file(s) selected')", "PDF fixtures loaded");
   await clickText("button.hmx-tool-card", "Merge PDFs", "merge PDF files");
-  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('Merged 2 PDF files')", "PDF merge completes");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Merged 2 PDF files')", "PDF merge completes");
   const mergedPath = await waitForDownload("haryomix-merged.pdf");
   const merged = await PDFDocument.load(readFileSync(mergedPath));
   const mergedSizes = merged.getPages().map(page => [page.getWidth(), page.getHeight()]);
@@ -179,10 +179,10 @@ async function run() {
   console.log("PDF merge artifact verified: 3 pages with expected dimensions.");
 
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
-  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('1 supported file(s) selected')", "single PDF fixture loaded");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "single PDF fixture loaded");
   await fill("#pdf-order", "2,1", "custom PDF page order");
   await clickText("button.hmx-tool-card", "Custom page order", "custom PDF reorder");
-  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('Saved pages in your custom order')", "custom PDF reorder completes");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Saved pages in your custom order')", "custom PDF reorder completes");
   const reorderedPath = await waitForDownload("haryomix-reordered.pdf");
   const reordered = await PDFDocument.load(readFileSync(reorderedPath));
   const reorderedSizes = reordered.getPages().map(page => [page.getWidth(), page.getHeight()]);
