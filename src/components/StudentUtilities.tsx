@@ -39,9 +39,6 @@ export function StudentUtilities() {
   const [urlOutput, setUrlOutput] = useState("");
   const [urlError, setUrlError] = useState("");
   const [urlMode, setUrlMode] = useState<"encode" | "decode">("encode");
-  const [marksError, setMarksError] = useState("");
-  const [cgpaError, setCgpaError] = useState("");
-  const [attendanceError, setAttendanceError] = useState("");
   const textStats = useMemo(() => countText(text), [text]);
   let percentage: number | null = null;
   let cgpa: number | null = null;
