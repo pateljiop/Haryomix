@@ -312,6 +312,41 @@ async function run() {
   }
   console.log("Custom PDF reorder artifact verified: page dimensions follow requested order.");
 
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF extraction fixture loaded");
+  await fill("#pdf-range", "2", "page range for extraction");
+  await clickText("button.hmx-tool-card", "Extract pages", "extract selected PDF page");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Extracted 1 page(s).')", "PDF extraction completes");
+  const extractedPath = await waitForDownload("haryomix-extracted-pages.pdf");
+  const extracted = await PDFDocument.load(readFileSync(extractedPath));
+  if (extracted.getPageCount() !== 1 || extracted.getPage(0).getWidth() !== 300 || extracted.getPage(0).getHeight() !== 400) {
+    throw new Error("Extracted PDF artifact did not preserve the selected page.");
+  }
+  console.log("PDF extraction artifact verified: only requested page 2 remains.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF rotation fixture loaded");
+  await fill("#pdf-range", "2", "page range for rotation");
+  await clickText("button.hmx-tool-card", "Rotate selected pages", "rotate selected PDF page");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Rotated 1 selected page(s) 90 degrees.')", "selected PDF rotation completes");
+  const rotatedPath = await waitForDownload("smoke-a-selected-rotated.pdf");
+  const rotated = await PDFDocument.load(readFileSync(rotatedPath));
+  if (rotated.getPageCount() !== 2 || rotated.getPage(0).getRotation().angle !== 0 || rotated.getPage(1).getRotation().angle !== 90) {
+    throw new Error("Selected-page rotation artifact has unexpected page rotation.");
+  }
+  console.log("PDF selected-page rotation artifact verified: only page 2 rotates.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-pixel.png")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "image-to-PDF fixture loaded");
+  await clickText("button.hmx-btn", "Images to PDF", "convert image to PDF");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Images converted to a PDF')", "image-to-PDF conversion completes");
+  const imagePdfPath = await waitForDownload("haryomix-images.pdf");
+  const imagePdf = await PDFDocument.load(readFileSync(imagePdfPath));
+  if (imagePdf.getPageCount() !== 1 || imagePdf.getPage(0).getWidth() !== 1 || imagePdf.getPage(0).getHeight() !== 1) {
+    throw new Error("Image-to-PDF artifact has unexpected page count or dimensions.");
+  }
+  console.log("Image-to-PDF artifact verified: one page with the source image dimensions.");
+
   await navigate("/workspace/image-studio", "!!document.querySelector('input.hmx-file-input')", "Image Studio upload");
   await setFiles("input.hmx-file-input", [join(profile, "smoke-pixel.png")]);
   await waitFor("!!document.querySelector('#image-width') && document.querySelector('.hmx-image-preview')?.width===1", "image fixture decoded");
