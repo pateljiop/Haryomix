@@ -6,7 +6,7 @@ import { HeroWorkspace } from "./components/HeroWorkspace";
 
 type ToolId = "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create";
 const toolRoutes: Record<ToolId, string> = { code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio" };
-function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\\/+$/, "") || "/"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
+function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
   { id: "ppt", n: "02", title: "PPT Studio", desc: "Turn a topic into structured, editable PowerPoint slides." },
