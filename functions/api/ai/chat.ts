@@ -17,6 +17,14 @@ function reply(body: unknown, status = 200): Response {
 }
 
 type Provider = "groq" | "gemini" | "felo";
+function providerStatusReason(status: number): string {
+  if (status === 401 || status === 403) return "credentials_rejected";
+  if (status === 400 || status === 422) return "invalid_request_or_model";
+  if (status === 404) return "model_or_endpoint_not_found";
+  if (status === 429) return "rate_limit";
+  if (status >= 500) return "upstream_unavailable";
+  return "provider_request_failed";
+}
 const MAX_BODY_BYTES = 20_000;
 const MAX_PROMPT_CHARS = 12_000;
 
@@ -36,7 +44,7 @@ async function askGroq(key: string, system: string, prompt: string): Promise<str
     }),
     signal: AbortSignal.timeout(25_000),
   });
-  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status >= 500 ? "provider_unavailable" : "provider_request_failed");
+  if (!response.ok) throw new Error(providerStatusReason(response.status));
   const data = await response.json() as { choices?: { message?: { content?: string | null } }[] };
   const answer = data.choices?.[0]?.message?.content?.trim();
   if (!answer) throw new Error("empty_response");
@@ -151,8 +159,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       const reason = message === "rate_limit" ? "rate_limited"
+        : message === "credentials_rejected" ? "credentials_rejected"
+        : message === "invalid_request_or_model" ? "invalid_request_or_model"
+        : message === "model_or_endpoint_not_found" ? "model_or_endpoint_not_found"
         : message === "provider_request_failed" ? "request_rejected"
-        : message === "provider_unavailable" ? "upstream_unavailable"
+        : message === "provider_unavailable" || message === "upstream_unavailable" ? "upstream_unavailable"
         : message === "empty_response" ? "empty_response"
         : error instanceof SyntaxError ? "invalid_upstream_response"
         : "provider_error";
