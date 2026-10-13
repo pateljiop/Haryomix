@@ -292,6 +292,10 @@ async function run() {
 
   await navigateHistory("back", "location.pathname === '/workspace/pdf-studio' && !!document.querySelector('input.hmx-file-input')", "back returns to PDF Studio");
   await navigateHistory("forward", "location.pathname === '/workspace/image-studio' && !!document.querySelector('input.hmx-file-input')", "forward returns to Image Studio");
+  await clickText(".hmx-side-tool", "PDF Studio", "workspace sidebar navigation");
+  await waitFor("location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "sidebar navigates to PDF Studio");
+  await navigateHistory("back", "location.pathname === '/workspace/image-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'Image Studio'", "back follows sidebar navigation");
+  await navigateHistory("forward", "location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "forward follows sidebar navigation");
 
   await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page for mobile viewport");
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, sessionId);
