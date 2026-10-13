@@ -179,9 +179,17 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
 \n\nRequirements: Explain every listed topic fully rather than merely repeating topic names. Organize with a clear contents/roadmap, topic-by-topic explanations, definitions of key terms, how/why concepts work, examples or worked examples where suitable, important facts/formulas/dates/people (only when reliable), practical applications, common confusions, comparison tables where useful, and concise takeaways. Include a final quick-revision checklist and likely exam focus areas, clearly marked as guidance rather than guaranteed questions. Adapt to the subject: science/math should include steps and formulas; humanities/social sciences should explain context, causes, effects and comparisons; languages should include rules and examples; commerce should include concepts and worked examples; current affairs should use dated, verifiable developments and clearly distinguish facts from analysis. If current information is unavailable, state the knowledge/date limitation and do not fabricate recent news. Cover ALL topics provided and explain unfamiliar terms in accessible language. Do not assume BTech or engineering unless specified. Avoid filler, vague prompts, and unsupported claims. Make the content substantial enough to revise from, while remaining accurate. Use clear Markdown headings and bullets.
 ${quizInstruction}`;
   try{
-   const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:"study",prompt,provider:"auto"})});
-   const data=await response.json() as {answer?:string;error?:string};
-   if(!response.ok)throw new Error(data.error||"Study guide generation failed.");
+   const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"study",prompt,provider:"auto"})});
+   const raw=await response.text();
+   let data:{answer?:string;error?:string;code?:string};
+   try { data=JSON.parse(raw) as typeof data; }
+   catch {
+    const contentType=response.headers.get("content-type")||"";
+    if(contentType.includes("text/html")||/^\s*<!doctype html|^\s*<html/i.test(raw))
+      throw new Error("Study API returned a web page instead of JSON. Refresh Haryomix; if this continues, the API route needs redeployment.");
+    throw new Error("Study API returned an unreadable response. Please retry in a moment.");
+   }
+   if(!response.ok)throw new Error(data.error||(response.status>=500?"AI service is temporarily unavailable. Please retry shortly.":"Study guide generation failed."));
    if(!data.answer)throw new Error("The AI returned an empty study guide.");
    setNotes(data.answer);setNotice(includeQuiz?"Detailed study guide and 25-question optional quiz generated. Review time-sensitive facts and syllabus alignment.":"Detailed study guide generated. Quiz was skipped as requested.");
   }catch(e){setError(e instanceof Error?e.message:"Could not generate the study guide. Please retry.");}
