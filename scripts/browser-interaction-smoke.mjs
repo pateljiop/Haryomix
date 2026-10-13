@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { deflateSync } from "node:zlib";
 import { PDFDocument } from "pdf-lib";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -84,6 +85,16 @@ async function waitFor(expression, label, timeoutMs = 20000) {
   throw new Error("Browser check timed out: " + label);
 }
 
+async function navigateHistory(direction, expression, label) {
+  const history = await send("Page.getNavigationHistory", {}, sessionId);
+  const nextIndex = history.currentIndex + (direction === "back" ? -1 : 1);
+  const entry = history.entries[nextIndex];
+  if (!entry) throw new Error("No browser history entry available for " + direction);
+  await send("Page.navigateToHistoryEntry", { entryId: entry.id }, sessionId);
+  await waitFor(expression, label);
+  console.log("Browser history " + direction + " passed: " + label);
+}
+
 async function navigate(path, expression, label) {
   await send("Page.navigate", { url: baseUrl + path }, sessionId);
   await waitFor(expression, label);
@@ -108,6 +119,12 @@ async function setFiles(selector, paths) {
   await send("DOM.setFileInputFiles", { nodeId: node.nodeId, files: paths }, sessionId);
 }
 
+async function chooseValue(selector, value, label) {
+  const expression = "(()=>{const el=document.querySelector(" + JSON.stringify(selector) + ");if(!el)return false;const descriptor=Object.getOwnPropertyDescriptor(el.constructor.prototype,'value');if(!descriptor||!descriptor.set)return false;descriptor.set.call(el," + JSON.stringify(value) + ");el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return true})()";
+  const ok = await evaluate(expression);
+  if (!ok) throw new Error("Could not select " + label + " (" + selector + ")");
+}
+
 async function clickText(selector, text, label) {
   const ok = await evaluate("(()=>{const el=Array.from(document.querySelectorAll(" + JSON.stringify(selector) + ")).find(node=>(node.textContent||'').includes(" + JSON.stringify(text) + "));if(!el)return false;el.click();return true})()");
   if (!ok) throw new Error("Could not click " + label + " (text: " + text + ")");
@@ -125,6 +142,35 @@ async function waitForDownload(filename, timeoutMs = 20000) {
   throw new Error("Download did not complete: " + filename);
 }
 
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const name = Buffer.from(type);
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(crc32(Buffer.concat([name, data])));
+  return Buffer.concat([length, name, data, checksum]);
+}
+
+function createValidPngFixture() {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(1, 0);
+  header.writeUInt32BE(1, 4);
+  header[8] = 8;
+  header[9] = 6;
+  const pixels = deflateSync(Buffer.from([0, 255, 255, 255, 255]));
+  return Buffer.concat([signature, pngChunk("IHDR", header), pngChunk("IDAT", pixels), pngChunk("IEND", Buffer.alloc(0))]);
+}
+
 async function createFixtures() {
   const first = await PDFDocument.create();
   first.addPage([100, 200]);
@@ -133,7 +179,7 @@ async function createFixtures() {
   const second = await PDFDocument.create();
   second.addPage([500, 600]);
   writeFileSync(join(profile, "smoke-b.pdf"), await second.save());
-  writeFileSync(join(profile, "smoke-pixel.png"), Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jg2kAAAAASUVORK5CYII=", "base64"));
+  writeFileSync(join(profile, "smoke-pixel.png"), createValidPngFixture());
 }
 
 async function run() {
@@ -233,6 +279,7 @@ async function run() {
   await fill("#image-width", "64", "image output width");
   await fill("#image-height", "32", "image output height");
   await waitFor("document.querySelector('.hmx-image-preview')?.width===64 && document.querySelector('.hmx-image-preview')?.height===32", "image canvas resizes");
+  await chooseValue("#image-format", "image/png", "PNG export format");
   await clickText("button.hmx-btn.primary", "Export image", "export edited image");
   const imagePath = await waitForDownload("smoke-pixel-edited.png");
   const imageBytes = readFileSync(imagePath);
@@ -242,6 +289,25 @@ async function run() {
     throw new Error("Exported image artifact failed PNG signature/dimensions check: " + pngWidth + "x" + pngHeight);
   }
   console.log("Image export artifact verified: valid PNG with 64x32 output dimensions.");
+
+  await navigateHistory("back", "location.pathname === '/workspace/pdf-studio' && !!document.querySelector('input.hmx-file-input')", "back returns to PDF Studio");
+  await navigateHistory("forward", "location.pathname === '/workspace/image-studio' && !!document.querySelector('input.hmx-file-input')", "forward returns to Image Studio");
+  await clickText(".hmx-side-tool", "PDF Studio", "workspace sidebar navigation");
+  await waitFor("location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "sidebar navigates to PDF Studio");
+  await navigateHistory("back", "location.pathname === '/workspace/image-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'Image Studio'", "back follows sidebar navigation");
+  await navigateHistory("forward", "location.pathname === '/workspace/pdf-studio' && document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "forward follows sidebar navigation");
+
+  await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page for mobile viewport");
+  await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, sessionId);
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+  await waitFor("matchMedia('(prefers-reduced-motion: reduce)').matches", "reduced-motion preference is active");
+  const mobileLayout = await evaluate("({width:window.innerWidth,documentWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth})");
+  if (mobileLayout.documentWidth > mobileLayout.width + 1 || mobileLayout.bodyWidth > mobileLayout.width + 1) {
+    throw new Error("Landing page overflows 390px mobile viewport: " + JSON.stringify(mobileLayout));
+  }
+  console.log("Mobile landing layout and reduced-motion preference verified: " + JSON.stringify(mobileLayout));
+  await send("Emulation.clearDeviceMetricsOverride", {}, sessionId);
+  await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
 
   await navigate("/workspace/student-utilities", "!!document.querySelector('.hmx-utility-tabs')", "Student Utility Hub");
   if (await evaluate("document.querySelector('.hmx-utility-result strong')?.textContent") !== "84%") throw new Error("Default marks percentage is incorrect.");
@@ -265,7 +331,7 @@ async function run() {
   await waitFor("document.querySelector('textarea[readonly].hmx-utility-textarea')?.value==='A%20%26%20B'", "URL component encoding");
   console.log("Student Utility Hub marks, attendance, text, JSON and URL flows passed.");
 
-  console.log("Browser interaction and PDF/Image artifact smoke tests passed.");
+  console.log("Browser interaction, history, mobile, and PDF/Image artifact smoke tests passed.");
 }
 
 try {
