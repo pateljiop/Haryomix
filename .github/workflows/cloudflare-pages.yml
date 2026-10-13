@@ -76,6 +76,7 @@ jobs:
             /workspace/ai-create-studio
             /workspace/study-planner
             /workspace/flashcards
+            /workspace/focus-timer
           )
           for route in "${routes[@]}"; do
             code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-route.html --write-out '%{http_code}' "https://haryomix.pages.dev$route")"
@@ -85,7 +86,7 @@ jobs:
             fi
             echo "Verified HTTP 200 + SPA shell: $route"
           done
-          echo "All nine workspace URLs return the application shell."
+          echo "All ten workspace URLs return the application shell."
 
       - name: Verify production API and D1 connection
         shell: bash
