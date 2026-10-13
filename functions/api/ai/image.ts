@@ -1,7 +1,7 @@
 interface Env {
   FELO_API_KEY?: string;
   POLLINATIONS_API_KEY?: string;
-  DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>(): Promise<T | null> } } };
+  DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>(): Promise<T | null>; run(): Promise<unknown> } } };
 }
 const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 function reply(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers }); }
@@ -9,10 +9,15 @@ async function withinLimit(request: Request, env: Env): Promise<boolean> {
   if (!env.DB) return false;
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const bucket = new Date().toISOString().slice(0, 13);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("haryomix-ai-image:" + ip + ":" + bucket));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("haryomix-ai-image:" + ip));
   const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
-  const row = await env.DB.prepare("INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = request_count + 1 RETURNING request_count AS count").bind(key, bucket).first<{ count: number }>();
-  return Boolean(row && row.count <= 5);
+  const row = await env.DB.prepare("INSERT INTO community_rate_limits (rate_key, request_count, bucket) VALUES (?, 1, ?) ON CONFLICT(rate_key) DO UPDATE SET request_count = CASE WHEN community_rate_limits.bucket = excluded.bucket THEN community_rate_limits.request_count + 1 ELSE 1 END, bucket = excluded.bucket RETURNING request_count AS count").bind(key, bucket).first<{ count: number }>();
+  if (!row) throw new Error("Rate-limit counter did not return a row.");
+  if (row.count === 1) {
+    const expiredBefore = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString().slice(0, 13);
+    try { await env.DB.prepare("DELETE FROM community_rate_limits WHERE bucket < ?").bind(expiredBefore).run(); } catch { /* Best-effort cleanup; the rate limit itself is already recorded. */ }
+  }
+  return row.count <= 5;
 }
 function toBase64(bytes: Uint8Array): string {
   let binary = "";
