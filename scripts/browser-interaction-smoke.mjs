@@ -117,6 +117,10 @@ async function setFiles(selector, paths) {
   const node = await send("DOM.querySelector", { nodeId: document.root.nodeId, selector }, sessionId);
   if (!node.nodeId) throw new Error("Could not find file input: " + selector);
   await send("DOM.setFileInputFiles", { nodeId: node.nodeId, files: paths }, sessionId);
+  // Setting files through CDP updates the FileList, but explicitly dispatch
+  // browser input/change events so controlled React upload state is refreshed.
+  const notified = await evaluate("(()=>{const el=document.querySelector(" + JSON.stringify(selector) + ");if(!el)return false;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return true})()");
+  if (!notified) throw new Error("Could not dispatch file-selection events: " + selector);
 }
 
 async function chooseValue(selector, value, label) {
