@@ -1,33 +1,47 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HaryomixWorkspace } from "./components/HaryomixWorkspace";
 import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "code" | "ppt" | "pdf" | "image" | "exam";
+type ToolId = "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create";
+const toolRoutes: Record<ToolId, string> = { code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio" };
+function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
   { id: "ppt", n: "02", title: "PPT Studio", desc: "Turn a topic into structured, editable PowerPoint slides." },
   { id: "pdf", n: "03", title: "PDF Studio", desc: "Merge, split, rotate and reorder without rebuilding text." },
   { id: "image", n: "04", title: "Image Studio", desc: "Crop, resize, rotate, adjust and export in your browser." },
   { id: "exam", n: "05", title: "Exam Copilot", desc: "Create revision notes and test yourself with active recall." },
+  { id: "ai", n: "06", title: "Haryomix AI", desc: "Ask the configured AI assistant for coding, study and writing help." },
+  { id: "create", n: "07", title: "AI Create Studio", desc: "Create presentation decks and images with the configured Felo AI service." },
 ];
 
 export default function App() {
-  const [workspace, setWorkspace] = useState(false);
-  const [initialTool, setInitialTool] = useState<ToolId>("code");
-  const openWorkspace = (tool: ToolId = "code") => { setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const goHome = () => { setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const [workspace, setWorkspace] = useState(() => toolFromPath(window.location.pathname) !== null);
+  const [initialTool, setInitialTool] = useState<ToolId>(() => toolFromPath(window.location.pathname) ?? "code");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const openWorkspace = (tool: ToolId = "code") => { window.history.pushState({}, "", toolRoutes[tool]); setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goHome = () => { window.history.pushState({}, "", "/"); setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  useEffect(() => { const syncRoute = () => { const tool = toolFromPath(window.location.pathname); setWorkspace(tool !== null); if (tool) setInitialTool(tool); }; window.addEventListener("popstate", syncRoute); return () => window.removeEventListener("popstate", syncRoute); }, []);
   if (window.location.pathname === "/moderation") return <ModerationDashboard onHome={() => { window.location.href = "/"; }} />;
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
       <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
-      <div className="hmx-navlinks"><a href="#tools">Workspace</a><a href="#study">Study tools</a><a href="/pdf-tools/">PDF tools</a><a href="/image-resizer/">Image resizer</a><a href="/syllabus-notes/">Syllabus notes</a><a href="#student-tools">All tools</a></div>
-      <button className="hmx-nav-cta" onClick={() => openWorkspace()}>Open workspace ↗</button>
+      <div id="hmx-mobile-navigation" className={`hmx-navlinks${mobileMenuOpen ? " is-open" : ""}`}>
+        <a href="#tools" onClick={() => setMobileMenuOpen(false)}>Features</a>
+        <a href="#tools" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Workspace</a>
+        <a href="#study" onClick={() => setMobileMenuOpen(false)}>Revision Tool</a>
+        <a href="#student-tools" onClick={() => setMobileMenuOpen(false)}>Utility Hub</a>
+      </div>
+      <div className="hmx-nav-actions">
+        <button className="hmx-nav-menu" type="button" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="hmx-mobile-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? "×" : "☰"}</button>
+        <button className="hmx-nav-cta" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Open workspace ↗</button>
+      </div>
     </nav>
     <section id="top" className="hmx-hero">
-      <div className="hmx-hero-copy"><p className="hmx-overline">Your student workspace</p><h1 className="hmx-heading">Make student work move.</h1><p className="hmx-copy">One calm workspace for code, documents, visuals and exam prep. Spend less time switching tools and more time understanding what you are building.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Explore workspace ↗</button><a className="hmx-study-launch" href="#tools">See what you can do ↓</a></div><div className="hmx-hero-tags"><span>Code</span><span>Create</span><span>Revise</span></div></div>
+      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One focused workspace for the things you make and the things you learn. Debug code, build presentations, work with PDFs and images, and turn your syllabus into a study plan—all from one browser-first desk.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
       <HeroWorkspace />
       <a href="#tools" className="hmx-scroll-cue"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
     </section>
@@ -42,6 +56,8 @@ export default function App() {
         <button onClick={() => openWorkspace("image")} className="hmx-toolbox-card"><span className="hmx-card-icon">◩</span><h3>Image workshop</h3><p>Make images fit practical files, reports and slides.</p><span className="hmx-card-open">Edit an image ↗</span></button>
         <button onClick={() => openWorkspace("code")} className="hmx-toolbox-card"><span className="hmx-card-icon">{`{ }`}</span><h3>Debug with a plan</h3><p>Find likely syntax issues and investigate runtime errors.</p><span className="hmx-card-open">Check code ↗</span></button>
         <button onClick={() => openWorkspace("exam")} className="hmx-toolbox-card"><span className="hmx-card-icon">✳</span><h3>Revision that sticks</h3><p>Make topic notes, practice questions and review weak areas.</p><span className="hmx-card-open">Start revising ↗</span></button>
+        <button onClick={() => openWorkspace("ai")} className="hmx-toolbox-card"><span className="hmx-card-icon">✦</span><h3>Haryomix AI assistant</h3><p>Get help with coding, study and writing through the configured assistant.</p><span className="hmx-card-open">Open Haryomix AI ↗</span></button>
+        <button onClick={() => openWorkspace("create")} className="hmx-toolbox-card"><span className="hmx-card-icon">✧</span><h3>AI Create Studio</h3><p>Explore the configured creative workflow for presentation decks and images.</p><span className="hmx-card-open">Create something ↗</span></button>
       </div>
     </div></section>
     <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix by Hariom Builds supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><button className="hmx-study-launch" onClick={() => openWorkspace("exam")}>Create a revision plan ↗</button></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
