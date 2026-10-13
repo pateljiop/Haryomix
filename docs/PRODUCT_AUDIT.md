@@ -22,7 +22,7 @@
 - React 19 + TypeScript + Vite frontend.
 - Cloudflare Pages Functions for health, AI, community, reporting and moderation APIs.
 - Browser-side PDF/image processing dependencies: pdf-lib, pdfjs-dist, tesseract.js; editable PPTX export via pptxgenjs.
-- Dedicated workspace routes for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI, AI Create Studio, local-first Study Planner, Flashcards, Focus Timer and Student Utilities.
+- A searchable `/workspace` directory and eleven dedicated, full-width tool pages for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI, AI Create Studio, Study Planner, Flashcards, Focus Timer and Student Utilities. Tool pages no longer render the old always-visible sidebar.
 - Landing-page hero now includes a native WebGL particle sphere with reduced-motion handling and a CSS fallback; the existing dark theme and workspace artwork are preserved.
 - AI routes include input/content-type limits, no-store responses, provider timeouts, server-side provider secrets and D1-backed hourly rate limits.
 - Community and reporting schemas are present in migrations 0001 and 0002; migration 0001 also creates community_rate_limits.
@@ -34,7 +34,7 @@
 
 1. **Completed:** CI now runs a repeatable Node regression suite alongside typecheck and production build. The local-first Study Planner is implemented with JSON backup/restore and a separate route; its data-model logic is covered by unit tests. Flashcards now provides local decks, answer reveal, due-card queue and SM-2-style review intervals with JSON backup/restore. Focus Timer provides 25/5/15-minute Pomodoro modes and a locally stored completed-session history. Student Utilities adds marks percentage, credit-weighted CGPA estimates, attendance target calculations, text statistics, JSON validation/formatting and URL component encoding/decoding, with pure-function unit tests.
 2. **Completed in part:** Tests cover API validation, community/moderator authorization, PDF page selection and real PDF page reordering, image dimension/target-size helpers, AI provider fallback, and mocked Felo PPT/image responses.
-3. **Remaining:** Browser-level E2E tests for actual canvas image exports, PDF downloads, workspace navigation/back-forward behavior, and WebGL rendering on desktop/mobile.
+3. **Remaining:** Run the updated browser E2E suite against the newly redesigned pages; visually inspect layout quality and verify all AI-provider workflows with configured credentials.
 4. Decide and document branch-protection/required-check policy; current main is reported unprotected.
 
 ### P0 — Documentation consistency
@@ -46,7 +46,7 @@
 ### P1 — Product verification
 
 1. Native WebGL particle rendering is implemented with reduced-motion handling and a CSS fallback; desktop/mobile visual inspection and real-GPU behavior still need a browser session.
-2. Deployment smoke checks confirm all eleven workspace URLs return HTTP 200 and the SPA shell; actual tool-level navigation and browser back/forward behavior still need E2E coverage.
+2. Deployment smoke checks confirm the workspace directory and eleven dedicated tool URLs return HTTP 200 and the SPA shell. The headless-Chromium suite checks independent page rendering, tool-directory search/navigation, back/forward behavior, PDF downloads, image exports and student utility interactions.
 3. Unit tests cover PDF page reorder output and image helper constraints; exercise full PDF/image exports against representative files and inspect downloaded artifacts.
 4. Mocked AI tests cover fallback and response parsing. Live provider credentials, model availability, quotas and billing have not been verified; do not trigger billable generation merely as a smoke test.
 5. Verify deployed custom-domain status separately; the workflow evidence establishes the haryomix.pages.dev production path, not any custom domain.
@@ -73,4 +73,4 @@ Create a licensing/maintenance-reviewed GitHub research matrix before adding dep
 
 ## Verification limits
 
-As of main commit e640c30, CI run #188 and Cloudflare Pages deployment run #125 both completed successfully. Deployment checks confirmed all ten workspace route shells, headless-Chromium rendering for the landing page and the Study Planner/Flashcards/Focus Timer routes, API/D1 health, safe AI input validation without provider calls, community persistence and unauthenticated moderation rejection. The 49-test regression suite passed in CI. The browser smoke check verifies rendered DOM markers and the WebGL canvas element; it does not prove visual quality, GPU pixel output, full tool interactions or downloaded-file fidelity. Live provider credentials and billable generation remain unverified.
+Historical baseline: main commit e640c30, CI run #188 and Cloudflare Pages deployment run #125 completed successfully. Deployment checks confirmed all ten workspace route shells, headless-Chromium rendering for the landing page and the Study Planner/Flashcards/Focus Timer routes, API/D1 health, safe AI input validation without provider calls, community persistence and unauthenticated moderation rejection. The 49-test regression suite passed in CI. The browser smoke check verifies rendered DOM markers and the WebGL canvas element; it does not prove visual quality, GPU pixel output, full tool interactions or downloaded-file fidelity. Live provider credentials and billable generation remain unverified.
