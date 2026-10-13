@@ -169,6 +169,7 @@ export function StudyPlanner() {
       <div className="hmx-panel-body">
         <div className="hmx-note">Your tasks stay in this browser. No account or AI key is required. Export a backup before clearing browser data or switching devices.</div>
         {storageUnavailable && <div className="hmx-note" role="alert">Browser storage is unavailable. Your current tasks may not persist after you leave this page.</div>}
+        {notice && <div className="hmx-note" role="status" aria-live="polite">{notice}</div>}
         <div className="hmx-planner-stats" aria-label="Study plan summary">
           <div className="hmx-planner-stat"><span>Open tasks</span><strong>{stats.open}</strong></div>
           <div className="hmx-planner-stat"><span>Due today</span><strong>{stats.dueToday}</strong></div>
