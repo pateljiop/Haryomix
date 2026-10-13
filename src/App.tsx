@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HaryomixWorkspace } from "./components/HaryomixWorkspace";
 import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "code" | "ppt" | "pdf" | "image" | "exam";
+type ToolId = "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create";
+const toolRoutes: Record<ToolId, string> = { code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio" };
+function toolFromPath(path: string): ToolId | null { const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === path.replace(/\\/$/, "")); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
   { id: "ppt", n: "02", title: "PPT Studio", desc: "Turn a topic into structured, editable PowerPoint slides." },
@@ -14,11 +16,12 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
 ];
 
 export default function App() {
-  const [workspace, setWorkspace] = useState(false);
-  const [initialTool, setInitialTool] = useState<ToolId>("code");
+  const [workspace, setWorkspace] = useState(() => toolFromPath(window.location.pathname) !== null);
+  const [initialTool, setInitialTool] = useState<ToolId>(() => toolFromPath(window.location.pathname) ?? "code");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const openWorkspace = (tool: ToolId = "code") => { setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const goHome = () => { setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openWorkspace = (tool: ToolId = "code") => { window.history.pushState({}, "", toolRoutes[tool]); setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goHome = () => { window.history.pushState({}, "", "/"); setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  useEffect(() => { const syncRoute = () => { const tool = toolFromPath(window.location.pathname); setWorkspace(tool !== null); if (tool) setInitialTool(tool); }; window.addEventListener("popstate", syncRoute); return () => window.removeEventListener("popstate", syncRoute); }, []);
   if (window.location.pathname === "/moderation") return <ModerationDashboard onHome={() => { window.location.href = "/"; }} />;
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
