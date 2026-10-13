@@ -229,6 +229,26 @@ async function run() {
   }
   console.log("All 11 tool pages plus the workspace directory render independently without the old sidebar.");
 
+  await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code')", "Code Doctor editor");
+  await clickText("button", "Inspect code", "run local Code Doctor checks");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('colon')) && Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('Unclosed bracket'))", "Code Doctor catches default syntax errors");
+  await fill("#hmx-code", "def add(a, b):\\n    return a + b\\n\\nprint(add(2, 3))", "valid Python sample");
+  await clickText("button", "Inspect code", "inspect valid Python");
+  await waitFor("document.querySelector('.hmx-result li')?.textContent.includes('No obvious pattern-based issue')", "Code Doctor clean-code message");
+  console.log("Code Doctor catches syntax patterns and avoids false bracket errors in a valid sample.");
+
+  await navigate("/workspace/ppt-studio", "!!document.querySelector('#ppt-title') && !!document.querySelector('#ppt-tone')", "PPT Studio editor");
+  await chooseValue("#ppt-tone", "Academic / research", "academic presentation style");
+  await fill("#ppt-title", "Haryomix Browser Smoke Deck", "PPT title");
+  await clickText("button", "Build professional .pptx", "export PowerPoint deck");
+  const pptPath = await waitForDownload("Haryomix-Browser-Smoke-Deck.pptx", 30000);
+  const pptBytes = readFileSync(pptPath);
+  if (pptBytes.length < 5000 || pptBytes.subarray(0, 2).toString() !== "PK") {
+    throw new Error("PPT Studio export is not a valid-looking PowerPoint ZIP artifact.");
+  }
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('PowerPoint exported')", "PPT export success status");
+  console.log("PPT Studio produced a downloadable .pptx artifact using the selected style.");
+
   await navigate("/workspace/study-planner", "!!document.querySelector('#hmx-plan-title')", "Study Planner form");
   await fill("#hmx-plan-title", "Browser smoke study task", "planner title");
   await fill("#hmx-plan-subject", "E2E Subject", "planner subject");
