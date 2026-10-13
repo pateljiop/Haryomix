@@ -22,7 +22,7 @@
 - React 19 + TypeScript + Vite frontend.
 - Cloudflare Pages Functions for health, AI, community, reporting and moderation APIs.
 - Browser-side PDF/image processing dependencies: pdf-lib, pdfjs-dist, tesseract.js; editable PPTX export via pptxgenjs.
-- A searchable `/workspace` directory and eleven dedicated, full-width tool pages for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI, AI Create Studio, Study Planner, Flashcards, Focus Timer and Student Utilities. Tool pages no longer render the old always-visible sidebar.
+- A searchable `/workspace` directory and twelve dedicated, full-width tool pages for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI, AI Create Studio, Study Planner, Flashcards, Focus Timer, Student Utilities and Study Library. Tool pages no longer render the old always-visible sidebar.
 - Landing-page hero now includes a native WebGL particle sphere with reduced-motion handling and a CSS fallback; the existing dark theme and workspace artwork are preserved.
 - AI routes include input/content-type limits, no-store responses, provider timeouts, server-side provider secrets and D1-backed hourly rate limits.
 - Community and reporting schemas are present in migrations 0001 and 0002; migration 0001 also creates community_rate_limits.
@@ -32,7 +32,7 @@
 
 ### P0 — Quality gates and regression coverage
 
-1. **Completed:** CI now runs a repeatable Node regression suite alongside typecheck and production build. The local-first Study Planner is implemented with JSON backup/restore and a separate route; its data-model logic is covered by unit tests. Flashcards now provides local decks, answer reveal, due-card queue and SM-2-style review intervals with JSON backup/restore. Focus Timer provides 25/5/15-minute Pomodoro modes and a locally stored completed-session history. Student Utilities adds marks percentage, credit-weighted CGPA estimates, attendance target calculations, text statistics, JSON validation/formatting and URL component encoding/decoding, with pure-function unit tests.
+1. **Completed:** CI now runs a repeatable Node regression suite alongside typecheck and production build. The local-first Study Planner is implemented with JSON backup/restore and a separate route; its data-model logic is covered by unit tests. Flashcards now provides local decks, answer reveal, due-card queue and SM-2-style review intervals with JSON backup/restore. Focus Timer provides 25/5/15-minute Pomodoro modes and a locally stored completed-session history. Student Utilities adds marks percentage, credit-weighted CGPA estimates, attendance target calculations, text statistics, JSON validation/formatting and URL component encoding/decoding, with pure-function unit tests. Study Library adds local IndexedDB-backed notes/resources/links with search, type filtering and validated JSON backup/restore.
 2. **Completed in part:** Tests cover API validation, community/moderator authorization, PDF page selection and real PDF page reordering, image dimension/target-size helpers, AI provider fallback, and mocked Felo PPT/image responses.
 3. **Remaining:** Run the updated browser E2E suite against the newly redesigned pages; visually inspect layout quality and verify all AI-provider workflows with configured credentials.
 4. Decide and document branch-protection/required-check policy; current main is reported unprotected.
