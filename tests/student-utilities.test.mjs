@@ -52,6 +52,8 @@ test("text counter handles empty strings, Unicode, whitespace and reading time",
     readingMinutes: 1,
   });
   assert.equal(countText(Array(401).fill("word").join(" ")).readingMinutes, 3);
+  assert.equal(countText("A😀 B").characters, 4);
+  assert.equal(countText("A😀 B").charactersWithoutSpaces, 3);
 });
 
 test("JSON formatting produces pretty or compact valid JSON and clear errors", () => {
