@@ -17,4 +17,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: node --check scripts/browser-interaction-smoke.mjs
       - run: npm run build

@@ -171,7 +171,7 @@ export function FocusTimer() {
               </svg>
               <div className="hmx-focus-time"><strong>{formatTime(remainingSeconds)}</strong><span>{isRunning ? "IN SESSION" : "READY WHEN YOU ARE"}</span></div>
             </div>
-            <div className="hmx-focus-controls"><button type="button" className="hmx-btn primary" onClick={startOrPause}>{isRunning ? "Pause" : "Start focus"}</button><button type="button" className="hmx-btn" onClick={resetTimer}>Reset</button></div>
+            <div className="hmx-focus-controls"><button type="button" className="hmx-btn primary" onClick={startOrPause}>{isRunning ? "Pause" : mode === "focus" ? "Start focus" : "Start break"}</button><button type="button" className="hmx-btn" onClick={resetTimer}>Reset</button></div>
             <p className="hmx-focus-mode-note">{mode === "focus" ? "Silence distractions and work on one task." : mode === "short-break" ? "Stand up, stretch and rest your eyes." : "Take a longer break before the next focus block."}</p>
           </section>
           <section className="hmx-focus-history">
