@@ -22,7 +22,7 @@
 - React 19 + TypeScript + Vite frontend.
 - Cloudflare Pages Functions for health, AI, community, reporting and moderation APIs.
 - Browser-side PDF/image processing dependencies: pdf-lib, pdfjs-dist, tesseract.js; editable PPTX export via pptxgenjs.
-- Dedicated workspace routes for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI, AI Create Studio, local-first Study Planner, Flashcards, Focus Timer and Student Utilities.
+- Dedicated workspace routes for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI, AI Create Studio, local-first Study Planner, Flashcards, Focus Timer, Student Utilities and Study Library.
 - Landing-page hero now includes a native WebGL particle sphere with reduced-motion handling and a CSS fallback; the existing dark theme and workspace artwork are preserved.
 - AI routes include input/content-type limits, no-store responses, provider timeouts, server-side provider secrets and D1-backed hourly rate limits.
 - Community and reporting schemas are present in migrations 0001 and 0002; migration 0001 also creates community_rate_limits.
