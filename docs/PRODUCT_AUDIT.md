@@ -12,8 +12,9 @@
 - Latest main commit: 39a0c8e — “Lock patched image-size dependency”.
 - Latest observed CI run: [Run #152](https://github.com/pateljiop/Haryomix/actions/runs/38454625018), completed successfully on the audited commit.
 - Latest observed Cloudflare Pages deployment workflow: [Run #106](https://github.com/pateljiop/Haryomix/actions/runs/38454624901), completed successfully on the audited commit. The workflow includes route-shell checks, /api/health + D1 verification, and a community persistence smoke test.
-- The repository's .github/workflows/ci.yml runs npm ci, npm run typecheck, and npm run build.
-- package.json defines dev, build, preview, and typecheck; there is no test or lint script in the inspected manifest. No dedicated test directory or test files appeared in the inspected repository tree.
+- At the audited baseline commit, .github/workflows/ci.yml ran npm ci, npm run typecheck, and npm run build only. This was corrected in subsequent implementation PRs.
+- Current CI also runs npm test. The suite covers community/moderator APIs, PDF page parsing/reordering, image export helpers, AI provider fallback, and mocked Felo PPT/image responses. A dedicated lint script is still not configured.
+- After the baseline audit, PR #5 added the native Node test runner; PR #6 added PDF/Image regression coverage; PR #7 added the GPU-rendered WebGL hero; PR #8 added AI API tests and corrected rate-limit setup errors.
 - GitHub reports the main branch as unprotected. This makes passing checks dependent on workflow/merge discipline rather than required branch-protection checks.
 
 ## Existing implementation confirmed by source
@@ -22,6 +23,7 @@
 - Cloudflare Pages Functions for health, AI, community, reporting and moderation APIs.
 - Browser-side PDF/image processing dependencies: pdf-lib, pdfjs-dist, tesseract.js; editable PPTX export via pptxgenjs.
 - Dedicated workspace routes for Code Doctor, PPT Studio, PDF Studio, Image Studio, Exam Copilot, Haryomix AI and AI Create Studio.
+- Landing-page hero now includes a native WebGL particle sphere with reduced-motion handling and a CSS fallback; the existing dark theme and workspace artwork are preserved.
 - AI routes include input/content-type limits, no-store responses, provider timeouts, server-side provider secrets and D1-backed hourly rate limits.
 - Community and reporting schemas are present in migrations 0001 and 0002; migration 0001 also creates community_rate_limits.
 - PR #3 was merged as 748f8ae443d9053b7314f28f8f58fe71342bc6e3. It added workspace route/tool-index improvements and additional PDF/image operations. Its description explicitly keeps OCR, true image-level PDF compression, Office conversion, secure redaction and certificate-backed signatures out of the implemented-feature claims.
@@ -30,23 +32,23 @@
 
 ### P0 — Quality gates and regression coverage
 
-1. Add a repeatable automated test suite. The current CI proves TypeScript and production build success, not tool behavior or API validation.
-2. Add tests for PDF page operations, image export/target-size behavior, route resolution, API input validation, rate limits and authorization.
-3. Decide and document branch-protection/required-check policy; current main is reported unprotected.
-4. Add browser smoke tests for key user flows, beyond the deployment workflow's route-shell checks.
+1. **Completed:** CI now runs a repeatable Node regression suite alongside typecheck and production build.
+2. **Completed in part:** Tests cover API validation, community/moderator authorization, PDF page selection and real PDF page reordering, image dimension/target-size helpers, AI provider fallback, and mocked Felo PPT/image responses.
+3. **Remaining:** Browser-level E2E tests for actual canvas image exports, PDF downloads, workspace navigation/back-forward behavior, and WebGL rendering on desktop/mobile.
+4. Decide and document branch-protection/required-check policy; current main is reported unprotected.
 
 ### P0 — Documentation consistency
 
-1. README.md describes the PDF Studio feature set more narrowly than the merged implementation.
-2. The README community setup text mentions an HARYOMIX_DB binding, while the inspected Pages Functions use env.DB and the deploy workflow verifies D1 through that binding. Align documentation with the actual Cloudflare binding configuration.
-3. Update the README's tool descriptions and limitations only after checking the actual implementation; do not imply unsupported OCR, Office conversion, secure redaction or cryptographic signatures.
+1. The initial baseline README mismatch was corrected; keep feature descriptions synchronized with future changes.
+2. The documented Cloudflare D1 binding is DB, matching the Pages Functions and deployment workflow.
+3. Continue distinguishing OCR, raster compression, image-based PDF-to-PPTX, crop-box changes, visual signatures, secure redaction and certificate-backed digital signatures; they are not equivalent capabilities.
 
 ### P1 — Product verification
 
-1. Review the actual landing page at desktop/mobile sizes and confirm whether the hero uses genuine 3D or a CSS visual, plus reduced-motion and fallback behavior.
-2. Verify each dedicated route loads directly and browser back/forward navigation stays synchronized.
-3. Exercise PDF and image operations against representative files and inspect the exported artifacts, not just the UI state.
-4. Verify configured AI provider secrets, fallback behavior and useful errors without exposing secrets.
+1. Native WebGL particle rendering is implemented with reduced-motion handling and a CSS fallback; desktop/mobile visual inspection and real-GPU behavior still need a browser session.
+2. Deployment smoke checks confirm all seven workspace URLs return HTTP 200 and the SPA shell; actual tool-level navigation and browser back/forward behavior still need E2E coverage.
+3. Unit tests cover PDF page reorder output and image helper constraints; exercise full PDF/image exports against representative files and inspect downloaded artifacts.
+4. Mocked AI tests cover fallback and response parsing. Live provider credentials, model availability, quotas and billing have not been verified; do not trigger billable generation merely as a smoke test.
 5. Verify deployed custom-domain status separately; the workflow evidence establishes the haryomix.pages.dev production path, not any custom domain.
 
 ### P1 — Student-facing depth
@@ -62,13 +64,13 @@ Create a licensing/maintenance-reviewed GitHub research matrix before adding dep
 
 ## Recommended next implementation sequence
 
-1. Add a test runner and first regression tests without rewriting the app architecture.
-2. Fix README and Cloudflare binding documentation mismatches.
-3. Run the expanded checks in CI and add browser-level workflow coverage.
-4. Complete responsive/3D visual review and artifact-level PDF/image QA.
-5. Research and prioritize the next student utility features.
-6. Re-run production verification and report actual CI/deploy evidence.
+1. Add browser-level E2E and visual checks for direct routes, mobile navigation, PDF/Image downloads and WebGL fallback/reduced-motion behavior.
+2. Perform artifact-level PDF/Image QA with representative real files.
+3. Verify live AI provider configuration safely, without exposing secrets or spending credits without approval.
+4. Decide and document branch protection/required checks.
+5. Research and prioritize student utilities using a licensing/security-reviewed GitHub research matrix.
+6. Re-run production verification after each release.
 
 ## Verification limits
 
-The latest CI and deployment workflows were observed as successful in GitHub Actions. This audit did not execute npm commands in a local checkout or independently inspect a real browser session. Those checks must be performed through CI/browser tooling before declaring the UI and every feature fully verified.
+As of main commit 5151bf6, CI run #170 and Cloudflare Pages deployment run #117 both completed successfully. Deployment checks confirmed all seven workspace route shells, API/D1 health, community persistence and unauthenticated moderation rejection. The regression suite passed in CI. This audit did not execute npm commands in a local checkout or independently inspect a real browser session; canvas exports, WebGL rendering and live provider credentials remain unverified.
