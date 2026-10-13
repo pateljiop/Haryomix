@@ -60,7 +60,7 @@
 
 ### P2 — Research and utility expansion
 
-Create a licensing/maintenance-reviewed GitHub research matrix before adding dependencies or copying code. Prioritize student value and reliability over feature count.
+A licensing/maintenance-reviewed GitHub research matrix is documented. The first Student Utility Hub slice is shipped; prioritize student value, data correctness and reliability over feature count.
 
 ## Recommended next implementation sequence
 
