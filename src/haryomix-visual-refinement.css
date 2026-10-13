@@ -1057,3 +1057,49 @@ body { color-scheme: dark; }
   .hmx-flash-card { padding: 16px; border-radius: 16px; }
   .hmx-flash-tabs button { padding: 9px 10px; }
 }
+
+
+/* Local-first Pomodoro focus timer. */
+.hmx-focus-timer { width: 100%; min-width: 0; }
+.hmx-focus-subtitle { margin: 6px 0 0; color: #8f9db7; font-size: 12px; line-height: 1.6; }
+.hmx-focus-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
+.hmx-focus-stats > div { min-width: 0; padding: 13px 14px; border: 1px solid rgba(143, 166, 206, .15); border-radius: 13px; background: linear-gradient(145deg, rgba(25, 36, 60, .68), rgba(10, 16, 29, .72)); }
+.hmx-focus-stats span { display: block; color: #8f9db7; font-size: 11px; }
+.hmx-focus-stats strong { display: block; margin-top: 7px; color: #edf4ff; font-size: clamp(17px, 2vw, 24px); letter-spacing: -.04em; overflow-wrap: anywhere; }
+.hmx-focus-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 16px; }
+.hmx-focus-clock, .hmx-focus-history { min-width: 0; padding: 18px; border: 1px solid rgba(143, 166, 206, .15); border-radius: 17px; background: rgba(7, 12, 23, .46); }
+.hmx-focus-modes { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
+.hmx-focus-modes button { padding: 8px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #8f9db7; font-size: 11px; cursor: pointer; }
+.hmx-focus-modes button.active { border-color: rgba(105, 150, 255, .28); background: rgba(61, 103, 204, .18); color: #eaf1ff; }
+.hmx-focus-ring { position: relative; width: min(100%, 280px); aspect-ratio: 1; margin: 8px auto; }
+.hmx-focus-ring svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.hmx-focus-ring-track, .hmx-focus-ring-progress { fill: none; stroke-width: 7; }
+.hmx-focus-ring-track { stroke: rgba(123, 148, 196, .14); }
+.hmx-focus-ring-progress { stroke: #76a6ff; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(86, 144, 255, .38)); transition: stroke-dashoffset .35s linear; }
+.hmx-focus-time { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; }
+.hmx-focus-time strong { color: #f1f6ff; font-size: clamp(40px, 6vw, 54px); font-weight: 650; line-height: 1; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.hmx-focus-time span { margin-top: 12px; color: #7f93b6; font-size: 9px; font-weight: 850; letter-spacing: .16em; }
+.hmx-focus-controls { display: flex; justify-content: center; gap: 8px; }
+.hmx-focus-controls .hmx-btn { min-width: 100px; justify-content: center; }
+.hmx-focus-mode-note { margin: 15px 0 0; color: #8f9db7; font-size: 11px; line-height: 1.7; text-align: center; }
+.hmx-focus-history-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.hmx-focus-history-head h3 { margin: 0; color: #edf4ff; font-size: 15px; }
+.hmx-focus-history-head p { margin: 5px 0 0; color: #8f9db7; font-size: 11px; line-height: 1.6; }
+.hmx-focus-import { position: relative; overflow: hidden; cursor: pointer; }
+.hmx-focus-import input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.hmx-focus-session-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.hmx-focus-session-list li { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid rgba(143, 166, 206, .12); border-radius: 11px; background: rgba(16, 24, 41, .72); }
+.hmx-focus-session-dot { display: grid; flex: 0 0 25px; place-items: center; width: 25px; height: 25px; border-radius: 8px; background: rgba(73, 203, 162, .1); color: #81e3c7; font-size: 12px; }
+.hmx-focus-session-list li > div { flex: 1; min-width: 0; }
+.hmx-focus-session-list strong { display: block; color: #eaf1ff; font-size: 12px; }
+.hmx-focus-session-list small { display: block; margin-top: 4px; color: #8291ac; font-size: 10px; line-height: 1.5; }
+.hmx-focus-session-list b { flex: 0 0 auto; color: #8ce0c8; font-size: 11px; }
+@media (max-width: 820px) {
+  .hmx-focus-layout { grid-template-columns: minmax(0, 1fr); }
+  .hmx-focus-clock { max-width: 540px; width: 100%; margin: 0 auto; }
+}
+@media (max-width: 560px) {
+  .hmx-focus-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hmx-focus-clock, .hmx-focus-history { padding: 14px; }
+  .hmx-focus-ring { width: min(100%, 250px); }
+}
