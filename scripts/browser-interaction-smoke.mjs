@@ -101,6 +101,41 @@ async function fill(selector, value, label) {
   if (!ok) throw new Error("Could not fill " + label + " (" + selector + ")");
 }
 
+async function setFiles(selector, paths) {
+  const document = await send("DOM.getDocument", {}, sessionId);
+  const node = await send("DOM.querySelector", { nodeId: document.root.nodeId, selector }, sessionId);
+  if (!node.nodeId) throw new Error("Could not find file input: " + selector);
+  await send("DOM.setFileInputFiles", { nodeId: node.nodeId, files: paths }, sessionId);
+}
+
+async function clickText(selector, text, label) {
+  const ok = await evaluate("(()=>{const el=Array.from(document.querySelectorAll(" + JSON.stringify(selector) + ")).find(node=>(node.textContent||'').includes(" + JSON.stringify(text) + "));if(!el)return false;el.click();return true})()");
+  if (!ok) throw new Error("Could not click " + label + " (text: " + text + ")");
+}
+
+async function waitForDownload(filename, timeoutMs = 20000) {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    const path = join(profile, filename);
+    try {
+      if (statSync(path).isFile() && !readdirSync(profile).some(name => name.endsWith(".crdownload"))) return path;
+    } catch {}
+    await wait(200);
+  }
+  throw new Error("Download did not complete: " + filename);
+}
+
+async function createFixtures() {
+  const first = await PDFDocument.create();
+  first.addPage([100, 200]);
+  first.addPage([300, 400]);
+  writeFileSync(join(profile, "smoke-a.pdf"), await first.save());
+  const second = await PDFDocument.create();
+  second.addPage([500, 600]);
+  writeFileSync(join(profile, "smoke-b.pdf"), await second.save());
+  writeFileSync(join(profile, "smoke-pixel.png"), Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jg2kAAAAASUVORK5CYII=", "base64"));
+}
+
 async function run() {
   await createFixtures();
   const version = await getDebuggerVersion();
@@ -124,6 +159,7 @@ async function run() {
   const attached = await send("Target.attachToTarget", { targetId: target.targetId, flatten: true });
   sessionId = attached.sessionId;
   await send("Page.enable", {}, sessionId);
+  await send("DOM.enable", {}, sessionId);
   await send("Runtime.enable", {}, sessionId);
   await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: profile }, sessionId);
 
