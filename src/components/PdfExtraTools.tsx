@@ -98,7 +98,7 @@ export function PdfExtraTools({ setNotice }: Props) {
     return () => { cancelled = true; };
   }, [file, previewPage, scale, setNotice]);
 
-  async function run(action: "text" | "word" | "images" | "ocr" | "compare" | "repair") {
+  async function run(action: "text" | "word" | "images" | "ocr" | "compare" | "repair" | "csv" | "pptx") {
     if (!file || busy) return;
     setBusy(true);
     setProgress("Preparing PDF…");
@@ -173,6 +173,55 @@ export function PdfExtraTools({ setNotice }: Props) {
         lines.unshift(`${differences} page(s) differ out of ${max} compared page positions.`);
         downloadBlob(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }), `${safeName(file.name)}-comparison.txt`);
         setNotice(`Comparison report exported. ${differences} page position(s) differ by extracted text.`);
+      } else if (action === "csv") {
+        const pdf = await openPdf(file);
+        const selected = parsePages(range, pdf.numPages);
+        const csvRows = [["page", "x", "y", "text"]];
+        for (const pageNo of selected) {
+          setProgress(`Extracting text positions from page ${pageNo}…`);
+          const page = await pdf.getPage(pageNo);
+          const content = await page.getTextContent();
+          for (const item of content.items) {
+            if (!("str" in item) || !item.str.trim()) continue;
+            const transform = item.transform;
+            const cells = [String(pageNo), String(Math.round(transform[4] * 100) / 100), String(Math.round(transform[5] * 100) / 100), item.str];
+            csvRows.push(cells);
+          }
+        }
+        downloadBlob(new Blob([csvRows.map(row => row.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }), `${safeName(file.name)}-text-positions.csv`);
+        setNotice("Exported selectable text and approximate PDF coordinates to CSV. This is not automatic table recognition; review columns in Excel.");
+      } else if (action === "pptx") {
+        const pdf = await openPdf(file);
+        const selected = parsePages(range, pdf.numPages);
+        if (selected.length > 20) throw new Error("PDF-to-PowerPoint is limited to 20 pages per export.");
+        const pptxModule = await import("pptxgenjs");
+        const pptx = new pptxModule.default();
+        pptx.layout = "LAYOUT_WIDE";
+        pptx.author = "Haryomix PDF Studio";
+        pptx.subject = "Image-based PowerPoint conversion from PDF pages";
+        pptx.title = file.name.replace(/\.pdf$/i, "");
+        for (let i = 0; i < selected.length; i++) {
+          setProgress(`Building PowerPoint slide ${i + 1} of ${selected.length}…`);
+          const page = await pdf.getPage(selected[i]);
+          const viewport = page.getViewport({ scale: Math.min(2, Math.max(0.75, scale)) });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Canvas is not available in this browser.");
+          await page.render({ canvasContext: context, viewport }).promise;
+          const data = canvas.toDataURL("image/png");
+          const slide = pptx.addSlide();
+          slide.background = { color: "FFFFFF" };
+          const sw = 13.333, sh = 7.5, aspect = canvas.width / canvas.height;
+          let w = sw, h = w / aspect;
+          if (h > sh) { h = sh; w = h * aspect; }
+          slide.addImage({ data, x: (sw - w) / 2, y: (sh - h) / 2, w, h });
+          canvas.width = 0; canvas.height = 0;
+        }
+        const blob = await pptx.write({ outputType: "blob" }) as Blob;
+        downloadBlob(blob, `${safeName(file.name)}-converted.pptx`);
+        setNotice(`Created ${selected.length} PowerPoint slide(s) from PDF page images. Visuals are preserved, but text and objects on each slide are not individually editable.`);
       } else if (action === "repair") {
         const input = await file.arrayBuffer();
         const { PDFDocument } = await import("pdf-lib");
@@ -204,6 +253,8 @@ export function PdfExtraTools({ setNotice }: Props) {
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("text")}><strong>Extract PDF text</strong><span>Export selectable text to TXT.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("word")}><strong>PDF to Word-compatible RTF</strong><span>Editable text for Word; complex layout may change.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("images")}><strong>PDF to JPG</strong><span>Render selected pages to JPEG images.</span></button>
+          <button className="hmx-tool-card" disabled={busy} onClick={() => void run("pptx")}><strong>PDF to PowerPoint</strong><span>Convert selected pages to image-based slides (up to 20 pages).</span></button>
+          <button className="hmx-tool-card" disabled={busy} onClick={() => void run("csv")}><strong>PDF text to CSV / Excel</strong><span>Export selectable text and page coordinates as CSV.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("ocr")}><strong>OCR scanned pages</strong><span>Recognize English text from page images (up to 10 pages).</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("compare")}><strong>Compare two PDFs</strong><span>Report page-by-page extracted-text differences.</span></button>
           <button className="hmx-tool-card" disabled={busy} onClick={() => void run("repair")}><strong>Re-save / repair PDF</strong><span>Rewrite PDFs that the parser can successfully open.</span></button>
