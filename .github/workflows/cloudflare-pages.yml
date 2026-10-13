@@ -88,6 +88,26 @@ jobs:
           done
           echo "All ten workspace URLs return the application shell."
 
+      - name: Verify browser-rendered student workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          google-chrome --version
+          while IFS='|' read -r route expected; do
+            html="$(google-chrome --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --virtual-time-budget=8000 --dump-dom "https://haryomix.pages.dev$route" 2>/tmp/haryomix-chrome.log)"
+            if ! grep -Fq "$expected" <<< "$html"; then
+              cat /tmp/haryomix-chrome.log >&2 || true
+              echo "Browser-rendered UI did not contain expected marker '$expected' at $route" >&2
+              exit 1
+            fi
+            echo "Browser-rendered UI verified: $route ($expected)"
+          done <<'ROUTES'
+          /|hmx-webgl-field
+          /workspace/study-planner|Study Planner
+          /workspace/flashcards|Flashcards
+          /workspace/focus-timer|Focus Timer
+          ROUTES
+
       - name: Verify production API and D1 connection
         shell: bash
         run: |
