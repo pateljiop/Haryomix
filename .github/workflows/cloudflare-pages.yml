@@ -62,6 +62,29 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: wrangler pages deploy dist --project-name=haryomix --branch=main
 
+      - name: Verify production workspace routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          routes=(
+            /workspace/code-doctor
+            /workspace/ppt-studio
+            /workspace/pdf-studio
+            /workspace/image-studio
+            /workspace/exam-copilot
+            /workspace/haryomix-ai
+            /workspace/ai-create-studio
+          )
+          for route in "${routes[@]}"; do
+            code="$(curl --silent --show-error --max-time 20 --output /tmp/haryomix-route.html --write-out '%{http_code}' "https://haryomix.pages.dev$route")"
+            if [[ "$code" != "200" ]] || ! grep -q 'id="root"' /tmp/haryomix-route.html; then
+              echo "Workspace route failed HTTP/SPA shell verification: $route (HTTP $code)" >&2
+              exit 1
+            fi
+            echo "Verified HTTP 200 + SPA shell: $route"
+          done
+          echo "All seven workspace URLs return the application shell."
+
       - name: Verify production API and D1 connection
         shell: bash
         run: |
