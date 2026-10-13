@@ -1,4 +1,5 @@
 import { useRef, useState, type PointerEvent } from "react";
+import { WebGLParticleField } from "./WebGLParticleField";
 
 const codeLines = [
   { n: "01", code: "const idea = await build();", tone: "blue" },
@@ -20,6 +21,7 @@ export function HeroWorkspace() {
   const reset = () => setTilt({ x: 0, y: 0, px: 50, py: 50 });
 
   return <div className="hmx-hero-art hmx-hero-workspace" aria-label="Interactive 3D developer workspace">
+    <WebGLParticleField />
     <div className="hmx-scene-orbit hmx-orbit-one" />
     <div className="hmx-scene-orbit hmx-orbit-two" />
     <div className="hmx-scene-glow" />
