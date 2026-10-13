@@ -83,8 +83,8 @@ function openDatabase(): Promise<IDBDatabase> {
         db.onversionchange = () => { db.close(); databasePromise = null; };
         resolve(db);
       };
-      request.onerror = () => reject(request.error ?? new Error("Could not open the study library."));
-      request.onblocked = () => reject(new Error("Study library is blocked by another browser tab. Close older Haryomix tabs and retry."));
+      request.onerror = () => { databasePromise = null; reject(request.error ?? new Error("Could not open the study library.")); };
+      request.onblocked = () => { databasePromise = null; reject(new Error("Study library is blocked by another browser tab. Close older Haryomix tabs and retry.")); };
     });
   }
   return databasePromise;
@@ -93,12 +93,12 @@ function openDatabase(): Promise<IDBDatabase> {
 function withRequest<T>(mode: IDBTransactionMode, createRequest: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     void openDatabase().then(db => {
-      let result: T;
+      let result: T | undefined;
       const transaction = db.transaction(STORE_NAME, mode);
       const request = createRequest(transaction.objectStore(STORE_NAME));
       request.onsuccess = () => { result = request.result; };
       request.onerror = () => reject(request.error ?? new Error("Study library request failed."));
-      transaction.oncomplete = () => resolve(result!);
+      transaction.oncomplete = () => resolve(result as T);
       transaction.onerror = () => reject(transaction.error ?? new Error("Study library transaction failed."));
       transaction.onabort = () => reject(transaction.error ?? new Error("Study library transaction was cancelled."));
     }).catch(reject);
