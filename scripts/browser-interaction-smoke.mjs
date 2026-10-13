@@ -320,6 +320,15 @@ async function run() {
 
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "single PDF fixture loaded");
+  await clickText("button.hmx-tool-card", "Inspect PDF", "inspect PDF metadata and page dimensions");
+  await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('PDF inspection report') && document.querySelector('.hmx-result')?.textContent.includes('100.00 × 200.00 pt')", "PDF metadata and first page dimensions appear");
+  const inspectionPath = await waitForDownload("smoke-a-inspection.txt");
+  const inspectionText = readFileSync(inspectionPath, "utf8");
+  if (!inspectionText.includes("Pages: 2") || !inspectionText.includes("Page 1: 100.00 × 200.00 pt") || !inspectionText.includes("Page 2: 300.00 × 400.00 pt")) {
+    throw new Error("PDF inspection report omitted expected page dimensions: " + inspectionText);
+  }
+  console.log("PDF inspection report verified: metadata report includes both page dimensions.");
+
   await fill("#pdf-order", "2,1", "custom PDF page order");
   await clickText("button.hmx-tool-card", "Custom page order", "custom PDF reorder");
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Saved pages in your custom order')", "custom PDF reorder completes");
