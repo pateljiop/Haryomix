@@ -4,8 +4,8 @@ import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create";
-const toolRoutes: Record<ToolId, string> = { code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio" };
+type ToolId = "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create" | "planner";
+const toolRoutes: Record<ToolId, string> = { code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", planner: "/workspace/study-planner" };
 function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
@@ -15,6 +15,7 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "exam", n: "05", title: "Exam Copilot", desc: "Create revision notes and test yourself with active recall." },
   { id: "ai", n: "06", title: "Haryomix AI", desc: "Ask the configured AI assistant for coding, study and writing help." },
   { id: "create", n: "07", title: "AI Create Studio", desc: "Create presentation decks and images with the configured Felo AI service." },
+  { id: "planner", n: "08", title: "Study Planner", desc: "Organize revision tasks by subject, due date, priority and estimated focus time." },
 ];
 
 export default function App() {
@@ -32,7 +33,7 @@ export default function App() {
       <div id="hmx-mobile-navigation" className={`hmx-navlinks${mobileMenuOpen ? " is-open" : ""}`}>
         <a href="#tools" onClick={() => setMobileMenuOpen(false)}>Features</a>
         <a href="#tools" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Workspace</a>
-        <a href="#study" onClick={() => setMobileMenuOpen(false)}>Revision Tool</a>
+        <a href="/workspace/study-planner" onClick={event => { event.preventDefault(); setMobileMenuOpen(false); openWorkspace("planner"); }}>Study Planner</a>
         <a href="#student-tools" onClick={() => setMobileMenuOpen(false)}>Utility Hub</a>
       </div>
       <div className="hmx-nav-actions">
@@ -58,15 +59,17 @@ export default function App() {
         <button onClick={() => openWorkspace("exam")} className="hmx-toolbox-card"><span className="hmx-card-icon">✳</span><h3>Revision that sticks</h3><p>Make topic notes, practice questions and review weak areas.</p><span className="hmx-card-open">Start revising ↗</span></button>
         <button onClick={() => openWorkspace("ai")} className="hmx-toolbox-card"><span className="hmx-card-icon">✦</span><h3>Haryomix AI assistant</h3><p>Get help with coding, study and writing through the configured assistant.</p><span className="hmx-card-open">Open Haryomix AI ↗</span></button>
         <button onClick={() => openWorkspace("create")} className="hmx-toolbox-card"><span className="hmx-card-icon">✧</span><h3>AI Create Studio</h3><p>Explore the configured creative workflow for presentation decks and images.</p><span className="hmx-card-open">Create something ↗</span></button>
+        <button onClick={() => openWorkspace("planner")} className="hmx-toolbox-card"><span className="hmx-card-icon">◷</span><h3>Study Planner</h3><p>Organize subjects, deadlines, priorities and study-time estimates. Your plan stays in this browser and can be backed up.</p><span className="hmx-card-open">Plan your week ↗</span></button>
       </div>
     </div></section>
-    <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix by Hariom Builds supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><button className="hmx-study-launch" onClick={() => openWorkspace("exam")}>Create a revision plan ↗</button></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
+    <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix by Hariom Builds supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><div className="hmx-hero-actions"><button className="hmx-study-launch" onClick={() => openWorkspace("planner")}>Plan your study week ↗</button><button className="hmx-tool-launch" onClick={() => openWorkspace("exam")}>Generate revision notes ↗</button></div></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
     <section className="hmx-section hmx-seo-content" id="student-tools">
       <div className="hmx-section-inner">
         <p className="hmx-overline">Hariom Builds · Haryomix</p>
         <h2 className="hmx-heading">Free online tools for students, study and everyday assignments.</h2>
         <p className="hmx-copy">Haryomix brings useful student productivity tools into one browser workspace. Edit document pages, prepare images for assignments, organize presentations, investigate code errors and turn a syllabus or topic list into structured revision notes.</p>
         <div className="hmx-toolbox-grid" style={{marginTop:32}}>
+          <article className="hmx-toolbox-card"><span className="hmx-card-icon">◷</span><h3>Study planner and revision tasks</h3><p>Plan assignments and revision by subject, deadline and priority. Tasks are stored locally in this browser, with JSON export/import for backup.</p><button className="hmx-card-open" onClick={() => openWorkspace("planner")}>Open Study Planner ↗</button></article>
           <article className="hmx-toolbox-card"><span className="hmx-card-icon">▧</span><h3>Online PDF tools</h3><p>Merge PDF files, split a PDF into individual pages, extract or remove selected pages, rotate pages, reverse page order, add page numbers or a text watermark, inspect page count, and convert JPG or PNG images to PDF. PDF operations run in your browser. OCR, full PDF-to-Word conversion, password removal and advanced compression are not currently offered.</p></article>
           <article className="hmx-toolbox-card"><span className="hmx-card-icon">◩</span><h3>Image resize and editing</h3><p>Resize images by width and height, crop the centre, rotate, adjust brightness and contrast, preview the result, and export as PNG, JPEG or WebP. Useful for assignment images, reports, slides and everyday student projects.</p></article>
           <article className="hmx-toolbox-card"><span className="hmx-card-icon">✳</span><h3>Syllabus-based notes and exam prep</h3><p>Enter your course, subject, syllabus units or chapter topics to generate detailed revision notes in simple English, Hindi or Hinglish. Optional practice mode requests 25 multiple-choice questions with answers and explanations. Verify syllabus coverage and current-affairs facts before an exam.</p></article>
