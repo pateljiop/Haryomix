@@ -28,7 +28,8 @@ export function isStudyTask(value: unknown): value is StudyTask {
 }
 
 export function parseStudyTasks(raw: string): StudyTask[] {
-  const parsed: unknown = JSON.parse(raw);
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { throw new Error("Study backup is not valid JSON."); }
   if (!Array.isArray(parsed)) throw new Error("Study backup must contain a task list.");
   if (parsed.length > 500) throw new Error("A study list can contain at most 500 tasks.");
   if (!parsed.every(isStudyTask)) throw new Error("Study backup contains an invalid task.");
