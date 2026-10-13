@@ -32,7 +32,7 @@ Use the repositories below for workflow ideas. Before copying any code, inspect 
 
 ### Priority 1 — Student features with strong value
 
-1. **Revision planner:** subjects, topics, exam dates, priorities and a weekly schedule.
+1. **Revision planner — initial version shipped:** Haryomix now has a local-first Study Planner for subject-tagged tasks, deadlines, priorities and estimated study time. A calendar/weekly schedule and reminders remain future work.
 2. **Flashcards with spaced repetition:** user-created cards, due-date queue and local progress; no provider key required for manual cards.
 3. **Study timer and sessions:** focus/break timer, completed-session log and simple weekly totals.
 4. **Local study library:** save notes and study resources in IndexedDB with explicit export/import and clear deletion controls. Do not promise cloud persistence unless a backend and account/privacy model exist.

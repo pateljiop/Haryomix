@@ -887,3 +887,112 @@ body { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) {
   .hmx-webgl-field { opacity: .42; }
 }
+
+
+/* Local-first Study Planner workspace. */
+.hmx-study-planner { width: 100%; min-width: 0; }
+.hmx-planner-subtitle { margin: 6px 0 0; color: #8f9db7; font-size: 12px; line-height: 1.6; }
+.hmx-planner-local {
+  align-self: flex-start;
+  padding: 6px 9px;
+  border: 1px solid rgba(83, 218, 190, .26);
+  border-radius: 999px;
+  background: rgba(49, 194, 163, .08);
+  color: #72e1c7;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+.hmx-planner-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 22px 0 28px;
+}
+.hmx-planner-stat {
+  min-width: 0;
+  padding: 14px 15px;
+  border: 1px solid rgba(143, 166, 206, .15);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(25, 36, 60, .68), rgba(10, 16, 29, .72));
+}
+.hmx-planner-stat span { display: block; color: #8f9db7; font-size: 11px; }
+.hmx-planner-stat strong { display: block; margin-top: 7px; color: #edf4ff; font-size: clamp(17px, 2vw, 25px); letter-spacing: -.04em; overflow-wrap: anywhere; }
+.hmx-planner-form {
+  padding: 22px;
+  border: 1px solid rgba(143, 166, 206, .16);
+  border-radius: 18px;
+  background: rgba(7, 12, 23, .46);
+}
+.hmx-planner-form-head, .hmx-planner-list-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hmx-planner-form-head h3, .hmx-planner-list-head h3 { margin: 0; color: #edf4ff; font-size: 16px; letter-spacing: -.025em; }
+.hmx-planner-form-head span, .hmx-planner-list-head p { margin: 3px 0 0; color: #8291ac; font-size: 11px; }
+.hmx-planner-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 15px; }
+.hmx-planner-title { grid-column: 1 / -1; }
+.hmx-planner-form .hmx-field { min-width: 0; }
+.hmx-planner-form .hmx-input, .hmx-planner-form .hmx-select, .hmx-planner-filters .hmx-select { width: 100%; min-width: 0; }
+.hmx-planner-import { position: relative; overflow: hidden; cursor: pointer; }
+.hmx-planner-import input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.hmx-planner-list-head { align-items: center; margin: 28px 0 13px; }
+.hmx-planner-list-head .hmx-btn { flex: 0 0 auto; }
+.hmx-planner-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-bottom: 8px; }
+.hmx-planner-task-list { list-style: none; display: grid; gap: 9px; margin: 0; padding: 0; }
+.hmx-planner-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(143, 166, 206, .14);
+  border-radius: 14px;
+  background: rgba(16, 24, 41, .72);
+}
+.hmx-planner-task.is-complete { opacity: .72; }
+.hmx-planner-check {
+  display: grid;
+  flex: 0 0 22px;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 1px solid rgba(125, 157, 218, .5);
+  border-radius: 7px;
+  background: rgba(38, 60, 98, .25);
+  color: #83f0d2;
+  cursor: pointer;
+}
+.hmx-planner-task-main { flex: 1; min-width: 0; }
+.hmx-planner-task-main > strong { display: block; color: #eaf1ff; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.hmx-planner-task.is-complete .hmx-planner-task-main > strong { color: #8d9ab1; text-decoration: line-through; }
+.hmx-planner-task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; margin-top: 7px; color: #94a2bc; font-size: 11px; }
+.hmx-planner-priority { padding: 3px 7px; border-radius: 999px; background: rgba(133, 154, 190, .1); text-transform: capitalize; }
+.hmx-planner-priority.priority-high { color: #ff969f; background: rgba(255, 87, 106, .1); }
+.hmx-planner-priority.priority-medium { color: #f3ce86; background: rgba(243, 193, 88, .1); }
+.hmx-planner-priority.priority-low { color: #8fe0c8; background: rgba(73, 203, 162, .09); }
+.hmx-planner-due { display: block; margin-top: 7px; color: #8b9ab4; font-size: 11px; }
+.hmx-planner-due.is-overdue { color: #ff8b98; }
+.hmx-planner-delete { flex: 0 0 auto; width: 28px; height: 28px; border: 1px solid rgba(143, 166, 206, .16); border-radius: 8px; background: transparent; color: #92a0b9; font-size: 20px; line-height: 1; cursor: pointer; }
+.hmx-planner-delete:hover { border-color: rgba(255, 111, 126, .5); color: #ff8b98; }
+.hmx-planner-empty { display: grid; justify-items: center; padding: 34px 18px; border: 1px dashed rgba(143, 166, 206, .22); border-radius: 15px; text-align: center; }
+.hmx-planner-empty > span { color: #76a8ff; font-size: 24px; }
+.hmx-planner-empty strong { margin-top: 8px; color: #eaf1ff; font-size: 14px; }
+.hmx-planner-empty p { max-width: 360px; margin: 7px 0 0; color: #8f9db7; font-size: 12px; line-height: 1.7; }
+@media (max-width: 760px) {
+  .hmx-planner-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hmx-planner-form { padding: 16px; }
+  .hmx-planner-form-grid, .hmx-planner-filters { grid-template-columns: minmax(0, 1fr); }
+  .hmx-planner-title { grid-column: auto; }
+  .hmx-planner-list-head { align-items: flex-start; }
+}
+@media (max-width: 420px) {
+  .hmx-planner-stat { padding: 12px; }
+  .hmx-planner-task { gap: 9px; padding: 11px; }
+  .hmx-planner-task-meta { gap: 6px 8px; }
+  .hmx-planner-list-head { flex-direction: column; }
+}
