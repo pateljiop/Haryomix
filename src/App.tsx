@@ -13,6 +13,8 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "pdf", n: "03", title: "PDF Studio", desc: "Merge, split, rotate and reorder without rebuilding text." },
   { id: "image", n: "04", title: "Image Studio", desc: "Crop, resize, rotate, adjust and export in your browser." },
   { id: "exam", n: "05", title: "Exam Copilot", desc: "Create revision notes and test yourself with active recall." },
+  { id: "ai", n: "06", title: "Haryomix AI", desc: "Ask the configured AI assistant for coding, study and writing help." },
+  { id: "create", n: "07", title: "AI Create Studio", desc: "Create presentation decks and images with the configured Felo AI service." },
 ];
 
 export default function App() {
