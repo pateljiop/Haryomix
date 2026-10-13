@@ -62,11 +62,11 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       const pptx=new pptxgen();
       pptx.layout="LAYOUT_WIDE";
       pptx.author="Hariom Builds";
-      pptx.subject=course;
+      pptx.subject=course+" · "+tone;
       pptx.title=title;
       pptx.company="Hariom Builds";
       pptx.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos"};
-      const C={navy:"14243A",blue:"3155D9",cyan:"38A7C8",ink:"202B3C",muted:"637083",paper:"F5F7FB",white:"FFFFFF",line:"DCE3EC",pale:"EAF0FF",green:"287A68"};
+      const palette=tone==="Academic / research"?{navy:"17313F",blue:"236A84",cyan:"58B8A7",pale:"E5F4F1",green:"287A68"}:tone==="Technical briefing"?{navy:"101F31",blue:"1876A8",cyan:"4BD5E8",pale:"E1F6FB",green:"248C8C"}:tone==="Classroom / teaching"?{navy:"282052",blue:"6352C7",cyan:"E3A2FF",pale:"F1ECFF",green:"39836E"}:{navy:"14243A",blue:"3155D9",cyan:"38A7C8",pale:"EAF0FF",green:"287A68"};const C={...palette,ink:"202B3C",muted:"637083",paper:"F5F7FB",white:"FFFFFF",line:"DCE3EC"};
       const H=7.5;
       const clean=(v:string)=>v.replace(/[<>]/g,"").trim();
       function footer(slide:any,n:number){
@@ -86,7 +86,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       cover.addShape(pptx.ShapeType.rect,{x:8.8,y:0,w:4.533,h:H,fill:{color:"1B3451"},line:{color:"1B3451"}});
       cover.addShape(pptx.ShapeType.rect,{x:9.55,y:1.05,w:2.7,h:4.9,rectRadius:.12,fill:{color:"203D60",transparency:5},line:{color:"365779",width:1}});
       cover.addShape(pptx.ShapeType.line,{x:9.9,y:2.0,w:2.0,h:0,line:{color:C.cyan,width:2}});
-      cover.addText("HARIOM BUILDS  /  PRESENTATION BRIEF",{x:.8,y:.75,w:7.2,h:.3,fontFace:"Aptos",fontSize:9,bold:true,color:"A9C8FF",charSpacing:2,margin:0});
+      cover.addText("HARIOM BUILDS  /  "+tone.toUpperCase(),{x:.8,y:.75,w:7.2,h:.3,fontFace:"Aptos",fontSize:9,bold:true,color:"A9C8FF",charSpacing:2,margin:0});
       cover.addText(clean(title),{x:.8,y:1.75,w:7.25,h:2.1,fontFace:"Aptos Display",fontSize:34,bold:true,color:C.white,breakLine:false,fit:"shrink",margin:0.02, valign:"middle"});
       cover.addShape(pptx.ShapeType.line,{x:.82,y:4.15,w:1.0,h:0,line:{color:C.cyan,width:3}});
       cover.addText(clean(purpose),{x:.82,y:4.45,w:6.8,h:1.0,fontFace:"Aptos",fontSize:16,color:"D6E1EF",breakLine:false,fit:"shrink",margin:0.02,valign:"top"});
