@@ -801,3 +801,26 @@ body { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) {
   .hmx-toolbox-card { transition: none !important; }
 }
+
+
+/* Contrast correction for the featured utility card in the dark theme. */
+.hmx-toolbox-card.large {
+  color: #f1f6ff;
+  border-color: rgba(116, 173, 255, .32);
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(105, 91, 238, .24), transparent 48%),
+    linear-gradient(145deg, #142b50, #10182d 72%);
+}
+.hmx-toolbox-card.large h3 { color: #f4f7ff; }
+.hmx-toolbox-card.large p { color: #b7c6df; }
+.hmx-toolbox-card.large .hmx-card-icon {
+  color: #9ee3ff;
+  background: rgba(104, 174, 255, .12);
+  border-color: rgba(140, 197, 255, .28);
+}
+.hmx-toolbox-card.large .hmx-card-open { color: #b4e4ff; }
+.hmx-toolbox-card.large:hover {
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(105, 91, 238, .3), transparent 48%),
+    linear-gradient(145deg, #19365f, #121d35 72%);
+}
