@@ -14,13 +14,21 @@ export interface StudyTask {
 
 const priorities: StudyTaskPriority[] = ["low", "medium", "high"];
 
+function isValidDateKey(value: string): boolean {
+  if (value === "") return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month && date.getUTCDate() === day;
+}
+
 export function isStudyTask(value: unknown): value is StudyTask {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const task = value as Record<string, unknown>;
   return typeof task.id === "string" && task.id.length > 0 && task.id.length <= 100
     && typeof task.title === "string" && task.title.trim().length >= 3 && task.title.length <= 160
-    && typeof task.subject === "string" && task.subject.length <= 80
-    && typeof task.dueDate === "string" && (task.dueDate === "" || /^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))
+    && typeof task.subject === "string" && task.subject.trim().length > 0 && task.subject.length <= 80
+    && typeof task.dueDate === "string" && isValidDateKey(task.dueDate)
     && priorities.includes(task.priority as StudyTaskPriority)
     && Number.isInteger(task.estimatedMinutes) && Number(task.estimatedMinutes) >= 5 && Number(task.estimatedMinutes) <= 600
     && typeof task.completed === "boolean"
