@@ -169,6 +169,12 @@ try {
   await run();
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
-  chrome.kill("SIGTERM");
-  rmSync(profile, { recursive: true, force: true });
+  if (chrome.exitCode === null && chrome.signalCode === null) {
+    await new Promise(resolve => {
+      const timeout = setTimeout(() => { chrome.kill("SIGKILL"); resolve(); }, 4000);
+      chrome.once("exit", () => { clearTimeout(timeout); resolve(); });
+      chrome.kill("SIGTERM");
+    });
+  }
+  rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 });
 }
