@@ -65,8 +65,8 @@ export function countText(value: string): TextStats {
   const words = value.trim() ? value.trim().split(/\s+/u).length : 0;
   return {
     words,
-    characters: value.length,
-    charactersWithoutSpaces: value.replace(/\s/gu, "").length,
+    characters: Array.from(value).length,
+    charactersWithoutSpaces: Array.from(value.replace(/\s/gu, "")).length,
     lines: value.length ? value.split(/\r\n|\r|\n/u).length : 0,
     readingMinutes: words ? Math.max(1, Math.ceil(words / 200)) : 0,
   };
