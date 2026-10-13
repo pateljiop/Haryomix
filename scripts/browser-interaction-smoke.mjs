@@ -201,7 +201,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-focus-time strong')?.textContent==='05:00'", "timer resets to five minutes");
   console.log("Focus Timer mode/start/pause/reset flow passed.");
 
-  await navigate("/workspace/pdf-studio", "!!document.querySelector('#pdf-range')", "PDF Studio controls");
+  await navigate("/workspace/pdf-studio", "!!document.querySelector('input.hmx-file-input')", "PDF Studio upload");
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('2 supported file(s) selected')", "PDF fixtures loaded");
   await clickText("button.hmx-tool-card", "Merge PDFs", "merge PDF files");
