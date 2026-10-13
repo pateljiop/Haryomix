@@ -23,7 +23,7 @@ export function FeloCreateStudio(){
  async function createPpt(){
   if(topic.trim().length<10){setMessage("Topic ko thoda detail me likho (minimum 10 characters).");return;}
   setBusy(true);setMessage("Felo presentation task start ho raha hai…");setJob(null);
-  try{const data=await api("/api/ai/ppt",{action:"create",query:topic,slides:Number(slides),style});setJob({taskId:data.taskId,businessId:data.businessId,status:data.status,liveDocId:data.liveDocId});setMessage("Task create ho gaya. Status check karo; ready hone par PPTX export hoga.");}
+  try{const data=await api("/api/ai/ppt",{action:"create",query:topic,slides:Number(slides),style});if(typeof data.taskId!=="string"||!data.taskId||typeof data.businessId!=="string"||!data.businessId)throw new Error("Provider ne valid presentation task details nahi diye. Dobara try karo.");setJob({taskId:data.taskId,businessId:data.businessId,status:typeof data.status==="string"?data.status:"RUNNING",liveDocId:data.liveDocId});setDownloadUrl("");setMessage("Task create ho gaya. Status check karo; ready hone par PPTX export hoga.");}
   catch(e){setMessage(e instanceof Error?e.message:"PPT generation failed.");}finally{setBusy(false);}
  }
  async function checkStatus(){
@@ -44,7 +44,7 @@ export function FeloCreateStudio(){
  async function generateImage(){
   if(prompt.trim().length<5){setMessage("Image ka prompt thoda detail me likho.");return;}
   setBusy(true);setMessage("Felo image generate kar raha hai…");setImage("");
-  try{const data=await api("/api/ai/image",{prompt,size,provider:imageProvider});setImage(data.image?.url||data.image?.dataUrl||"");setMessage(`Image generate ho gayi · Provider: ${data.provider||imageProvider}. Preview se save kar sakte ho.`);}
+  try{const data=await api("/api/ai/image",{prompt,size,provider:imageProvider});const result=data.image?.url||data.image?.dataUrl||"";if(typeof result!=="string"||!(/^(https:\/\/|data:image\/(png|jpeg|webp|avif);base64,)/i.test(result)))throw new Error("Provider ne valid image result nahi diya. Provider/model access check karke dobara try karo.");setImage(result);setMessage(`Image generate ho gayi · Provider: ${data.provider||imageProvider}. Preview se save kar sakte ho.`);}
   catch(e){setMessage(e instanceof Error?e.message:"Image generation failed.");}finally{setBusy(false);}
  }
  function downloadImage(){if(!image)return;const a=document.createElement("a");a.href=image;a.download="haryomix-ai-image.png";document.body.appendChild(a);a.click();a.remove();}
