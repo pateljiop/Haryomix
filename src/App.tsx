@@ -4,8 +4,8 @@ import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create" | "planner" | "flashcards" | "focus" | "utilities";
-const toolRoutes: Record<ToolId, string> = { code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", planner: "/workspace/study-planner", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities" };
+type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "ai" | "create" | "planner" | "flashcards" | "focus" | "utilities";
+const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", planner: "/workspace/study-planner", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities" };
 function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
@@ -25,7 +25,7 @@ export default function App() {
   const [workspace, setWorkspace] = useState(() => toolFromPath(window.location.pathname) !== null);
   const [initialTool, setInitialTool] = useState<ToolId>(() => toolFromPath(window.location.pathname) ?? "code");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const openWorkspace = (tool: ToolId = "code") => { window.history.pushState({}, "", toolRoutes[tool]); setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openWorkspace = (tool: ToolId = "index") => { window.history.pushState({}, "", toolRoutes[tool]); setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goHome = () => { window.history.pushState({}, "", "/"); setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
   useEffect(() => { const syncRoute = () => { const tool = toolFromPath(window.location.pathname); setWorkspace(tool !== null); if (tool) setInitialTool(tool); }; window.addEventListener("popstate", syncRoute); return () => window.removeEventListener("popstate", syncRoute); }, []);
   if (window.location.pathname === "/moderation") return <ModerationDashboard onHome={() => { window.location.href = "/"; }} />;
@@ -44,16 +44,16 @@ export default function App() {
       </div>
       <div className="hmx-nav-actions">
         <button className="hmx-nav-menu" type="button" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="hmx-mobile-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? "×" : "☰"}</button>
-        <button className="hmx-nav-cta" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Open workspace ↗</button>
+        <button className="hmx-nav-cta" onClick={() => { setMobileMenuOpen(false); openWorkspace("index"); }}>Open workspace ↗</button>
       </div>
     </nav>
     <section id="top" className="hmx-hero">
-      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One focused workspace for the things you make and the things you learn. Debug code, build presentations, work with PDFs and images, and turn your syllabus into a study plan—all from one browser-first desk.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
+      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One focused workspace for the things you make and the things you learn. Debug code, build presentations, work with PDFs and images, and turn your syllabus into a study plan—all from one browser-first desk.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace("index")}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
       <HeroWorkspace />
       <a href="#tools" className="hmx-scroll-cue"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
     </section>
     <section className="hmx-section" id="tools"><div className="hmx-section-inner hmx-tool-layout">
-      <div className="hmx-tool-intro"><p className="hmx-overline">One desk, many disciplines</p><h2 className="hmx-heading">Your work deserves better tools.</h2><p className="hmx-copy">From a confusing compiler error to tomorrow's revision plan, keep everyday student work in one place.</p><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Explore workspace ↗</button></div>
+      <div className="hmx-tool-intro"><p className="hmx-overline">One desk, many disciplines</p><h2 className="hmx-heading">Your work deserves better tools.</h2><p className="hmx-copy">From a confusing compiler error to tomorrow's revision plan, keep everyday student work in one place.</p><button className="hmx-tool-launch" onClick={() => openWorkspace("index")}>Explore workspace ↗</button></div>
       <div className="hmx-tool-list">{tools.map(t => <button key={t.id} className="hmx-tool-row" onClick={() => openWorkspace(t.id)}><span className="hmx-tool-index">{t.n}</span><span><span className="hmx-tool-title">{t.title}</span><span className="hmx-tool-desc">{t.desc}</span></span><span className="hmx-tool-arrow">↗</span></button>)}</div>
     </div></section>
     <section className="hmx-toolbox"><div className="hmx-section-inner"><div className="hmx-toolbox-head"><div><h2 className="hmx-heading">Less busywork. More learning.</h2></div><p className="hmx-copy">Practical utilities that help you create, revise and submit with confidence.</p></div>
