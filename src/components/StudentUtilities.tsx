@@ -37,6 +37,7 @@ export function StudentUtilities() {
   const [compact, setCompact] = useState(false);
   const [urlInput, setUrlInput] = useState("Haryomix student workspace & tools");
   const [urlOutput, setUrlOutput] = useState("");
+  const [urlError, setUrlError] = useState("");
   const [urlMode, setUrlMode] = useState<"encode" | "decode">("encode");
   const [marksError, setMarksError] = useState("");
   const [cgpaError, setCgpaError] = useState("");
@@ -97,10 +98,10 @@ export function StudentUtilities() {
         </div>}
 
         {tab === "url" && <div className="hmx-utility-section">
-          <div className="hmx-utility-section-head"><div><h3>URL component encoder</h3><p>Encode or decode text for query parameters and URLs.</p></div><div className="hmx-btn-row"><button type="button" className={"hmx-btn " + (urlMode === "encode" ? "primary" : "")} onClick={() => { setUrlMode("encode"); setUrlOutput(""); }}>Encode</button><button type="button" className={"hmx-btn " + (urlMode === "decode" ? "primary" : "")} onClick={() => { setUrlMode("decode"); setUrlOutput(""); }}>Decode</button></div></div>
-          <label className="hmx-utility-block-label">Input<textarea className="hmx-textarea hmx-utility-textarea" value={urlInput} onChange={e => { setUrlInput(e.target.value); setUrlOutput(""); }}/></label>
-          <div className="hmx-btn-row"><button type="button" className="hmx-btn primary" onClick={() => { try { setUrlOutput(urlMode === "encode" ? encodeUrlComponent(urlInput) : decodeUrlComponent(urlInput)); setJsonError(""); } catch (error) { setUrlOutput(error instanceof Error ? error.message : "Could not process URL text."); } }}>Process text</button><button type="button" className="hmx-btn" onClick={() => setUrlInput("")}>Clear</button></div>
-          {urlOutput && <label className="hmx-utility-block-label">Result<textarea className="hmx-textarea hmx-utility-textarea" readOnly value={urlOutput}/></label>}
+          <div className="hmx-utility-section-head"><div><h3>URL component encoder</h3><p>Encode or decode text for query parameters and URLs.</p></div><div className="hmx-btn-row"><button type="button" className={"hmx-btn " + (urlMode === "encode" ? "primary" : "")} onClick={() => { setUrlMode("encode"); setUrlOutput(""); setUrlError(""); }}>Encode</button><button type="button" className={"hmx-btn " + (urlMode === "decode" ? "primary" : "")} onClick={() => { setUrlMode("decode"); setUrlOutput(""); setUrlError(""); }}>Decode</button></div></div>
+          <label className="hmx-utility-block-label">Input<textarea className="hmx-textarea hmx-utility-textarea" value={urlInput} onChange={e => { setUrlInput(e.target.value); setUrlOutput(""); setUrlError(""); }}/></label>
+          <div className="hmx-btn-row"><button type="button" className="hmx-btn primary" onClick={() => { try { setUrlOutput(urlMode === "encode" ? encodeUrlComponent(urlInput) : decodeUrlComponent(urlInput)); setUrlError(""); } catch (error) { setUrlOutput(""); setUrlError(error instanceof Error ? error.message : "Could not process URL text."); } }}>Process text</button><button type="button" className="hmx-btn" onClick={() => { setUrlInput(""); setUrlOutput(""); setUrlError(""); }}>Clear</button></div>
+          {urlError && <p className="hmx-utility-error" role="alert">{urlError}</p>}{urlOutput && <label className="hmx-utility-block-label">Result<textarea className="hmx-textarea hmx-utility-textarea" readOnly value={urlOutput}/></label>}
         </div>}
       </div>
     </div>
