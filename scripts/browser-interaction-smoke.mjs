@@ -319,6 +319,27 @@ async function run() {
   await waitFor("document.querySelector('textarea[readonly].hmx-utility-textarea')?.value==='A%20%26%20B'", "URL component encoding");
   console.log("Student Utility Hub marks, attendance, text, JSON and URL flows passed.");
 
+  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-title')", "Study Library form");
+  await fill("#hmx-library-title", "Browser E2E note", "study library title");
+  await fill("#hmx-library-content", "IndexedDB persistence and backup verification.", "study library content");
+  await fill("#hmx-library-tags", "BCA, E2E", "study library tags");
+  await click("form.hmx-library-form button[type='submit']", "save study library note");
+  await waitFor("document.querySelector('.hmx-library-list')?.textContent.includes('Browser E2E note')", "saved note appears in Study Library");
+  await navigate("/workspace/study-library", "document.querySelector('.hmx-library-list')?.textContent.includes('Browser E2E note')", "Study Library IndexedDB persistence after reload");
+  await fill("#hmx-library-search", "E2E", "study library search");
+  await waitFor("document.querySelector('.hmx-library-list')?.textContent.includes('Browser E2E note')", "Study Library search results");
+  await clickText(".hmx-library-toolbar button.hmx-btn", "Export backup", "export Study Library backup");
+  const libraryBackupPath = await waitForDownload("haryomix-study-library.json");
+  const libraryBackup = JSON.parse(readFileSync(libraryBackupPath, "utf8"));
+  if (!Array.isArray(libraryBackup) || !libraryBackup.some(item => item.title === "Browser E2E note" && item.tags.includes("E2E"))) {
+    throw new Error("Study Library backup did not contain the saved note and tags.");
+  }
+  await evaluate("window.confirm = () => true; true");
+  await click('[aria-label="Delete Browser E2E note"]', "delete saved Study Library note");
+  await waitFor("!document.querySelector('.hmx-library-list')?.textContent.includes('Browser E2E note')", "Study Library note deletion");
+  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-title') && !document.querySelector('.hmx-library-list')?.textContent.includes('Browser E2E note')", "Study Library deletion persists after reload");
+  console.log("Study Library save, IndexedDB persistence, search, backup export and delete flows passed.");
+
   await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page for mobile viewport");
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true }, sessionId);
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
@@ -331,7 +352,7 @@ async function run() {
   await send("Emulation.clearDeviceMetricsOverride", {}, sessionId);
   await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
 
-  console.log("Browser interaction, history, mobile, PDF/Image artifacts, and Student Utility Hub smoke tests passed.");
+  console.log("Browser interaction, history, mobile, PDF/Image artifacts, Student Utility Hub and Study Library smoke tests passed.");
 }
 
 try {
