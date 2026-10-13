@@ -19,7 +19,7 @@ async function felo(path: string, key: string, init: RequestInit = {}) {
 }
 export async function onRequestPost({request,env}:{request:Request;env:Env}):Promise<Response>{
   if(!env.FELO_API_KEY) return reply({error:"Felo is not configured on the server.",code:"provider_not_configured"},503);
-  if(!request.headers.get("content-type")?.includes("application/json")) return reply({error:"Send a JSON request."},415);
+  if(!request.headers.get("content-type")?.toLowerCase().includes("application/json")) return reply({error:"Send a JSON request."},415);
   const declaredLength = Number(request.headers.get("content-length") || "0");
   if (declaredLength > 16_000) return reply({error:"Request body is too large."},413);
   let rawBody: string;
@@ -28,8 +28,11 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
   let body:any; try { body=JSON.parse(rawBody); } catch { return reply({error:"Invalid JSON."},400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return reply({error:"Expected a JSON object."},400);
   const action=clean(body?.action,30);
+  if(action==="create" && clean(body.query,5000).length<10) return reply({error:"Add a presentation topic and useful detail."},400);
+  if(action==="export" && !clean(body.businessId,100)) return reply({error:"Presentation ID is required."},400);
   if(action==="create"||action==="export"){
-    try { if(!await withinLimit(request,env)) return reply({error:"AI creation/export limit reached for this hour, or request protection is unavailable.",code:"rate_limited"},429); }
+    if(!env.DB) return reply({error:"AI request protection is not configured. Database binding is required.",code:"rate_limit_unavailable"},503);
+    try { if(!await withinLimit(request,env)) return reply({error:"AI creation/export limit reached for this hour. Please retry later.",code:"rate_limited"},429); }
     catch { return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
   }
   try {
