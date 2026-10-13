@@ -16,6 +16,7 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
 export default function App() {
   const [workspace, setWorkspace] = useState(false);
   const [initialTool, setInitialTool] = useState<ToolId>("code");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const openWorkspace = (tool: ToolId = "code") => { setInitialTool(tool); setWorkspace(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goHome = () => { setWorkspace(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
   if (window.location.pathname === "/moderation") return <ModerationDashboard onHome={() => { window.location.href = "/"; }} />;
@@ -23,8 +24,16 @@ export default function App() {
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
       <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
-      <div className="hmx-navlinks"><a href="#tools">Features</a><a href="#tools">Workspace</a><a href="#study">Revision Tool</a><a href="#student-tools">Utility Hub</a></div>
-      <button className="hmx-nav-cta" onClick={() => openWorkspace()}>Open workspace ↗</button>
+      <div id="hmx-mobile-navigation" className={`hmx-navlinks${mobileMenuOpen ? " is-open" : ""}`}>
+        <a href="#tools" onClick={() => setMobileMenuOpen(false)}>Features</a>
+        <a href="#tools" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Workspace</a>
+        <a href="#study" onClick={() => setMobileMenuOpen(false)}>Revision Tool</a>
+        <a href="#student-tools" onClick={() => setMobileMenuOpen(false)}>Utility Hub</a>
+      </div>
+      <div className="hmx-nav-actions">
+        <button className="hmx-nav-menu" type="button" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="hmx-mobile-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? "×" : "☰"}</button>
+        <button className="hmx-nav-cta" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Open workspace ↗</button>
+      </div>
     </nav>
     <section id="top" className="hmx-hero">
       <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One focused workspace for the things you make and the things you learn. Debug code, build presentations, work with PDFs and images, and turn your syllabus into a study plan—all from one browser-first desk.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace()}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
