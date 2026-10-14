@@ -92,7 +92,8 @@ export function IdArranger() {
     return () => { cancelled = true; };
   }, [front, back, preset, copies, side, paper, gap, paperSize.w, paperSize.h, card.w, card.h, selectedSides]);
 
-  useEffect(() => () => { if (front) URL.revokeObjectURL(front.url); if (back) URL.revokeObjectURL(back.url); }, [front, back]);
+  useEffect(() => () => { if (front) URL.revokeObjectURL(front.url); }, [front]);
+  useEffect(() => () => { if (back) URL.revokeObjectURL(back.url); }, [back]);
 
   function chooseFile(which: Side, file?: File) {
     if (!file) return;
@@ -126,7 +127,7 @@ export function IdArranger() {
   function printSheet() {
     if (!canvasRef.current || !selectedSides.length) { setError("Upload at least one side of the card first."); return; }
     const data = canvasRef.current.toDataURL("image/png");
-    const win = window.open("", "_blank", "noopener,noreferrer");
+    const win = window.open("", "_blank");
     if (!win) { setError("Your browser blocked the print window. Allow pop-ups for this site and try again."); return; }
     win.document.write(`<!doctype html><html><head><title>Print ID sheet</title><style>@page{size:${paper};margin:0}html,body{margin:0;padding:0}img{width:100%;height:100%;object-fit:fill;display:block}</style></head><body><img src="${data}" alt="ID card print sheet"><script>window.onload=()=>{window.print()}</script></body></html>`);
     win.document.close();
