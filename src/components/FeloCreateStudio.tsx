@@ -86,7 +86,6 @@ export function FeloCreateStudio(){
     cover.addShape(deck.ShapeType.ellipse,{x:8.9,y:-1.5,w:5.6,h:5.6,line:{color:"24385F",width:1.4,transparency:10},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.ellipse,{x:9.55,y:-0.85,w:4.3,h:4.3,line:{color:"2B4D8A",width:1.2,transparency:15},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.ellipse,{x:10.15,y:-0.25,w:3.1,h:3.1,line:{color:C.cyan,width:1.1,transparency:28},fill:{color:C.navy,transparency:100}});
-    cover.addShape(deck.ShapeType.arc,{x:8.4,y:0.45,w:4.7,h:4.7,adjustPoint:0.3,line:{color:"55D6D0",width:1.4,transparency:34},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.roundRect,{x:0.86,y:0.72,w:2.55,h:0.38,line:{color:"33466A",width:0.8},fill:{color:C.navy2}});
     addText(cover,"EXPERT PRESENTATION",{x:1.02,y:0.83,w:2.25,h:0.13,fontSize:8,bold:true,charSpacing:1.3,color:C.cyan});
     addText(cover,job.title||topic,{x:0.86,y:1.7,w:9.8,h:2.2,fontFace:"Aptos Display",fontSize:32,bold:true,color:C.white,breakLine:false,fit:"shrink",valign:"middle",lineSpacingMultiple:1.0});
