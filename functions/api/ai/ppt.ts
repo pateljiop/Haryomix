@@ -23,9 +23,9 @@ async function felo(path: string, key: string, init: RequestInit = {}) {
   return data;
 }
 
-type SlideContent = { title: string; bullets: string[]; notes?: string };
+type SlideContent = { title: string; bullets: string[]; notes?: string; subtitle?: string; takeaway?: string; section?: string; layout?: string };
 async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", key: string, query: string, count: number, style: string): Promise<SlideContent[]> {
-  const instruction = `Create exactly ${count} slides for an editable PowerPoint presentation. Topic and requirements: ${query}. Visual direction: ${style}. Return ONLY valid JSON, no Markdown fences, in this exact shape: {"title":"presentation title","slides":[{"title":"slide title","bullets":["bullet 1","bullet 2","bullet 3"],"notes":"short speaker notes"}]}. Each slide should have 2-4 concise bullets, accurate and useful content, a logical narrative, an introduction and conclusion. Do not invent citations, sources, statistics, or quotes. Follow the user's language. If a fact is uncertain, qualify it.`;
+  const instruction = `Create exactly ${count} slides for an expert-level, evidence-aware PowerPoint. Topic and requirements: ${query}. Visual direction: ${style}. Audience: infer from the request; if unspecified, write for an informed general audience. Follow the requested language. Return ONLY valid JSON (no Markdown fences) shaped as {"title":"deck title","slides":[{"title":"insight-led slide title","subtitle":"one-sentence context","section":"short section label","layout":"cards|spotlight|process","bullets":["specific useful point","specific useful point","specific useful point"],"takeaway":"one-sentence implication","notes":"substantial presenter notes with explanation, transitions, example and caveat where relevant"}]}. Build a coherent narrative: opening/context, core concepts, mechanisms or framework, practical examples, limitations/risks, actionable recommendations, conclusion. Every slide must add a distinct idea, not repeat. Use 2-4 substantive bullets per slide (5 only if needed), explain acronyms, avoid vague filler, and make titles communicate a conclusion. Use real facts and verifiable examples when known; never fabricate citations, sources, quotes, or statistics. For current or fast-changing topics, clearly label facts that need current verification instead of pretending to have browsed. Notes should be useful to a presenter, generally 60-120 words per slide when the topic supports it. Pick layout cards for grouped concepts, spotlight for a key insight, process for chronological or step-by-step content.`;
   let response: Response;
   if (provider === "groq" || provider === "grok") {
     const endpoint = provider === "grok" ? "https://api.x.ai/v1/chat/completions" : "https://api.groq.com/openai/v1/chat/completions";
@@ -58,7 +58,11 @@ async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", 
   return slides.slice(0, count).map((slide: any, index: number) => ({
     title: typeof slide?.title === "string" && slide.title.trim() ? slide.title.trim().slice(0, 180) : `Slide ${index + 1}`,
     bullets: (Array.isArray(slide?.bullets) ? slide.bullets : []).filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())).slice(0, 5).map((value: string) => value.trim().slice(0, 500)),
-    notes: typeof slide?.notes === "string" ? slide.notes.slice(0, 1500) : "",
+    notes: typeof slide?.notes === "string" ? slide.notes.slice(0, 4000) : "",
+    subtitle: typeof slide?.subtitle === "string" ? slide.subtitle.trim().slice(0, 240) : "",
+    takeaway: typeof slide?.takeaway === "string" ? slide.takeaway.trim().slice(0, 240) : "",
+    section: typeof slide?.section === "string" ? slide.section.trim().slice(0, 60) : "",
+    layout: ["cards","spotlight","process"].includes(slide?.layout) ? slide.layout : "",
   })).map((slide: SlideContent) => ({ ...slide, bullets: slide.bullets.length ? slide.bullets : ["Review the key concepts and apply them to the presentation topic."] }));
 }
 async function generateFallbackSlides(env: Env, query: string, count: number, style: string): Promise<{ title: string; slides: SlideContent[]; provider: string }> {
