@@ -33,3 +33,10 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .hmx-seo-faq[open] summary:after{content:"−"}
 .hmx-seo-faq p{max-width:850px;margin:14px 0 0;color:var(--hm-muted);font-size:14px;line-height:1.75}
 @media(max-width:640px){.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:1fr}.hmx-seo-faq summary{padding-right:20px;font-size:14px}}
+
+
+/* Keep card actions visually transparent instead of rendering as default grey buttons. */
+.hmx-toolbox-card .hmx-card-open{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 0 0;margin-top:24px;border:0!important;border-top:1px solid currentColor!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:inherit;appearance:none;-webkit-appearance:none;text-align:left;font:inherit;font-size:12px;font-weight:750;}
+.hmx-toolbox-card:not(.large) .hmx-card-open{color:var(--hm-blue,#4f46e5)}
+.hmx-toolbox-card.large .hmx-card-open{color:#fff}
+.hmx-toolbox-card:focus-visible{outline:2px solid var(--hm-blue,#4f46e5);outline-offset:3px}
