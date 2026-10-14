@@ -224,6 +224,7 @@ async function run() {
     ["/workspace/exam-center", "Exam Center"],
     ["/workspace/practice-quiz", "Practice Quiz"],
     ["/workspace/progress-tracker", "Progress Tracker"],
+    ["/workspace/question-bank", "Question Bank"],
     ["/workspace/haryomix-ai", "Haryomix AI"],
     ["/workspace/ai-create-studio", "AI Create Studio"],
     ["/workspace/flashcards", "Flashcards"],
@@ -234,7 +235,7 @@ async function run() {
   for (const [route, title] of dedicatedRoutes) {
     await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
   }
-  console.log("All 14 tool pages plus the workspace directory render independently without the old sidebar.");
+  console.log("All 15 tool pages plus the workspace directory render independently without the old sidebar.");
 
   await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
@@ -292,6 +293,13 @@ async function run() {
   await navigate("/workspace/progress-tracker", "document.querySelector('.hmx-planner-stats')?.textContent.includes('Tests completed') && document.querySelector('.hmx-planner-task-list')?.textContent.includes('One-Day Competitive Exams')", "Progress Tracker shows saved quiz attempt");
   await waitFor("document.querySelector('.hmx-planner-stats')?.textContent.includes('1')", "Progress Tracker counts completed attempt");
   console.log("Practice Quiz scoring, persistence, answer review and Progress Tracker passed.");
+
+  await navigate("/workspace/question-bank", "!!document.querySelector('#hmx-question-bank-search') && !!document.querySelector('#hmx-question-bank-track')", "Question Bank controls");
+  await fill("#hmx-question-bank-search", "photosynthesis", "search Question Bank");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-result h3')).some(el=>(el.textContent||'').includes('green plants use to make food'))", "Question Bank search filters matching question");
+  await clickText("button", "Show explanation", "reveal Question Bank explanation");
+  await waitFor("document.querySelector('.hmx-note')?.textContent.includes('Photosynthesis uses light energy') || Array.from(document.querySelectorAll('.hmx-note')).some(el=>el.textContent.includes('Photosynthesis uses light energy'))", "Question Bank explanation is visible");
+  console.log("Question Bank search and explanation flow passed.");
 
   await navigate("/workspace/flashcards", "!!document.querySelector('.hmx-flash-tabs button')", "Flashcards tabs");
   await click(".hmx-flash-tabs button:nth-child(2)", "open flashcard form");
