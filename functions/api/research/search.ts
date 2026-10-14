@@ -1,11 +1,11 @@
 interface ResearchItem {
   title: string;
-  source: "Crossref" | "arXiv" | "Internet Archive";
+  source: "OpenAlex" | "Crossref" | "arXiv" | "Internet Archive";
   url: string;
   date?: string;
   description?: string;
 }
-interface Env {}
+interface Env { OPENALEX_API_KEY?: string }
 const headers = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "public, max-age=300, s-maxage=900",
@@ -42,7 +42,7 @@ async function safeText(url: string): Promise<string | null> {
     return await response.text();
   } catch { return null; }
 }
-export async function onRequestPost({ request }: { request: Request; env: Env }): Promise<Response> {
+export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
   if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
     return reply({ error: "Send a JSON request." }, 415);
   }
@@ -55,7 +55,7 @@ export async function onRequestPost({ request }: { request: Request; env: Env })
   const query = clean(body.query, 180);
   if (query.length < 3) return reply({ error: "Enter at least 3 characters to search." }, 400);
   const q = encodeURIComponent(query);
-  const crossrefUrl = `https://api.crossref.org/works?query.bibliographic=${q}&rows=5&select=title,author,published,publisher,DOI,type`;
+  const openAlexParams = new URLSearchParams({ search: query, per_page: "5", select: "id,doi,title,publication_year,publication_date,authorships,biblio,primary_location" });\n  if (env.OPENALEX_API_KEY) openAlexParams.set("api_key", env.OPENALEX_API_KEY);\n  const openAlexUrl = `https://api.openalex.org/works?${openAlexParams.toString()}`;\n  const crossrefUrl = `https://api.crossref.org/works?query.bibliographic=${q}&rows=5&select=title,author,published,publisher,DOI,type`;
   const arxivUrl = `https://export.arxiv.org/api/query?search_query=all:${q}&start=0&max_results=5&sortBy=relevance&sortOrder=descending`;
   const archiveUrl = `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=date&fl[]=description&mediatype[]=texts&rows=5&page=1&output=json`;
   const [crossref, arxivXml, archive] = await Promise.all([
@@ -93,7 +93,7 @@ export async function onRequestPost({ request }: { request: Request; env: Env })
   return reply({
     query,
     sources: deduped,
-    searched: { crossref: Boolean(crossref), arxiv: Boolean(arxivXml), internetArchive: Boolean(archive) },
+    searched: { openAlex: Boolean(openAlex), openAlexKeyConfigured: Boolean(env.OPENALEX_API_KEY), crossref: Boolean(crossref), arxiv: Boolean(arxivXml), internetArchive: Boolean(archive) },
     message: deduped.length
       ? "Results are metadata and discovery links. Availability, peer review, full-text access and syllabus relevance must be checked at the original source."
       : "The research providers did not return results right now. Try a shorter or more specific query.",
