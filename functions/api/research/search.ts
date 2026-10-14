@@ -58,10 +58,20 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const openAlexParams = new URLSearchParams({ search: query, per_page: "5", select: "id,doi,title,publication_year,publication_date,authorships,biblio,primary_location" });\n  if (env.OPENALEX_API_KEY) openAlexParams.set("api_key", env.OPENALEX_API_KEY);\n  const openAlexUrl = `https://api.openalex.org/works?${openAlexParams.toString()}`;\n  const crossrefUrl = `https://api.crossref.org/works?query.bibliographic=${q}&rows=5&select=title,author,published,publisher,DOI,type`;
   const arxivUrl = `https://export.arxiv.org/api/query?search_query=all:${q}&start=0&max_results=5&sortBy=relevance&sortOrder=descending`;
   const archiveUrl = `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=date&fl[]=description&mediatype[]=texts&rows=5&page=1&output=json`;
-  const [crossref, arxivXml, archive] = await Promise.all([
-    safeJson(crossrefUrl), safeText(arxivUrl), safeJson(archiveUrl),
+  const [openAlex, crossref, arxivXml, archive] = await Promise.all([
+    safeJson(openAlexUrl), safeJson(crossrefUrl), safeText(arxivUrl), safeJson(archiveUrl),
   ]);
   const items: ResearchItem[] = [];
+  for (const work of openAlex?.results ?? []) {
+    const title = clean(work.title, 240);
+    const id = clean(work.id, 300);
+    const doi = clean(work.doi, 300);
+    const url = /^https:\/\/doi\.org\//i.test(doi) ? doi : id;
+    if (!title || !/^https:\/\/openalex\.org\/W[0-9A-Z]+$/i.test(id) || !/^https:\/\/(?:doi\.org\/|openalex\.org\/)/i.test(url)) continue;
+    const authors = Array.isArray(work.authorships) ? work.authorships.slice(0, 3).map((a: any) => clean(a.author?.display_name, 70)).filter(Boolean).join(", ") : "";
+    const date = clean(work.publication_date, 40) || (work.publication_year ? String(work.publication_year) : "");
+    items.push({ title, source: "OpenAlex", url, date, description: authors ? `Authors: ${authors}` : "Scholarly work metadata from OpenAlex" });
+  }
   for (const work of crossref?.message?.items ?? []) {
     const title = clean(Array.isArray(work.title) ? work.title[0] : work.title, 240);
     const doi = clean(work.DOI, 180);
