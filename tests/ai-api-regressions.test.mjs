@@ -44,6 +44,71 @@ async function withMockFetch(mock, run) {
   }
 }
 
+
+test("chat API rejects non-JSON, malformed JSON, and oversized request bodies", async () => {
+  const nonJson = await chatPost({
+    request: new Request("https://example.test/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "hello",
+    }),
+    env: {},
+  });
+  assert.equal(nonJson.status, 415);
+
+  const malformed = await chatPost({
+    request: new Request("https://example.test/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{",
+    }),
+    env: {},
+  });
+  assert.equal(malformed.status, 400);
+
+  const oversized = await chatPost({
+    request: new Request("https://example.test/api/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task: "general", prompt: "x".repeat(20_100) }),
+    }),
+    env: {},
+  });
+  assert.equal(oversized.status, 413);
+});
+
+test("image API rejects non-JSON, malformed JSON, and oversized request bodies", async () => {
+  const nonJson = await imagePost({
+    request: new Request("https://example.test/api/ai/image", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: "hello",
+    }),
+    env: {},
+  });
+  assert.equal(nonJson.status, 415);
+
+  const malformed = await imagePost({
+    request: new Request("https://example.test/api/ai/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{",
+    }),
+    env: {},
+  });
+  assert.equal(malformed.status, 400);
+
+  const oversized = await imagePost({
+    request: new Request("https://example.test/api/ai/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "x".repeat(9_000) }),
+    }),
+    env: {},
+  });
+  assert.equal(oversized.status, 413);
+});
+
 test("chat API rejects unsupported tasks before requiring database or providers", async () => {
   const response = await chatPost({
     request: jsonRequest("https://example.test/api/ai/chat", { task: "shell", prompt: "hello" }),
