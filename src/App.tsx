@@ -31,7 +31,7 @@ export default function App() {
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
-      <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
+      <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX · V2</span></a>
       <div id="hmx-mobile-navigation" className={`hmx-navlinks${mobileMenuOpen ? " is-open" : ""}`}>
         <a href="#tools" onClick={() => setMobileMenuOpen(false)}>Features</a>
         <a href="#tools" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Workspace</a>
@@ -44,7 +44,7 @@ export default function App() {
       </div>
     </nav>
     <section id="top" className="hmx-hero">
-      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One focused workspace for the things you make and the things you learn. Debug code, build presentations, work with PDFs and images, and prepare for school, university and competitive exams—all from one browser-first desk.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace("index")}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
+      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> HARYOMIX V2 · CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Build in flow.<br/>Study with focus.<br/><span className="hmx-hero-gradient">Everything in one desk.</span></h1><p className="hmx-copy">A premium, browser-first workspace for creating, studying and getting everyday work done. Edit PDFs and images, build presentations, debug code and prepare for exams in one focused place.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace("index")}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
       <HeroWorkspace />
       <a href="#tools" className="hmx-scroll-cue"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
     </section>
