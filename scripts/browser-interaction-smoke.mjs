@@ -481,10 +481,8 @@ async function run() {
   console.log("Image-to-PDF artifact verified: one page with the source image dimensions.");
 
   // Re-enter the route so the advanced tool panel has a clean mount after PDF Studio actions.
-  await navigate("/workspace/pdf-studio", "document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "PDF Studio before advanced tool audit");
-  if (!(await evaluate("!!document.querySelector('#pdf-pro-files') && !!document.querySelector('#pdf-pro-range')"))) {
-    throw new Error("PDF Pro advanced inputs are not rendered on the PDF Studio page.");
-  }
+  await navigate("/workspace", "!!document.querySelector('.hmx-tool-directory')", "workspace before remounting PDF Studio");
+  await navigate("/workspace/pdf-studio", "!!document.querySelector('#pdf-pro-files') && !!document.querySelector('#pdf-pro-range') && !!document.querySelector('#pdf-pro-preview-page')", "PDF Pro advanced tools");
   // PDF Pro extra tools: validate each download, not just its success message.
   await setFiles("#pdf-pro-files", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
   await fill("#pdf-pro-range", "1-2", "PDF Pro page range");
