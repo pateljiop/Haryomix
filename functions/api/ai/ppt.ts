@@ -1,4 +1,4 @@
-interface Env { FELO_API_KEY?: string; GROQ_API_KEY?: string; GEMINI_API_KEY?: string; XAI_API_KEY?: string; DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>() : Promise<T | null>; run(): Promise<unknown> } } } }
+interface Env { FELO_API_KEY?: string; GROQ_API_KEY?: string; GEMINI_API_KEY?: string; POLLINATIONS_API_KEY?: string; DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>() : Promise<T | null>; run(): Promise<unknown> } } } }
 const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 function reply(body: unknown, status=200) { return new Response(JSON.stringify(body), {status, headers}); }
 function clean(value: unknown, max=300): string { return typeof value === "string" ? value.trim().slice(0,max) : ""; }
@@ -24,12 +24,12 @@ async function felo(path: string, key: string, init: RequestInit = {}) {
 }
 
 type SlideContent = { title: string; bullets: string[]; notes?: string; subtitle?: string; takeaway?: string; section?: string; layout?: string };
-async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", key: string, query: string, count: number, style: string): Promise<SlideContent[]> {
+async function generateSlidesWithProvider(provider: "pollinations" | "groq" | "gemini", key: string, query: string, count: number, style: string): Promise<SlideContent[]> {
   const instruction = `Create exactly ${count} slides for an expert-level, evidence-aware PowerPoint. Topic and requirements: ${query}. Visual direction: ${style}. Audience: infer from the request; if unspecified, write for an informed general audience. Follow the requested language. Return ONLY valid JSON (no Markdown fences) shaped as {"title":"deck title","slides":[{"title":"insight-led slide title","subtitle":"one-sentence context","section":"short section label","layout":"cards|spotlight|process","bullets":["specific useful point","specific useful point","specific useful point"],"takeaway":"one-sentence implication","notes":"substantial presenter notes with explanation, transitions, example and caveat where relevant"}]}. Build a coherent narrative: opening/context, core concepts, mechanisms or framework, practical examples, limitations/risks, actionable recommendations, conclusion. Every slide must add a distinct idea, not repeat. Use 2-4 substantive bullets per slide (5 only if needed), explain acronyms, avoid vague filler, and make titles communicate a conclusion. Use real facts and verifiable examples when known; never fabricate citations, sources, quotes, or statistics. For current or fast-changing topics, clearly label facts that need current verification instead of pretending to have browsed. Notes should be useful to a presenter, generally 60-120 words per slide when the topic supports it. Pick layout cards for grouped concepts, spotlight for a key insight, process for chronological or step-by-step content.`;
   let response: Response;
-  if (provider === "groq" || provider === "grok") {
-    const endpoint = provider === "grok" ? "https://api.x.ai/v1/chat/completions" : "https://api.groq.com/openai/v1/chat/completions";
-    const model = provider === "grok" ? "grok-4.7" : "openai/gpt-oss-120b";
+  if (provider === "groq" || provider === "pollinations") {
+    const endpoint = provider === "pollinations" ? "https://gen.pollinations.ai/v1/chat/completions" : "https://api.groq.com/openai/v1/chat/completions";
+    const model = provider === "pollinations" ? "openai" : "openai/gpt-oss-120b";
     response = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -67,33 +67,10 @@ async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", 
 }
 async function generateFallbackSlides(env: Env, query: string, count: number, style: string): Promise<{ title: string; slides: SlideContent[]; provider: string }> {
   const failures: string[] = [];
-  // When both keys exist, Gemini creates the first draft and Grok performs an editorial pass.
-  // This gives the user a genuinely multi-model deck rather than a single-provider fallback.
-  if (env.GEMINI_API_KEY && env.XAI_API_KEY) {
-    try {
-      const draft = await generateSlidesWithProvider("gemini", env.GEMINI_API_KEY, query, count, style);
-      const reviewPrompt = [
-        "Act as a senior presentation strategist, domain expert, fact-checking editor, and visual storyteller.",
-        "Improve the following draft into an expert-level presentation. Keep the same requested topic and exactly the requested number of slides.",
-        "Strengthen the narrative, remove repetition, make bullets specific and useful, add practical examples/frameworks where supportable, and make slide titles insight-led.",
-        "Do not invent sources, citations, quotations, or statistics. Preserve uncertainty where facts cannot be verified.",
-        "Return only the exact JSON schema required for a PowerPoint: {title, slides:[{title, bullets, notes}]}.",
-        `Requested topic: ${query}`,
-        `Slide count: ${count}`,
-        `Visual direction: ${style}`,
-        `Gemini draft: ${JSON.stringify({ title: draft[0]?.title || query, slides: draft })}`,
-      ].join("\\n");
-      const refined = await generateSlidesWithProvider("grok", env.XAI_API_KEY, reviewPrompt, count, style);
-      return { title: refined[0]?.title || draft[0]?.title || query.slice(0, 100), slides: refined, provider: "Gemini + Grok editorial pass" };
-    } catch (error) {
-      failures.push(`dual_model:${error instanceof Error ? error.message : "provider_error"}`);
-      // Continue with the best available single provider below.
-    }
-  }
-  const providers: Array<{ name: "gemini" | "groq" | "grok"; key?: string }> = [
+  const providers: Array<{ name: "pollinations" | "gemini" | "groq"; key?: string }> = [
+    { name: "pollinations", key: env.POLLINATIONS_API_KEY },
     { name: "gemini", key: env.GEMINI_API_KEY },
     { name: "groq", key: env.GROQ_API_KEY },
-    { name: "grok", key: env.XAI_API_KEY },
   ];
   for (const provider of providers) {
     if (!provider.key) continue;
@@ -121,7 +98,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
   if(action==="status" && !clean(body.taskId,100)) return reply({error:"Task ID is required."},400);
   if(!["create","status","export","export-status"].includes(action)) return reply({error:"Unsupported action."},400);
   if(action!=="create" && !env.FELO_API_KEY) return reply({error:"Felo is not configured on the server for status/export operations.",code:"provider_not_configured"},503);
-  if(action==="create" && !env.FELO_API_KEY && !env.GROQ_API_KEY && !env.GEMINI_API_KEY && !env.XAI_API_KEY) return reply({error:"Configure at least one provider: FELO_API_KEY, XAI_API_KEY, GEMINI_API_KEY, or GROQ_API_KEY.",code:"provider_not_configured"},503);
+  if(action==="create" && !env.FELO_API_KEY && !env.GROQ_API_KEY && !env.GEMINI_API_KEY && !env.POLLINATIONS_API_KEY) return reply({error:"Configure at least one provider: FELO_API_KEY, POLLINATIONS_API_KEY, GEMINI_API_KEY, or GROQ_API_KEY.",code:"provider_not_configured"},503);
   if(action==="create"||action==="export"){
     if(!env.DB) return reply({error:"AI request protection is not configured. Database binding is required.",code:"rate_limit_unavailable"},503);
     try { if(!await withinLimit(request,env)) return reply({error:"AI creation/export limit reached for this hour. Please retry later.",code:"rate_limited"},429); }
@@ -147,7 +124,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
         const fallback=await generateFallbackSlides(env,query,count,style);
         return reply({mode:"ai-generated-pptx",status:"COMPLETED",provider:fallback.provider,title:fallback.title,slides:fallback.slides});
       } catch {
-        return reply({error:"Felo could not create the presentation and all configured AI fallbacks failed. Check API keys, provider quota, and model access.",code:"all_providers_failed"},502);
+        return reply({error:"Presentation generation failed across configured providers. Check provider keys, quota, and model access.",code:"all_providers_failed"},502);
       }
     }
     const taskId=clean(body.taskId,100), businessId=clean(body.businessId,100);
