@@ -128,7 +128,7 @@ export function CommunityFeed() {
         <p role="status" aria-live="polite" style={{ color: reportNotice ? "#246a43" : "#747b8d", fontSize: 12, margin: 0 }}>{reportNotice}</p>
       </div>
     </div>
-    <style>{`@media(max-width:760px){#community>div{grid-template-columns:minmax(0,1fr)!important}}`}</style>
+    <style>{`#community .hmx-overline{color:#287ea8!important}#community .hmx-heading{color:#20251f!important;text-shadow:none!important;-webkit-text-fill-color:#20251f!important}#community .hmx-copy{color:#596273!important}@media(max-width:760px){#community>div{grid-template-columns:minmax(0,1fr)!important}}`}</style>
   </section>;
 }
 
