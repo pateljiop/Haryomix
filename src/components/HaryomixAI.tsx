@@ -20,8 +20,21 @@ export function HaryomixAI() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task, prompt: prompt.trim(), provider: "auto" }),
       });
-      const data = await response.json() as { answer?: string; error?: string };
-      if (!response.ok) throw new Error(data.error || "AI request failed.");
+      const data = await response.json() as {
+        answer?: string;
+        error?: string;
+        code?: string;
+        providerIssues?: Array<{ provider?: string; reason?: string }>;
+      };
+      if (!response.ok) {
+        const issues = Array.isArray(data.providerIssues)
+          ? data.providerIssues
+              .filter(issue => typeof issue.provider === "string" && typeof issue.reason === "string")
+              .map(issue => `${issue.provider}: ${issue.reason?.replaceAll("_", " ")}`)
+          : [];
+        const details = issues.length ? ` Details: ${issues.join("; ")}.` : "";
+        throw new Error(`${data.error || "AI request failed."}${details}`);
+      }
       setAnswer(data.answer || "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "AI request failed. Please retry.");
