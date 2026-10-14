@@ -388,6 +388,65 @@ async function run() {
   }
   console.log("PDF selected-page rotation artifact verified: only page 2 rotates.");
 
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF remove-page fixture loaded");
+  await fill("#pdf-range", "1", "page range to remove");
+  await clickText("button.hmx-tool-card", "Remove pages", "remove first PDF page");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Removed 1 page(s).')", "PDF page removal completes");
+  const removedPath = await waitForDownload("haryomix-removed-pages.pdf");
+  const removed = await PDFDocument.load(readFileSync(removedPath));
+  if (removed.getPageCount() !== 1 || removed.getPage(0).getWidth() !== 300 || removed.getPage(0).getHeight() !== 400) {
+    throw new Error("Remove-pages artifact did not preserve only the unselected page.");
+  }
+  console.log("PDF remove-pages artifact verified: only the unselected page remains.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF crop fixture loaded");
+  await fill("#pdf-crop-margin", "10", "crop margin");
+  await clickText("button.hmx-tool-card", "Crop page margins", "crop PDF page margins");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Crop margins applied to all pages')", "PDF crop completes");
+  const croppedPath = await waitForDownload("haryomix-cropped.pdf");
+  const cropped = await PDFDocument.load(readFileSync(croppedPath));
+  const cropBox = cropped.getPages()[0].getCropBox();
+  if (cropped.getPageCount() !== 2 || cropBox.x !== 10 || cropBox.y !== 10 || cropBox.width !== 80 || cropBox.height !== 180) {
+    throw new Error("Cropped PDF artifact has unexpected crop box: " + JSON.stringify(cropBox));
+  }
+  console.log("PDF crop artifact verified: visible crop box uses the requested 10pt margins.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF watermark fixture loaded");
+  await fill("#pdf-watermark", "SMOKE TEST", "PDF watermark text");
+  await clickText("button.hmx-tool-card", "Add watermark", "apply PDF watermark");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Watermark added')", "PDF watermark completes");
+  const watermarkPath = await waitForDownload("haryomix-watermarked.pdf");
+  const watermarked = await PDFDocument.load(readFileSync(watermarkPath));
+  if (watermarked.getPageCount() !== 2 || watermarked.getPages().some(page => page.getContentStream() == null)) {
+    throw new Error("Watermarked PDF artifact did not preserve the source pages.");
+  }
+  console.log("PDF watermark artifact verified: exported PDF retains both source pages.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF metadata fixture loaded");
+  await clickText("button.hmx-tool-card", "Remove document metadata", "clear PDF metadata");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Standard document metadata cleared')", "PDF metadata clearing completes");
+  const metadataPath = await waitForDownload("haryomix-metadata-cleared.pdf");
+  const cleared = await PDFDocument.load(readFileSync(metadataPath));
+  if (cleared.getPageCount() !== 2 || cleared.getTitle() || cleared.getAuthor() || cleared.getSubject() || cleared.getCreator() || cleared.getProducer()) {
+    throw new Error("Metadata-cleared PDF retains common document metadata.");
+  }
+  console.log("PDF metadata-removal artifact verified: common metadata fields are empty.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF reverse-order fixture loaded");
+  await clickText("button.hmx-tool-card", "Reverse order", "reverse PDF page order");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Reversed page order')", "PDF reverse-order completes");
+  const reversedPath = await waitForDownload("haryomix-reversed-pages.pdf");
+  const reversed = await PDFDocument.load(readFileSync(reversedPath));
+  if (reversed.getPageCount() !== 2 || reversed.getPages()[0].getWidth() !== 300 || reversed.getPages()[0].getHeight() !== 400 || reversed.getPages()[1].getWidth() !== 100 || reversed.getPages()[1].getHeight() !== 200) {
+    throw new Error("Reversed PDF artifact does not have the expected reversed page dimensions.");
+  }
+  console.log("PDF reverse-order artifact verified: source pages are in reverse order.");
+
   await setFiles("input.hmx-file-input", [join(profile, "smoke-pixel.png")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "image-to-PDF fixture loaded");
   await clickText("button.hmx-btn", "Images to PDF", "convert image to PDF");
