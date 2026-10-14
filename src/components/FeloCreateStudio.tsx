@@ -1,10 +1,10 @@
 import { useState } from "react";
 
-type PptJob={taskId:string;businessId:string;status:string;liveDocId?:string|null};
+type PptJob={taskId:string;businessId:string;status:string;liveDocId?:string|null;liveUrl?:string|null};
 async function api(path:string,body:unknown){
  const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
  const data=await response.json().catch(()=>({}));
- if(!response.ok)throw new Error(response.status>=500?"The service is temporarily unavailable. Please retry shortly.":"The request could not be completed. Please review your input and retry.");
+ if(!response.ok)throw new Error(typeof data.error==="string"?data.error:response.status>=500?"The service is temporarily unavailable. Please retry shortly.":"The request could not be completed. Please review your input and retry.");
  return data;
 }
 export function FeloCreateStudio(){
@@ -27,8 +27,8 @@ export function FeloCreateStudio(){
  }
  async function checkStatus(){
   if(!job)return;setBusy(true);
-  try{const data=await api("/api/ai/ppt",{action:"status",taskId:job.taskId,businessId:job.businessId});setJob({...job,status:data.status,businessId:data.businessId||job.businessId});setMessage(data.status==="COMPLETED"?"Presentation ready. Export PPTX dabao.":data.status==="FAILED"||data.status==="ERROR"?"Presentation could not be completed. Please try again.":`Generation status: ${data.status}`);}
-  catch{setMessage("Could not check presentation status. Please retry.");}finally{setBusy(false);}
+  try{const data=await api("/api/ai/ppt",{action:"status",taskId:job.taskId,businessId:job.businessId});setJob({...job,status:data.status,businessId:data.businessId||job.businessId,liveUrl:typeof data.liveUrl==="string"?data.liveUrl:job.liveUrl});setMessage(data.status==="COMPLETED"?"Presentation ready. Export PPTX dabao.":data.status==="FAILED"||data.status==="ERROR"?(data.error||"Presentation could not be completed. Please retry or check provider credits."):`Generation status: ${data.status}`);}
+  catch(e){setMessage(e instanceof Error?e.message:"Could not check presentation status. Please retry.");}finally{setBusy(false);}
  }
  async function exportPpt(){
   if(!job)return;setBusy(true);
@@ -54,7 +54,7 @@ export function FeloCreateStudio(){
    <div className="hmx-field"><label htmlFor="felo-ppt-slides">Target slide count</label><select id="felo-ppt-slides" className="hmx-select" value={slides} onChange={e=>setSlides(e.target.value)}>{["5","8","10","12","15","20","25","30"].map(n=><option key={n} value={n}>{n} slides</option>)}</select></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-style">Visual style</label><input id="felo-ppt-style" className="hmx-input" value={style} onChange={e=>setStyle(e.target.value)}/></div>
    <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
-   {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}</p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
+   {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}</p>}{job?.liveUrl&&<p><a href={job.liveUrl} target="_blank" rel="noreferrer">Open generated presentation preview</a></p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
   </>:<>
    <div className="hmx-field"><label htmlFor="felo-image-prompt">Describe the image</label><textarea id="felo-image-prompt" className="hmx-textarea" style={{minHeight:130,fontFamily:"inherit"}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Subject, composition, mood, lighting, art direction, background, aspect ratio, intended use…"/></div>
       <div className="hmx-field"><label htmlFor="felo-image-size">Image size</label><select id="felo-image-size" className="hmx-select" value={size} onChange={e=>setSize(e.target.value)}><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Portrait · 1024 × 1536</option></select></div>
