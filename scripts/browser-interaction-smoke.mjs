@@ -222,6 +222,7 @@ async function run() {
     ["/workspace/image-studio", "Image Studio"],
     ["/workspace/exam-copilot", "Exam Copilot"],
     ["/workspace/exam-center", "Exam Center"],
+    ["/workspace/practice-quiz", "Practice Quiz"],
     ["/workspace/haryomix-ai", "Haryomix AI"],
     ["/workspace/ai-create-studio", "AI Create Studio"],
     ["/workspace/flashcards", "Flashcards"],
@@ -232,7 +233,7 @@ async function run() {
   for (const [route, title] of dedicatedRoutes) {
     await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
   }
-  console.log("All 12 tool pages plus the workspace directory render independently without the old sidebar.");
+  console.log("All 13 tool pages plus the workspace directory render independently without the old sidebar.");
 
   await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
@@ -276,6 +277,17 @@ async function run() {
   await clickText(".hmx-directory-card", "Create study material", "open Exam Copilot from Exam Center");
   await waitFor("document.querySelector('.hmx-workspace-head h1')?.textContent==='Exam Copilot'", "Exam Center opens the dedicated Exam Copilot page");
   console.log("Exam Center track selection and dedicated study-tool navigation passed.");
+
+  await navigate("/workspace/practice-quiz", "!!document.querySelector('#hmx-quiz-track') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Start practice test'))", "Practice Quiz setup");
+  await chooseValue("#hmx-quiz-track", "competitive", "competitive quiz track");
+  await clickText("button", "Start practice test", "start timed practice test");
+  await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('Find the next number')", "first competitive quiz question");
+  await clickText(".hmx-directory-card", "32", "answer number-series question");
+  for (let i = 0; i < 4; i++) await clickText("button", "Next question", "advance practice quiz");
+  await clickText("button", "Submit test", "submit practice quiz");
+  await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('1 / 5 correct')", "quiz score is calculated");
+  await waitFor("document.querySelector('.hmx-result')?.textContent.includes('Answer review')", "quiz answer review appears");
+  console.log("Practice Quiz timed session, scoring and answer review passed.");
 
   await navigate("/workspace/flashcards", "!!document.querySelector('.hmx-flash-tabs button')", "Flashcards tabs");
   await click(".hmx-flash-tabs button:nth-child(2)", "open flashcard form");
