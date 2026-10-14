@@ -137,7 +137,11 @@ export function PdfExtraTools({ setNotice }: Props) {
   }
 
   async function run(action: "text" | "word" | "images" | "ocr" | "compare" | "repair" | "csv" | "pptx" | "compress") {
-    if (!file || busy) return;
+    if (busy) return;
+    if (!file) {
+      setNotice("Choose a PDF file in PDF Pro before running this tool.");
+      return;
+    }
     setBusy(true);
     setProgress("Preparing PDF…");
     try {
