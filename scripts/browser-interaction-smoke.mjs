@@ -179,13 +179,13 @@ function createValidPngFixture() {
 async function createFixtures() {
   const first = await PDFDocument.create();
   const firstPage = first.addPage([100, 200]);
-  firstPage.drawText("Haryomix audit fixture alpha", { x: 8, y: 150, size: 8 });
+  firstPage.drawText("AUDIT ALPHA", { x: 8, y: 150, size: 8 });
   const secondPage = first.addPage([300, 400]);
-  secondPage.drawText("Haryomix audit fixture beta", { x: 12, y: 320, size: 10 });
+  secondPage.drawText("AUDIT BETA", { x: 12, y: 320, size: 10 });
   writeFileSync(join(profile, "smoke-a.pdf"), await first.save());
   const second = await PDFDocument.create();
   const comparisonPage = second.addPage([500, 600]);
-  comparisonPage.drawText("Haryomix comparison fixture gamma", { x: 18, y: 500, size: 12 });
+  comparisonPage.drawText("AUDIT GAMMA", { x: 18, y: 500, size: 12 });
   writeFileSync(join(profile, "smoke-b.pdf"), await second.save());
   writeFileSync(join(profile, "smoke-pixel.png"), createValidPngFixture());
 }
@@ -482,9 +482,9 @@ async function run() {
 
   // Re-enter the route so the advanced tool panel has a clean mount after PDF Studio actions.
   await navigate("/workspace/pdf-studio", "document.querySelector('.hmx-workspace-head h1')?.textContent === 'PDF Studio'", "PDF Studio before advanced tool audit");
-  const pdfProDom = await evaluate("({inputs:Array.from(document.querySelectorAll('input')).map(el=>({id:el.id,type:el.type})),pdfPro:!!document.querySelector('#pdf-pro-files'),body:document.body.innerText.slice(-1800)})");
-  console.log("PDF Pro DOM diagnostic: " + JSON.stringify(pdfProDom));
-  if (!pdfProDom.pdfPro) throw new Error("PDF Pro advanced input is not rendered on the PDF Studio page.");
+  if (!(await evaluate("!!document.querySelector('#pdf-pro-files') && !!document.querySelector('#pdf-pro-range')"))) {
+    throw new Error("PDF Pro advanced inputs are not rendered on the PDF Studio page.");
+  }
   // PDF Pro extra tools: validate each download, not just its success message.
   await setFiles("#pdf-pro-files", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
   await fill("#pdf-pro-range", "1-2", "PDF Pro page range");
@@ -493,7 +493,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Extracted text from 2 page(s)')", "PDF text extraction completes");
   const textPath = await waitForDownload("smoke-a-text.txt");
   const extractedText = readFileSync(textPath, "utf8");
-  if (!extractedText.includes("Haryomix audit fixture alpha") || !extractedText.includes("Haryomix audit fixture beta")) {
+  if (!extractedText.includes("AUDIT ALPHA") || !extractedText.includes("AUDIT BETA")) {
     throw new Error("Extracted PDF text omitted fixture content: " + extractedText);
   }
   console.log("PDF Pro text extraction artifact verified.");
@@ -502,7 +502,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported editable text to an RTF file')", "RTF export completes");
   const rtfPath = await waitForDownload("smoke-a-text.rtf");
   const rtfText = readFileSync(rtfPath, "utf8");
-  if (!rtfText.startsWith("{\\rtf1") || !rtfText.includes("Haryomix audit fixture alpha")) {
+  if (!rtfText.startsWith("{\\rtf1") || !rtfText.includes("AUDIT ALPHA")) {
     throw new Error("RTF export is malformed or missing extracted text.");
   }
   console.log("PDF Pro RTF artifact verified.");
@@ -511,7 +511,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported selectable text')", "PDF CSV export completes");
   const csvPath = await waitForDownload("smoke-a-text-positions.csv");
   const csvText = readFileSync(csvPath, "utf8");
-  if (!csvText.startsWith("page,x,y,text") || !csvText.includes("Haryomix audit fixture alpha") || !csvText.includes("Haryomix audit fixture beta")) {
+  if (!csvText.startsWith("page,x,y,text") || !csvText.includes("AUDIT ALPHA") || !csvText.includes("AUDIT BETA")) {
     throw new Error("CSV export omitted expected page/text coordinate data: " + csvText);
   }
   console.log("PDF Pro CSV artifact verified.");
