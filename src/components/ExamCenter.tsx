@@ -25,7 +25,12 @@ export function ExamCenter({ onNavigate }: { onNavigate: (tool: LearningTool) =>
   const [level, setLevel] = useState("Class 9–10");
   const selected = tracks.find(item => item.id === track) ?? tracks[0];
 
-  function openLearningTool(tool: LearningTool) {\n    try { window.localStorage.setItem("haryomix.exam-context.v1", JSON.stringify({ track, level, trackTitle: selected.title, savedAt: Date.now() })); } catch { /* Continue to the tool if browser storage is unavailable. */ }\n    onNavigate(tool);\n  }\n\n  function chooseTrack(id: TrackId) {
+  function openLearningTool(tool: LearningTool) {
+    try { window.localStorage.setItem("haryomix.exam-context.v1", JSON.stringify({ track, level, trackTitle: selected.title, savedAt: Date.now() })); } catch { /* Continue to the tool if browser storage is unavailable. */ }
+    onNavigate(tool);
+  }
+
+  function chooseTrack(id: TrackId) {
     setTrack(id);
     const next = tracks.find(item => item.id === id);
     if (next) setLevel(next.options[0]);
