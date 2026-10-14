@@ -318,6 +318,52 @@ test("PPT API falls back to xAI Grok when Felo is not configured", async () => {
   });
 });
 
+test("PPT API uses Gemini for the draft and Grok for the expert editorial pass when both keys exist", async () => {
+  let geminiCalled = false;
+  let grokCalled = false;
+  await withMockFetch(async (input, init) => {
+    const url = String(input);
+    if (url.startsWith("https://generativelanguage.googleapis.com/")) {
+      geminiCalled = true;
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+        title: "AI in Education",
+        slides: [
+          { title: "Context", bullets: ["AI tools are increasingly used in learning"] },
+          { title: "Use cases", bullets: ["Personalized practice can adapt to learner needs"] },
+          { title: "Responsible use", bullets: ["Verify outputs and protect student data"] }
+        ]
+      }) }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url === "https://api.x.ai/v1/chat/completions") {
+      grokCalled = true;
+      const requestBody = JSON.parse(String(init?.body || "{}"));
+      assert.match(requestBody.messages[1].content, /Gemini draft/i);
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+        title: "AI in Education: Practical Strategy",
+        slides: [
+          { title: "Why now", bullets: ["AI can scale practice and feedback when guided by educators"] },
+          { title: "High-value use cases", bullets: ["Use adaptive quizzes to expose knowledge gaps"] },
+          { title: "Guardrails", bullets: ["Keep humans accountable and verify consequential outputs"] }
+        ]
+      }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error("Unexpected provider URL: " + url);
+  }, async () => {
+    const response = await pptPost({
+      request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "Create an expert presentation about AI in education", slides: 3 }),
+      env: { DB: mockDb(), GEMINI_API_KEY: "test-gemini-key", XAI_API_KEY: "test-xai-key" },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "ai-generated-pptx");
+    assert.equal(body.provider, "Gemini + Grok editorial pass");
+    assert.equal(body.slides.length, 3);
+    assert.equal(body.slides[0].title, "Why now");
+  });
+  assert.equal(geminiCalled, true);
+  assert.equal(grokCalled, true);
+});
+
 test("PPT API falls back to Groq slide content when Felo is not configured", async () => {
   await withMockFetch(async input => {
     assert.equal(String(input), "https://api.groq.com/openai/v1/chat/completions");
