@@ -78,7 +78,9 @@ async function generateFallbackSlides(env: Env, query: string, count: number, st
       const slides = await generateSlidesWithProvider(provider.name, provider.key, query, count, style);
       return { title: slides[0]?.title || query.slice(0, 100), slides, provider: provider.name };
     } catch (error) {
-      failures.push(`${provider.name}:${error instanceof Error ? error.message : "provider_error"}`);
+      const reason = error instanceof Error ? error.message : "provider_error";
+      failures.push(`${provider.name}:${reason}`);
+      console.error("[ppt] fallback provider failed", { provider: provider.name, reason });
     }
   }
   throw new Error(failures.length ? failures.join(",") : "no_fallback_provider");
@@ -102,7 +104,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
   if(action==="create"||action==="export"){
     if(!env.DB) return reply({error:"AI request protection is not configured. Database binding is required.",code:"rate_limit_unavailable"},503);
     try { if(!await withinLimit(request,env)) return reply({error:"AI creation/export limit reached for this hour. Please retry later.",code:"rate_limited"},429); }
-    catch { return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
+    catch (error) { console.error("[ppt] rate-limit database check failed", { reason: error instanceof Error ? error.message : "database_error" }); return reply({error:"AI request protection is temporarily unavailable.",code:"rate_limit_unavailable"},503); }
   }
   try {
     if(action==="create"){
@@ -116,14 +118,16 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
           const result=await felo("/v2/ppts",env.FELO_API_KEY!,{method:"POST",body:JSON.stringify({query:prompt})});
           const data=result?.data||{};
           if(data.task_id&&data.ppt_business_id) return reply({taskId:data.task_id,businessId:data.ppt_business_id,liveDocId:data.livedoc_short_id||null,status:"RUNNING",provider:"felo"});
-        } catch {
+        } catch (error) {
+          console.warn("[ppt] Felo generation failed; trying configured fallback providers", { reason: error instanceof Error ? error.message : "provider_error" });
           // Continue to the configured text-model providers so users can still get an editable PPTX.
         }
       }
       try {
         const fallback=await generateFallbackSlides(env,query,count,style);
         return reply({mode:"ai-generated-pptx",status:"COMPLETED",provider:fallback.provider,title:fallback.title,slides:fallback.slides});
-      } catch {
+      } catch (error) {
+        console.error("[ppt] all generation providers failed", { reason: error instanceof Error ? error.message : "provider_error" });
         return reply({error:"Presentation generation failed across configured providers. Check provider keys, quota, and model access.",code:"all_providers_failed"},502);
       }
     }
@@ -148,6 +152,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
     return reply({error:"Unsupported action."},400);
   } catch(error) {
     const code=error instanceof Error?error.message:"provider_error";
+    console.error("[ppt] request failed", { action, code });
     return reply({error:code==="credits_required"?"Felo account needs credits for this generation.":code==="rate_limit"?"Felo is rate-limiting requests. Retry shortly.":"Felo could not complete the presentation request. Check the key, credits, and provider status.",code},code==="rate_limit"?429:502);
   }
 }
