@@ -29,6 +29,38 @@ function downloadBlob(blob: Blob, name: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1200);
 }
 
+async function makeSampleCard(side: Side): Promise<CardImage> {
+  const canvas = document.createElement("canvas");
+  canvas.width = 856;
+  canvas.height = 540;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Your browser could not create a sample preview.");
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, "#101b35");
+  gradient.addColorStop(1, "#254c78");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "rgba(255,255,255,.22)";
+  ctx.lineWidth = 3;
+  for (let x = -canvas.height; x < canvas.width; x += 70) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + canvas.height, canvas.height); ctx.stroke();
+  }
+  ctx.fillStyle = "#8bd5ff";
+  ctx.font = "700 30px sans-serif";
+  ctx.fillText("HARYOMIX • PRINT PREVIEW", 42, 66);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 66px sans-serif";
+  ctx.fillText("SAMPLE ONLY", 42, 260);
+  ctx.font = "600 30px sans-serif";
+  ctx.fillText(side === "front" ? "FRONT SIDE" : "BACK SIDE", 44, 320);
+  ctx.font = "24px sans-serif";
+  ctx.fillStyle = "#dbeafe";
+  ctx.fillText("DEMO ARTWORK — NOT AN IDENTITY DOCUMENT", 44, 480);
+  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("Could not create sample artwork.")), "image/png"));
+  const file = new File([blob], "haryomix-sample-" + side + ".png", { type: "image/png" });
+  return { file, url: URL.createObjectURL(file), name: file.name };
+}
+
 export function IdArranger() {
   const [front, setFront] = useState<CardImage | null>(null);
   const [back, setBack] = useState<CardImage | null>(null);
@@ -138,7 +170,7 @@ export function IdArranger() {
   }
 
   return <div className={"hmx-panel id-arranger id-arranger-pro " + (darkMode ? "id-arranger-dark" : "id-arranger-light")}>
-    <div className="id-pro-toolbar"><div className="id-pro-brand"><span className="id-pro-logo">▣</span><div><strong>ID & Aadhaar Arranger <em>PRO</em></strong><small>Precision 1:1 Scale Print & PDF Merger</small></div></div><div className="id-pro-toolbar-actions"><button type="button" className="id-pro-quiet" onClick={() => setError("Upload front/back images below, then export at 100% / Actual Size.")}>Try Sample</button><button type="button" className="id-pro-icon" title="Upload images, choose layout and export at actual size." onClick={() => setError("Upload front/back images below. Choose a layout and export PDF at Actual Size (100%).")}>ⓘ</button><button type="button" className="id-pro-icon" aria-label="Toggle theme" onClick={() => setDarkMode(v => !v)}>{darkMode ? "☼" : "☾"}</button></div></div>
+    <div className="id-pro-toolbar"><div className="id-pro-brand"><span className="id-pro-logo">▣</span><div><strong>ID & Aadhaar Arranger <em>PRO</em></strong><small>Precision 1:1 Scale Print & PDF Merger</small></div></div><div className="id-pro-toolbar-actions"><button type="button" className="id-pro-quiet" onClick={() => { void (async () => { try { setError(""); const [sampleFront, sampleBack] = await Promise.all([makeSampleCard("front"), makeSampleCard("back")]); setFront(old => { if (old) URL.revokeObjectURL(old.url); return sampleFront; }); setBack(old => { if (old) URL.revokeObjectURL(old.url); return sampleBack; }); setSide("both"); setPaper("A4"); setPreset("ID card · 85.6 × 54 mm"); setCopies(2); } catch (e) { setError(e instanceof Error ? e.message : "Could not load sample artwork."); } })(); }}>Try Sample</button><button type="button" className="id-pro-icon" title="Upload images, choose layout and export at actual size." onClick={() => setError("Upload front/back images below. Choose a layout and export PDF at Actual Size (100%).")}>ⓘ</button><button type="button" className="id-pro-icon" aria-label="Toggle theme" onClick={() => setDarkMode(v => !v)}>{darkMode ? "☼" : "☾"}</button></div></div>
     <div className="id-pro-subbar"><span>◉ {paper} · {paperSize.w} × {paperSize.h} mm</span><span className="id-pro-hint">Precision print canvas</span><div className="id-pro-zoom"><button type="button" onClick={() => setZoom(v => Math.max(50,v-10))}>−</button><span>{zoom}%</span><button type="button" onClick={() => setZoom(v => Math.min(150,v+10))}>+</button><button type="button" onClick={() => setZoom(100)}>Fit</button></div></div>
     <div className="hmx-panel-head"><h2>ID Arranger <span className="id-arranger-pill">LOCAL PROCESSING</span></h2><span className="id-arranger-step">PRINT PREP · 01</span></div>
     <div className="hmx-panel-body">
