@@ -59,7 +59,8 @@ export function FeloCreateStudio(){
  async function exportPpt(){
   if(!job)return;setBusy(true);
   try{
-   if(job.fallbackSlides?.length){
+   const fallbackSlides: SlideContent[] | undefined = job.fallbackSlides;
+   if(fallbackSlides && fallbackSlides.length > 0){
     const deck=new pptxgen();
     deck.layout="LAYOUT_WIDE";
     deck.author="Haryomix AI Create Studio";deck.subject=topic;deck.title=job.title||topic;deck.company="Haryomix";
