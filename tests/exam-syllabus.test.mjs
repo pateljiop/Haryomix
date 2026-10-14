@@ -25,7 +25,7 @@ test("exam syllabus search validates the exam name and requires DB protection", 
 test("exam syllabus flow searches live web before AI analysis and marks official domains", async () => {
   const response = await withFetch(async (url, init = {}) => {
     if (String(url).includes("duckduckgo.com/html/")) {
-      assert.match(String(url), /SSC%20CGL/);
+      assert.match(decodeURIComponent(String(url).replace(/\+/g, "%20")), /SSC CGL/);
       return new Response(searchHtml, { status: 200 });
     }
     if (String(url).includes("api.groq.com")) {
