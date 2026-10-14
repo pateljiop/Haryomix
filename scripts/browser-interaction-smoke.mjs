@@ -498,7 +498,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported editable text to an RTF file')", "RTF export completes");
   const rtfPath = await waitForDownload("smoke-a-text.rtf");
   const rtfText = readFileSync(rtfPath, "utf8");
-  if (!rtfText.startsWith("{\\\\rtf1") || !rtfText.includes("Haryomix audit fixture alpha")) {
+  if (!rtfText.startsWith("{\\rtf1") || !rtfText.includes("Haryomix audit fixture alpha")) {
     throw new Error("RTF export is malformed or missing extracted text.");
   }
   console.log("PDF Pro RTF artifact verified.");
@@ -569,6 +569,30 @@ async function run() {
     throw new Error("Exported image artifact failed PNG signature/dimensions check: " + pngWidth + "x" + pngHeight);
   }
   console.log("Image export artifact verified: valid PNG with 64x32 output dimensions.");
+
+  await clickText("button.hmx-btn", "↷ Rotate right", "rotate image right");
+  await waitFor("document.querySelector('.hmx-image-preview')?.width===32 && document.querySelector('.hmx-image-preview')?.height===64", "rotation swaps image canvas dimensions");
+  await fill("#image-watermark", "HARYOMIX AUDIT MARK", "image watermark text");
+  await chooseValue("#image-format", "image/webp", "WebP export format");
+  await clickText("button.hmx-btn.primary", "Export image", "export rotated watermarked WebP");
+  const webpPath = await waitForDownload("smoke-pixel-edited.webp");
+  const webpBytes = readFileSync(webpPath);
+  if (webpBytes.subarray(0, 4).toString() !== "RIFF" || webpBytes.subarray(8, 12).toString() !== "WEBP") {
+    throw new Error("Image Studio WebP export has an invalid RIFF/WEBP signature.");
+  }
+  console.log("Image rotation, watermark and WebP export verified.");
+
+  await chooseValue("#image-format", "image/jpeg", "JPEG target-size format");
+  await fill("#image-target-kb", "10", "minimum target file size");
+  await clickText("button.hmx-btn", "Compress to 10 KB", "compress image to target size");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Saved') || document.querySelector('.hmx-note[role=status]')?.textContent.includes('target 10 KB was not achievable')", "image target-size compression finishes");
+  const compressedName = readdirSync(profile).find(name => /^smoke-pixel-\\d+kb\\.jpg$/.test(name));
+  if (!compressedName) throw new Error("Image target-size compression did not download a named JPEG artifact.");
+  const compressedBytes = readFileSync(join(profile, compressedName));
+  if (compressedBytes[0] !== 0xff || compressedBytes[1] !== 0xd8) {
+    throw new Error("Target-size image output is not a JPEG.");
+  }
+  console.log("Image target-size JPEG artifact verified.");
 
   await navigateHistory("back", "location.pathname === '/workspace/pdf-studio' && !!document.querySelector('input.hmx-file-input')", "back returns to PDF Studio");
   await navigateHistory("forward", "location.pathname === '/workspace/image-studio' && !!document.querySelector('input.hmx-file-input')", "forward returns to Image Studio");
