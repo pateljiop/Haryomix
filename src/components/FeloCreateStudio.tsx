@@ -260,8 +260,10 @@ export function FeloCreateStudio(){
      <button type="button" className="hmx-btn" disabled={previewIndex===0} onClick={()=>{setPreviewPlaying(false);setPreviewIndex(i=>Math.max(0,i-1));}}>← Previous slide</button>
      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
       <button type="button" className="hmx-btn" aria-pressed={previewPlaying} onClick={()=>setPreviewPlaying(value=>!value)}>{previewPlaying?"Ⅱ Pause preview":"▶ Auto-play preview"}</button>
-      <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center"}}>{job.fallbackSlides.map((_,i)=><button type="button" key={i} aria-label={"Go to slide "+(i+2)} title={"Slide "+(i+2)} onClick={()=>setPreviewIndex(i)} style={{width:8,height:8,padding:0,border:0,borderRadius:8,cursor:"pointer",background:i===previewIndex?"#55d6d0":"#42516b"}}/>)}</div>
-     <button type="button" className="hmx-btn" disabled={previewIndex===job.fallbackSlides.length-1} onClick={()=>setPreviewIndex(i=>Math.min((job.fallbackSlides?.length||1)-1,i+1))}>Next slide →</button>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center"}}>{job.fallbackSlides.map((_,i)=><button type="button" key={i} aria-label={"Go to slide "+(i+2)} title={"Slide "+(i+2)} onClick={()=>{setPreviewPlaying(false);setPreviewIndex(i);}} style={{width:8,height:8,padding:0,border:0,borderRadius:8,cursor:"pointer",background:i===previewIndex?"#55d6d0":"#42516b"}}/>)}</div>
+      </div>
+     </div>
+     <button type="button" className="hmx-btn" disabled={previewIndex===job.fallbackSlides.length-1} onClick={()=>{setPreviewPlaying(false);setPreviewIndex(i=>Math.min((job.fallbackSlides?.length||1)-1,i+1));}}>Next slide →</button>
     </div>
    </section>}
    {job?.fallbackSlides&&<div className="hmx-btn-row" style={{marginTop:14}}><button className="hmx-btn primary" disabled={busy} onClick={exportPpt}>Download editable PPTX</button></div>}
