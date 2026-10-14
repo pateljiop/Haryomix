@@ -87,13 +87,13 @@ jobs:
             /workspace/pdf-studio
             /workspace/image-studio
             /workspace/exam-copilot
+            /workspace/exam-center
             /workspace/haryomix-ai
             /workspace/ai-create-studio
-            /workspace/study-planner
             /workspace/flashcards
             /workspace/focus-timer
             /workspace/student-utilities
-            /workspace/study-library
+            /workspace/notes
           )
           for route in "${routes[@]}"; do
             verified=false
@@ -137,13 +137,13 @@ jobs:
           /workspace/pdf-studio|PDF Studio
           /workspace/image-studio|Image Studio
           /workspace/exam-copilot|Exam Copilot
+          /workspace/exam-center|Exam Center
           /workspace/haryomix-ai|Haryomix AI
           /workspace/ai-create-studio|AI Create Studio
-          /workspace/study-planner|Study Planner
           /workspace/flashcards|Flashcards
           /workspace/focus-timer|Focus Timer
           /workspace/student-utilities|Student Utility Hub
-          /workspace/study-library|Study Library
+          /workspace/notes|Smart Notes
           ROUTES
 
       - name: Verify browser interactions for student tools
