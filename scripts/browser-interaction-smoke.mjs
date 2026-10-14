@@ -541,7 +541,7 @@ async function run() {
   console.log("PDF Pro re-save artifact verified.");
 
   await clickText("button.hmx-btn", "Load page thumbnails", "load PDF page thumbnails");
-  await waitFor("document.querySelectorAll('img[alt^=\\"Original PDF page\\"]').length===2", "PDF page thumbnails render");
+  await waitFor("Array.from(document.querySelectorAll('img')).filter(img=>img.alt.startsWith('Original PDF page')).length===2", "PDF page thumbnails render");
   await click("button[aria-label='Move page 2 earlier']", "move page 2 before page 1");
   await clickText("button.hmx-btn-primary", "Export reordered PDF", "export thumbnail-organized PDF");
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported 2 pages in the thumbnail order')", "thumbnail organizer export completes");
