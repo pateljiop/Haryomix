@@ -281,7 +281,7 @@ async function run() {
   await navigate("/workspace/practice-quiz", "!!document.querySelector('#hmx-quiz-track') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Start practice test'))", "Practice Quiz setup");
   await chooseValue("#hmx-quiz-track", "competitive", "competitive quiz track");
   await clickText("button", "Start practice test", "start timed practice test");
-  await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('Find the next number')", "first competitive quiz question");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-result h3')).some(el=>(el.textContent||'').includes('Find the next number'))", "first competitive quiz question");
   await clickText(".hmx-directory-card", "32", "answer number-series question");
   for (let i = 0; i < 4; i++) await clickText("button", "Next question", "advance practice quiz");
   await clickText("button", "Submit test", "submit practice quiz");
