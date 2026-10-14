@@ -215,6 +215,9 @@ async function run() {
   await send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: profile }, sessionId);
 
   await navigate("/", "!!document.querySelector('.hmx-webgl-field')", "landing page WebGL canvas");
+  await navigate("/workspace", "!!document.querySelector('.hmx-tool-directory')", "workspace tool directory");
+  await waitFor("['Flashcards','Focus Timer','Smart Notes','Student Utilities','Scientific Calculator','Unit Converter','Practice Quiz','Progress Tracker','Question Bank'].every(title=>Array.from(document.querySelectorAll('.hmx-directory-card')).some(card=>(card.textContent||'').includes(title)))", "all workspace tools are discoverable in the directory");
+  console.log("Workspace directory exposes all tools, including secondary study and utility tools.");
   const dedicatedRoutes = [
     ["/workspace", "Your workspace"],
     ["/workspace/code-doctor", "Code Doctor"],
@@ -280,6 +283,11 @@ async function run() {
   await clickText(".hmx-directory-card", "Create study material", "open Exam Copilot from Exam Center");
   await waitFor("document.querySelector('.hmx-workspace-head h1')?.textContent==='Exam Copilot'", "Exam Center opens the dedicated Exam Copilot page");
   console.log("Exam Center track selection and dedicated study-tool navigation passed.");
+
+  await navigate("/workspace/id-arranger", "!!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Try Sample'))", "ID Arranger sample controls");
+  await clickText("button", "Try Sample", "load ID Arranger demo artwork");
+  await waitFor("document.querySelectorAll('.id-arranger-thumb').length===2 && Array.from(document.querySelectorAll('.id-arranger-upload-hint')).some(el=>(el.textContent||'').includes('haryomix-sample-front.png'))", "ID Arranger loads both clearly labelled demo images");
+  console.log("ID Arranger Try Sample loads safe demo artwork for both sides.");
 
   await navigate("/workspace/practice-quiz", "!!document.querySelector('#hmx-quiz-track') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Start practice test'))", "Practice Quiz setup");
   await chooseValue("#hmx-quiz-track", "competitive", "competitive quiz track");
