@@ -44,10 +44,15 @@ test("health reports setup needed when D1 is missing", async () => {
   assert.equal((await response.json()).database, "not-configured");
 });
 
-test("health confirms a reachable D1 binding", async () => {
+test("health reports reachable D1 while identifying missing AI provider setup", async () => {
   const response = await healthGet({ env: { DB: mockDb() } });
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).status, "ok");
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.status, "needs-setup");
+  assert.equal(body.database, "connected");
+  assert.equal(body.databaseChecks.reachable, true);
+  assert.equal(body.checks.chatReady, false);
+  assert.equal(body.checks.pptReady, false);
 });
 
 test("community GET returns 503 when D1 is not configured", async () => {
