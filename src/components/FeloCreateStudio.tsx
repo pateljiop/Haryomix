@@ -1,6 +1,8 @@
 import { useState } from "react";
+import pptxgen from "pptxgenjs";
 
-type PptJob={taskId:string;businessId:string;status:string;liveDocId?:string|null;liveUrl?:string|null};
+type SlideContent={title:string;bullets:string[];notes?:string;subtitle?:string;takeaway?:string;section?:string;layout?:string};
+type PptJob={taskId:string;businessId:string;status:string;liveDocId?:string|null;liveUrl?:string|null;fallbackSlides?:SlideContent[];provider?:string;title?:string};
 async function api(path:string,body:unknown){
  const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
  const data=await response.json().catch(()=>({}));
@@ -24,8 +26,14 @@ export function FeloCreateStudio(){
   setBusy(true);setMessage("Presentation task start ho raha hai…");setJob(null);
   try{
    const data=await api("/api/ai/ppt",{action:"create",query:topic,slides:Number(slides),style});
+   if(data.mode==="ai-generated-pptx"&&Array.isArray(data.slides)&&data.slides.length){
+    const fallbackSlides=data.slides.filter((slide:unknown):slide is SlideContent=>Boolean(slide&&typeof slide==="object"&&typeof (slide as SlideContent).title==="string"&&Array.isArray((slide as SlideContent).bullets)));
+    if(!fallbackSlides.length)throw new Error("AI provider ne valid slide content nahi diya. Dobara try karo.");
+    setJob({taskId:`local-${Date.now()}`,businessId:"local-pptx",status:"COMPLETED",fallbackSlides,provider:typeof data.provider==="string"?data.provider:"AI",title:typeof data.title==="string"?data.title:topic});
+    setDownloadUrl("");setMessage(`Slides ${typeof data.provider==="string"?data.provider:"AI"} se ready hain. “Export editable PPTX” dabao.`);return;
+   }
    if(typeof data.taskId!=="string"||!data.taskId||typeof data.businessId!=="string"||!data.businessId)throw new Error("Presentation service ne valid task details nahi diye. Dobara try karo.");
-   let currentJob:PptJob={taskId:data.taskId,businessId:data.businessId,status:typeof data.status==="string"?data.status:"RUNNING",liveDocId:data.liveDocId};
+   let currentJob:PptJob={taskId:data.taskId,businessId:data.businessId,status:typeof data.status==="string"?data.status:"RUNNING",liveDocId:data.liveDocId,provider:typeof data.provider==="string"?data.provider:"felo"};
    setJob(currentJob);setDownloadUrl("");setMessage("PPT task start ho gaya hai. Main automatically status check kar raha hoon…");
    const terminal=["COMPLETED","FAILED","ERROR","PENDING","EXPIRED","CANCELED"];
    let finished=false;
@@ -50,8 +58,95 @@ export function FeloCreateStudio(){
  }
  async function exportPpt(){
   if(!job)return;setBusy(true);
-  try{const data=await api("/api/ai/ppt",{action:"export",businessId:job.businessId});setMessage(data.status==="PROCESSING"?"PPTX export started. Ab export status check karo.":"Export request accepted.");}
-  catch(e){setMessage(e instanceof Error?e.message:"PPTX export failed.");}finally{setBusy(false);}
+  try{
+   const fallbackSlides: SlideContent[] | undefined = job.fallbackSlides;
+   if(fallbackSlides && fallbackSlides.length > 0){
+    const deck=new pptxgen();
+    deck.layout="LAYOUT_WIDE";
+    deck.author="Haryomix AI Create Studio";deck.subject=topic;deck.title=job.title||topic;deck.company="Haryomix";
+    deck.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos"};
+    const C={navy:"0A1020",navy2:"121D36",ink:"17233B",muted:"66738A",blue:"4169E1",cyan:"55D6D0",pale:"F3F6FC",white:"FFFFFF",line:"DDE5F1",softBlue:"EAF0FF",softCyan:"E7F8F6",softGold:"FFF5DF",gold:"D59A26"};
+    const H=7.5;
+    const addText=(slide:any,text:string,opts:any)=>slide.addText(text,{fontFace:"Aptos",margin:0,breakLine:false,fit:"shrink",...opts});
+    const addFooter=(slide:any,n:number,total:number,dark=false)=>{
+      slide.addShape(deck.ShapeType.line,{x:0.62,y:7.05,w:12.08,h:0,line:{color:dark?"2B3853":C.line,width:0.7}});
+      addText(slide,"HARYOMIX  /  AI CREATE STUDIO",{x:0.66,y:7.12,w:4.6,h:0.16,fontSize:7.5,bold:true,charSpacing:1.2,color:dark?"9AABC9":C.muted});
+      addText(slide,String(n).padStart(2,"0")+"  /  "+String(total).padStart(2,"0"),{x:11.35,y:7.1,w:1.25,h:0.2,fontSize:8,color:dark?"9AABC9":C.muted,align:"right"});
+    };
+    const cover=deck.addSlide();cover.background={color:C.navy};
+    cover.addShape(deck.ShapeType.rect,{x:0,y:0,w:0.18,h:H,line:{color:C.blue,transparency:100},fill:{color:C.blue}});
+    cover.addShape(deck.ShapeType.ellipse,{x:8.9,y:-1.5,w:5.6,h:5.6,line:{color:"24385F",width:1.4,transparency:10},fill:{color:C.navy,transparency:100}});
+    cover.addShape(deck.ShapeType.ellipse,{x:9.55,y:-0.85,w:4.3,h:4.3,line:{color:"2B4D8A",width:1.2,transparency:15},fill:{color:C.navy,transparency:100}});
+    cover.addShape(deck.ShapeType.ellipse,{x:10.15,y:-0.25,w:3.1,h:3.1,line:{color:C.cyan,width:1.1,transparency:28},fill:{color:C.navy,transparency:100}});
+    cover.addShape(deck.ShapeType.roundRect,{x:0.86,y:0.72,w:2.55,h:0.38,line:{color:"33466A",width:0.8},fill:{color:C.navy2}});
+    addText(cover,"EXPERT PRESENTATION",{x:1.02,y:0.83,w:2.25,h:0.13,fontSize:8,bold:true,charSpacing:1.3,color:C.cyan});
+    addText(cover,job.title||topic,{x:0.86,y:1.7,w:9.8,h:2.2,fontFace:"Aptos Display",fontSize:32,bold:true,color:C.white,breakLine:false,fit:"shrink",valign:"middle",lineSpacingMultiple:1.0});
+    cover.addShape(deck.ShapeType.line,{x:0.9,y:4.15,w:1.35,h:0,line:{color:C.cyan,width:3}});
+    addText(cover,"A structured, editable deck designed for clarity, depth and practical use.",{x:0.9,y:4.45,w:8.5,h:0.65,fontSize:16,color:"C7D3E9",breakLine:false,fit:"shrink"});
+    addText(cover,"PREPARED WITH",{x:0.9,y:5.75,w:1.55,h:0.18,fontSize:7.5,bold:true,charSpacing:1,color:"8192B1"});
+    addText(cover,job.provider||"AI-assisted research and synthesis",{x:0.9,y:6.05,w:7.5,h:0.28,fontSize:10,color:"DCE5F7"});
+    addText(cover,"HARYOMIX",{x:10.5,y:6.15,w:1.95,h:0.28,fontSize:12,bold:true,charSpacing:2,color:C.white,align:"right"});
+    addFooter(cover,1,fallbackSlides.length+1,true);
+    fallbackSlides.forEach((item,index)=>{
+      const slide=deck.addSlide();const dark=index%5===4;
+      slide.background={color:dark?C.navy:(index%2===0?C.white:C.pale)};
+      const ink=dark?C.white:C.ink,muted=dark?"B4C1D9":C.muted;
+      const section=(item.section||(["FOUNDATIONS","KEY IDEAS","PRACTICAL APPLICATION","ANALYSIS","TAKEAWAYS"][index%5])).toUpperCase().slice(0,36);
+      slide.addShape(deck.ShapeType.rect,{x:0,y:0,w:0.16,h:H,line:{color:C.blue,transparency:100},fill:{color:C.blue}});
+      addText(slide,section,{x:0.72,y:0.48,w:8.6,h:0.18,fontSize:8,bold:true,charSpacing:1.8,color:dark?C.cyan:C.blue});
+      addText(slide,item.title||("Key idea "+(index+1)),{x:0.7,y:0.83,w:11.95,h:0.78,fontFace:"Aptos Display",fontSize:25,bold:true,color:ink,fit:"shrink",valign:"middle"});
+      slide.addShape(deck.ShapeType.line,{x:0.72,y:1.72,w:1.12,h:0,line:{color:C.cyan,width:2.7}});
+      if(item.subtitle){
+        addText(slide,item.subtitle,{x:0.72,y:1.88,w:11.8,h:0.42,fontSize:11,color:muted,fit:"shrink"});
+      }
+      const bullets=item.bullets.slice(0,5);
+      const top=item.subtitle?2.48:2.12;
+      const available=(item.takeaway?3.55:4.15);
+      const gap=Math.min(1.08,available/Math.max(bullets.length,1));
+      const layout=(item.layout||(["cards","process","spotlight"][index%3])).toLowerCase();
+      if(layout==="process"&&bullets.length>=3){
+        const stepW=11.8/Math.min(bullets.length,4);
+        bullets.slice(0,4).forEach((bullet,i)=>{
+          const x=0.72+i*stepW;
+          slide.addShape(deck.ShapeType.roundRect,{x,y:top+0.12,w:stepW-0.18,h:2.8,line:{color:dark?"304264":C.line,width:0.8},fill:{color:dark?C.navy2:C.white}});
+          slide.addShape(deck.ShapeType.ellipse,{x:x+0.18,y:top+0.32,w:0.48,h:0.48,line:{color:C.blue,transparency:100},fill:{color:C.blue}});
+          addText(slide,String(i+1).padStart(2,"0"),{x:x+0.18,y:top+0.47,w:0.48,h:0.12,fontSize:9,bold:true,color:C.white,align:"center"});
+          addText(slide,bullet,{x:x+0.18,y:top+1.02,w:stepW-0.55,h:1.55,fontSize:13,bold:true,color:ink,fit:"shrink",valign:"top",breakLine:false});
+        });
+      }else if(layout==="spotlight"){
+        const first=bullets[0]||"";
+        slide.addShape(deck.ShapeType.roundRect,{x:0.72,y:top+0.05,w:4.15,h:2.85,line:{color:dark?"304264":"D8E3FF",width:0.8},fill:{color:dark?C.navy2:C.softBlue}});
+        addText(slide,"CORE INSIGHT",{x:1.02,y:top+0.35,w:3.3,h:0.18,fontSize:8,bold:true,charSpacing:1.3,color:C.blue});
+        addText(slide,first,{x:1.02,y:top+0.76,w:3.45,h:1.7,fontFace:"Aptos Display",fontSize:19,bold:true,color:ink,fit:"shrink",valign:"mid"});
+        bullets.slice(1,5).forEach((bullet,i)=>{
+          const y=top+0.1+i*0.73;
+          slide.addShape(deck.ShapeType.ellipse,{x:5.25,y:y+0.1,w:0.18,h:0.18,line:{color:C.cyan,transparency:100},fill:{color:C.cyan}});
+          addText(slide,bullet,{x:5.62,y,w:6.65,h:0.55,fontSize:13,color:ink,fit:"shrink",valign:"mid"});
+        });
+      }else{
+        bullets.forEach((bullet,i)=>{
+          const col=i%2,row=Math.floor(i/2);
+          const x=0.72+col*6.0,y=top+row*gap;
+          slide.addShape(deck.ShapeType.roundRect,{x,y,w:5.72,h:Math.max(0.72,gap-0.12),line:{color:dark?"304264":C.line,width:0.7},fill:{color:dark?C.navy2:C.white}});
+          slide.addShape(deck.ShapeType.rect,{x:x+0.02,y:y+0.12,w:0.045,h:Math.max(0.42,gap-0.36),line:{color:C.blue,transparency:100},fill:{color:i%2===0?C.blue:C.cyan}});
+          addText(slide,String(i+1).padStart(2,"0"),{x:x+0.22,y:y+0.14,w:0.4,h:0.16,fontSize:8,bold:true,color:C.blue});
+          addText(slide,bullet,{x:x+0.72,y:y+0.13,w:4.72,h:Math.max(0.42,gap-0.28),fontSize:12.5,color:ink,fit:"shrink",valign:"mid"});
+        });
+      }
+      if(item.takeaway){
+        slide.addShape(deck.ShapeType.roundRect,{x:0.72,y:6.18,w:11.8,h:0.58,line:{color:dark?"304264":"C8EDE8",width:0.7},fill:{color:dark?C.navy2:C.softCyan}});
+        addText(slide,"KEY TAKEAWAY",{x:0.94,y:6.36,w:1.38,h:0.14,fontSize:7.5,bold:true,charSpacing:0.8,color:dark?C.cyan:"157C78"});
+        addText(slide,item.takeaway,{x:2.42,y:6.29,w:9.78,h:0.28,fontSize:10.5,bold:true,color:ink,fit:"shrink",valign:"mid"});
+      }
+      addFooter(slide,index+2,fallbackSlides.length+1,dark);
+      if(item.notes&&typeof slide.addNotes==="function")slide.addNotes(item.notes);
+    });
+    await deck.writeFile({fileName:`${(job.title||topic).replace(/[^a-z0-9-_ ]/gi,"").trim().replace(/\\s+/g,"-").slice(0,60)||"haryomix-presentation"}.pptx`});
+    setMessage("Editable PPTX download ho gaya. Agar file nahi dikhe to browser downloads check karo.");
+   }else{
+    const data=await api("/api/ai/ppt",{action:"export",businessId:job.businessId});setMessage(data.status==="PROCESSING"?"PPTX export started. Ab export status check karo.":"Export request accepted.");
+   }
+  }catch(e){setMessage(e instanceof Error?e.message:"PPTX export failed.");}finally{setBusy(false);}
  }
  async function checkExport(){
   if(!job)return;setBusy(true);
@@ -71,8 +166,8 @@ export function FeloCreateStudio(){
    <div className="hmx-field"><label htmlFor="felo-ppt-topic">Presentation topic and requirements</label><textarea id="felo-ppt-topic" className="hmx-textarea" style={{minHeight:140,fontFamily:"inherit"}} value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Topic, audience, language, key points, examples, level of detail, and desired conclusion…"/></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-slides">Target slide count</label><select id="felo-ppt-slides" className="hmx-select" value={slides} onChange={e=>setSlides(e.target.value)}>{["5","8","10","12","15","20","25","30"].map(n=><option key={n} value={n}>{n} slides</option>)}</select></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-style">Visual style</label><input id="felo-ppt-style" className="hmx-input" value={style} onChange={e=>setStyle(e.target.value)}/></div>
-   <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
-   {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}</p>}{job?.liveUrl&&/^https:\/\//i.test(job.liveUrl)&&<p><a href={job.liveUrl} target="_blank" rel="noreferrer" className="hmx-btn" style={{display:"inline-block",textDecoration:"none"}}>Preview presentation</a></p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
+   <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
+   {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}{job.provider?` • Provider: ${job.provider}`:""}</p>}{job?.liveUrl&&/^https:\/\//i.test(job.liveUrl)&&<p><a href={job.liveUrl} target="_blank" rel="noreferrer" className="hmx-btn" style={{display:"inline-block",textDecoration:"none"}}>Preview presentation</a></p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
   </>:<>
    <div className="hmx-field"><label htmlFor="felo-image-prompt">Describe the image</label><textarea id="felo-image-prompt" className="hmx-textarea" style={{minHeight:130,fontFamily:"inherit"}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Subject, composition, mood, lighting, art direction, background, aspect ratio, intended use…"/></div>
       <div className="hmx-field"><label htmlFor="felo-image-size">Image size</label><select id="felo-image-size" className="hmx-select" value={size} onChange={e=>setSize(e.target.value)}><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Portrait · 1024 × 1536</option></select></div>

@@ -1,4 +1,4 @@
-interface Env { FELO_API_KEY?: string; DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>() : Promise<T | null>; run(): Promise<unknown> } } } }
+interface Env { FELO_API_KEY?: string; GROQ_API_KEY?: string; GEMINI_API_KEY?: string; XAI_API_KEY?: string; DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>() : Promise<T | null>; run(): Promise<unknown> } } } }
 const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 function reply(body: unknown, status=200) { return new Response(JSON.stringify(body), {status, headers}); }
 function clean(value: unknown, max=300): string { return typeof value === "string" ? value.trim().slice(0,max) : ""; }
@@ -22,6 +22,90 @@ async function felo(path: string, key: string, init: RequestInit = {}) {
   if (!response.ok || data?.status === "error") throw new Error(response.status === 429 ? "rate_limit" : response.status === 402 ? "credits_required" : "provider_error");
   return data;
 }
+
+type SlideContent = { title: string; bullets: string[]; notes?: string; subtitle?: string; takeaway?: string; section?: string; layout?: string };
+async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", key: string, query: string, count: number, style: string): Promise<SlideContent[]> {
+  const instruction = `Create exactly ${count} slides for an expert-level, evidence-aware PowerPoint. Topic and requirements: ${query}. Visual direction: ${style}. Audience: infer from the request; if unspecified, write for an informed general audience. Follow the requested language. Return ONLY valid JSON (no Markdown fences) shaped as {"title":"deck title","slides":[{"title":"insight-led slide title","subtitle":"one-sentence context","section":"short section label","layout":"cards|spotlight|process","bullets":["specific useful point","specific useful point","specific useful point"],"takeaway":"one-sentence implication","notes":"substantial presenter notes with explanation, transitions, example and caveat where relevant"}]}. Build a coherent narrative: opening/context, core concepts, mechanisms or framework, practical examples, limitations/risks, actionable recommendations, conclusion. Every slide must add a distinct idea, not repeat. Use 2-4 substantive bullets per slide (5 only if needed), explain acronyms, avoid vague filler, and make titles communicate a conclusion. Use real facts and verifiable examples when known; never fabricate citations, sources, quotes, or statistics. For current or fast-changing topics, clearly label facts that need current verification instead of pretending to have browsed. Notes should be useful to a presenter, generally 60-120 words per slide when the topic supports it. Pick layout cards for grouped concepts, spotlight for a key insight, process for chronological or step-by-step content.`;
+  let response: Response;
+  if (provider === "groq" || provider === "grok") {
+    const endpoint = provider === "grok" ? "https://api.x.ai/v1/chat/completions" : "https://api.groq.com/openai/v1/chat/completions";
+    const model = provider === "grok" ? "grok-4.7" : "openai/gpt-oss-120b";
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model, temperature: 0.2, max_tokens: 8000, messages: [{ role: "system", content: "You produce accurate slide content and strictly valid JSON only." }, { role: "user", content: instruction }] }),
+      signal: AbortSignal.timeout(25_000),
+    });
+  } else {
+    response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: "You produce accurate slide content and strictly valid JSON only." }] }, contents: [{ role: "user", parts: [{ text: instruction }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 8000, responseMimeType: "application/json" } }),
+      signal: AbortSignal.timeout(25_000),
+    });
+  }
+  if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status === 401 || response.status === 403 ? "credentials_rejected" : "provider_error");
+  const payload = await response.json() as any;
+  const raw = provider === "gemini"
+    ? payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("")
+    : payload?.choices?.[0]?.message?.content;
+  if (typeof raw !== "string" || !raw.trim()) throw new Error("empty_response");
+  const cleaned = raw.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, "");
+  let parsed: any;
+  try { parsed = JSON.parse(cleaned); } catch { throw new Error("invalid_json"); }
+  const slides = Array.isArray(parsed?.slides) ? parsed.slides : [];
+  if (slides.length < Math.min(count, 3)) throw new Error("invalid_slide_count");
+  return slides.slice(0, count).map((slide: any, index: number) => ({
+    title: typeof slide?.title === "string" && slide.title.trim() ? slide.title.trim().slice(0, 180) : `Slide ${index + 1}`,
+    bullets: (Array.isArray(slide?.bullets) ? slide.bullets : []).filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())).slice(0, 5).map((value: string) => value.trim().slice(0, 500)),
+    notes: typeof slide?.notes === "string" ? slide.notes.slice(0, 4000) : "",
+    subtitle: typeof slide?.subtitle === "string" ? slide.subtitle.trim().slice(0, 240) : "",
+    takeaway: typeof slide?.takeaway === "string" ? slide.takeaway.trim().slice(0, 240) : "",
+    section: typeof slide?.section === "string" ? slide.section.trim().slice(0, 60) : "",
+    layout: ["cards","spotlight","process"].includes(slide?.layout) ? slide.layout : "",
+  })).map((slide: SlideContent) => ({ ...slide, bullets: slide.bullets.length ? slide.bullets : ["Review the key concepts and apply them to the presentation topic."] }));
+}
+async function generateFallbackSlides(env: Env, query: string, count: number, style: string): Promise<{ title: string; slides: SlideContent[]; provider: string }> {
+  const failures: string[] = [];
+  // When both keys exist, Gemini creates the first draft and Grok performs an editorial pass.
+  // This gives the user a genuinely multi-model deck rather than a single-provider fallback.
+  if (env.GEMINI_API_KEY && env.XAI_API_KEY) {
+    try {
+      const draft = await generateSlidesWithProvider("gemini", env.GEMINI_API_KEY, query, count, style);
+      const reviewPrompt = [
+        "Act as a senior presentation strategist, domain expert, fact-checking editor, and visual storyteller.",
+        "Improve the following draft into an expert-level presentation. Keep the same requested topic and exactly the requested number of slides.",
+        "Strengthen the narrative, remove repetition, make bullets specific and useful, add practical examples/frameworks where supportable, and make slide titles insight-led.",
+        "Do not invent sources, citations, quotations, or statistics. Preserve uncertainty where facts cannot be verified.",
+        "Return only the exact JSON schema required for a PowerPoint: {title, slides:[{title, bullets, notes}]}.",
+        `Requested topic: ${query}`,
+        `Slide count: ${count}`,
+        `Visual direction: ${style}`,
+        `Gemini draft: ${JSON.stringify({ title: draft[0]?.title || query, slides: draft })}`,
+      ].join("\\n");
+      const refined = await generateSlidesWithProvider("grok", env.XAI_API_KEY, reviewPrompt, count, style);
+      return { title: refined[0]?.title || draft[0]?.title || query.slice(0, 100), slides: refined, provider: "Gemini + Grok editorial pass" };
+    } catch (error) {
+      failures.push(`dual_model:${error instanceof Error ? error.message : "provider_error"}`);
+      // Continue with the best available single provider below.
+    }
+  }
+  const providers: Array<{ name: "gemini" | "groq" | "grok"; key?: string }> = [
+    { name: "gemini", key: env.GEMINI_API_KEY },
+    { name: "groq", key: env.GROQ_API_KEY },
+    { name: "grok", key: env.XAI_API_KEY },
+  ];
+  for (const provider of providers) {
+    if (!provider.key) continue;
+    try {
+      const slides = await generateSlidesWithProvider(provider.name, provider.key, query, count, style);
+      return { title: slides[0]?.title || query.slice(0, 100), slides, provider: provider.name };
+    } catch (error) {
+      failures.push(`${provider.name}:${error instanceof Error ? error.message : "provider_error"}`);
+    }
+  }
+  throw new Error(failures.length ? failures.join(",") : "no_fallback_provider");
+}
 export async function onRequestPost({request,env}:{request:Request;env:Env}):Promise<Response>{
   if(!request.headers.get("content-type")?.toLowerCase().includes("application/json")) return reply({error:"Send a JSON request."},415);
   const declaredLength = Number(request.headers.get("content-length") || "0");
@@ -36,7 +120,8 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
   if((action==="export" || action==="export-status") && !clean(body.businessId,100)) return reply({error:"Presentation ID is required."},400);
   if(action==="status" && !clean(body.taskId,100)) return reply({error:"Task ID is required."},400);
   if(!["create","status","export","export-status"].includes(action)) return reply({error:"Unsupported action."},400);
-  if(!env.FELO_API_KEY) return reply({error:"Felo is not configured on the server.",code:"provider_not_configured"},503);
+  if(action!=="create" && !env.FELO_API_KEY) return reply({error:"Felo is not configured on the server for status/export operations.",code:"provider_not_configured"},503);
+  if(action==="create" && !env.FELO_API_KEY && !env.GROQ_API_KEY && !env.GEMINI_API_KEY && !env.XAI_API_KEY) return reply({error:"Configure at least one provider: FELO_API_KEY, XAI_API_KEY, GEMINI_API_KEY, or GROQ_API_KEY.",code:"provider_not_configured"},503);
   if(action==="create"||action==="export"){
     if(!env.DB) return reply({error:"AI request protection is not configured. Database binding is required.",code:"rate_limit_unavailable"},503);
     try { if(!await withinLimit(request,env)) return reply({error:"AI creation/export limit reached for this hour. Please retry later.",code:"rate_limited"},429); }
@@ -49,27 +134,38 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
       const count=Math.min(30,Math.max(3,Number(body.slides)||10));
       const style=clean(body.style,100)||"clean professional";
       const prompt=`Create a polished, accurate, editable PowerPoint presentation. Target ${count} slides. Topic and requirements: ${query}. Visual direction: ${style}. Use a strong narrative, meaningful slide titles, concise readable text, examples/data only when supportable, a clear conclusion, and no fabricated citations or statistics. Language should follow the user's prompt.`;
-      const result=await felo("/v2/ppts",env.FELO_API_KEY,{method:"POST",body:JSON.stringify({query:prompt})});
-      const data=result?.data||{};
-      if(!data.task_id||!data.ppt_business_id) return reply({error:"Felo did not return a usable presentation task.",code:"invalid_provider_response"},502);
-      return reply({taskId:data.task_id,businessId:data.ppt_business_id,liveDocId:data.livedoc_short_id||null,status:"RUNNING"});
+      if(env.FELO_API_KEY){
+        try {
+          const result=await felo("/v2/ppts",env.FELO_API_KEY!,{method:"POST",body:JSON.stringify({query:prompt})});
+          const data=result?.data||{};
+          if(data.task_id&&data.ppt_business_id) return reply({taskId:data.task_id,businessId:data.ppt_business_id,liveDocId:data.livedoc_short_id||null,status:"RUNNING",provider:"felo"});
+        } catch {
+          // Continue to the configured text-model providers so users can still get an editable PPTX.
+        }
+      }
+      try {
+        const fallback=await generateFallbackSlides(env,query,count,style);
+        return reply({mode:"ai-generated-pptx",status:"COMPLETED",provider:fallback.provider,title:fallback.title,slides:fallback.slides});
+      } catch {
+        return reply({error:"Felo could not create the presentation and all configured AI fallbacks failed. Check API keys, provider quota, and model access.",code:"all_providers_failed"},502);
+      }
     }
     const taskId=clean(body.taskId,100), businessId=clean(body.businessId,100);
     if(action==="status"){
       if(!taskId) return reply({error:"Task ID is required."},400);
-      const result=await felo(`/v2/tasks/${encodeURIComponent(taskId)}/status`,env.FELO_API_KEY);
+      const result=await felo(`/v2/tasks/${encodeURIComponent(taskId)}/status`,env.FELO_API_KEY!);
       const status=clean(result?.data?.status,40).toUpperCase();
-      const historical=status==="COMPLETED"||status==="FAILED"||status==="ERROR" ? await felo(`/v2/tasks/${encodeURIComponent(taskId)}/historical`,env.FELO_API_KEY) : null;
+      const historical=status==="COMPLETED"||status==="FAILED"||status==="ERROR" ? await felo(`/v2/tasks/${encodeURIComponent(taskId)}/historical`,env.FELO_API_KEY!) : null;
       return reply({status:status||"RUNNING",liveUrl:historical?.data?.ppt_url||null,error:historical?.data?.error_message||null,businessId:historical?.data?.ppt_biz_id||businessId||null});
     }
     if(action==="export"){
       if(!businessId) return reply({error:"Presentation ID is required."},400);
-      await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY,{method:"POST",body:"{}"});
+      await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY!,{method:"POST",body:"{}"});
       return reply({status:"PROCESSING"});
     }
     if(action==="export-status"){
       if(!businessId) return reply({error:"Presentation ID is required."},400);
-      const result=await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY);
+      const result=await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY!);
       return reply({status:clean(result?.data?.status,40).toUpperCase()||"PROCESSING",downloadUrl:result?.data?.download_url||null,expiresAt:result?.data?.expires_at||null});
     }
     return reply({error:"Unsupported action."},400);

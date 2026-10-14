@@ -292,6 +292,137 @@ test("PPT API can parse a mocked Felo presentation task response", async () => {
   });
 });
 
+test("PPT API falls back to xAI Grok when Felo is not configured", async () => {
+  await withMockFetch(async (input, init) => {
+    assert.equal(String(input), "https://api.x.ai/v1/chat/completions");
+    const requestBody = JSON.parse(String(init?.body || "{}"));
+    assert.equal(requestBody.model, "grok-4.7");
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+      title: "Solar Energy",
+      slides: [
+        { title: "Introduction", bullets: ["Solar panels convert sunlight into electricity", "Photovoltaic cells generate direct current"] },
+        { title: "Benefits", bullets: ["Low operational emissions", "Can reduce grid electricity use"] },
+        { title: "Conclusion", bullets: ["Output depends on sunlight and system design", "Storage can support use after sunset"] }
+      ]
+    }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }, async () => {
+    const response = await pptPost({
+      request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "Create a presentation about solar energy for students", slides: 3 }),
+      env: { DB: mockDb(), XAI_API_KEY: "test-xai-key" },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "ai-generated-pptx");
+    assert.equal(body.provider, "grok");
+    assert.equal(body.slides.length, 3);
+  });
+});
+
+test("PPT API uses Gemini for the draft and Grok for the expert editorial pass when both keys exist", async () => {
+  let geminiCalled = false;
+  let grokCalled = false;
+  await withMockFetch(async (input, init) => {
+    const url = String(input);
+    if (url.startsWith("https://generativelanguage.googleapis.com/")) {
+      geminiCalled = true;
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+        title: "AI in Education",
+        slides: [
+          { title: "Context", bullets: ["AI tools are increasingly used in learning"] },
+          { title: "Use cases", bullets: ["Personalized practice can adapt to learner needs"] },
+          { title: "Responsible use", bullets: ["Verify outputs and protect student data"] }
+        ]
+      }) }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url === "https://api.x.ai/v1/chat/completions") {
+      grokCalled = true;
+      const requestBody = JSON.parse(String(init?.body || "{}"));
+      assert.match(requestBody.messages[1].content, /Gemini draft/i);
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+        title: "AI in Education: Practical Strategy",
+        slides: [
+          { title: "Why now", bullets: ["AI can scale practice and feedback when guided by educators"] },
+          { title: "High-value use cases", bullets: ["Use adaptive quizzes to expose knowledge gaps"] },
+          { title: "Guardrails", bullets: ["Keep humans accountable and verify consequential outputs"] }
+        ]
+      }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error("Unexpected provider URL: " + url);
+  }, async () => {
+    const response = await pptPost({
+      request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "Create an expert presentation about AI in education", slides: 3 }),
+      env: { DB: mockDb(), GEMINI_API_KEY: "test-gemini-key", XAI_API_KEY: "test-xai-key" },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "ai-generated-pptx");
+    assert.equal(body.provider, "Gemini + Grok editorial pass");
+    assert.equal(body.slides.length, 3);
+    assert.equal(body.slides[0].title, "Why now");
+  });
+  assert.equal(geminiCalled, true);
+  assert.equal(grokCalled, true);
+});
+
+test("PPT API falls back to Groq slide content when Felo is not configured", async () => {
+  await withMockFetch(async input => {
+    assert.equal(String(input), "https://api.groq.com/openai/v1/chat/completions");
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+      title: "Photosynthesis",
+      slides: [
+        { title: "Overview", bullets: ["Plants capture light energy", "Chlorophyll absorbs light"], notes: "Introduce the topic." },
+        { title: "Process", bullets: ["Light reactions", "Calvin cycle"], notes: "Explain both stages." },
+        { title: "Summary", bullets: ["Energy conversion supports life", "Plants store chemical energy"] }
+      ]
+    }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }, async () => {
+    const response = await pptPost({
+      request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "Create a presentation explaining photosynthesis for students", slides: 3 }),
+      env: { DB: mockDb(), GROQ_API_KEY: "test-groq-key" },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "ai-generated-pptx");
+    assert.equal(body.provider, "groq");
+    assert.equal(body.status, "COMPLETED");
+    assert.equal(body.slides.length, 3);
+    assert.equal(body.slides[0].title, "Overview");
+  });
+});
+
+test("PPT API falls back to Gemini slide content when Felo generation fails", async () => {
+  await withMockFetch(async input => {
+    const url = String(input);
+    if (url === "https://openapi.felo.ai/v2/ppts") return new Response(JSON.stringify({ error: "credits exhausted" }), { status: 402 });
+    if (url.startsWith("https://generativelanguage.googleapis.com/")) {
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+        title: "Water Cycle",
+        slides: [
+          { title: "Evaporation", subtitle: "Solar energy moves water into the atmosphere.", section: "WATER MOVEMENT", layout: "spotlight", takeaway: "Energy from the Sun drives the cycle.", bullets: ["Heat changes liquid water into vapor", "Water vapor rises into the atmosphere"], notes: "Explain the energy input and transition to condensation." },
+          { title: "Condensation", bullets: ["Vapor cools and forms droplets", "Clouds are made of tiny droplets or ice crystals"] },
+          { title: "Collection", bullets: ["Water returns through precipitation", "Runoff and groundwater collect in rivers and oceans"] }
+        ]
+      }) }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error("Unexpected provider URL: " + url);
+  }, async () => {
+    const response = await pptPost({
+      request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "Explain the water cycle to middle-school students", slides: 3 }),
+      env: { DB: mockDb(), FELO_API_KEY: "test-felo-key", GEMINI_API_KEY: "test-gemini-key" },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "ai-generated-pptx");
+    assert.equal(body.provider, "gemini");
+    assert.equal(body.slides.length, 3);
+    assert.equal(body.slides[0].subtitle, "Solar energy moves water into the atmosphere.");
+    assert.equal(body.slides[0].section, "WATER MOVEMENT");
+    assert.equal(body.slides[0].layout, "spotlight");
+    assert.equal(body.slides[0].takeaway, "Energy from the Sun drives the cycle.");
+    assert.match(body.slides[0].notes, /energy input/i);
+  });
+});
+
 test("legacy Workers AI endpoint returns a safe setup error without a binding", async () => {
   const response = await workersAiPost({
     request: jsonRequest("https://example.test/api/ai", { task: "ask", content: "Explain a loop" }),
