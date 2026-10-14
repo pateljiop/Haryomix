@@ -365,7 +365,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported selectable text')", "PDF CSV export completes");
   const csvPath = await waitForDownload("smoke-a-text-positions.csv");
   const csvText = readFileSync(csvPath, "utf8");
-  if (!csvText.startsWith("page,x,y,text") || !csvText.includes("AUDIT ALPHA") || !csvText.includes("AUDIT BETA")) {
+  if (!csvText.startsWith('"page","x","y","text"') || !csvText.includes("AUDIT ALPHA") || !csvText.includes("AUDIT BETA")) {
     throw new Error("CSV export omitted expected page/text coordinate data: " + csvText);
   }
   console.log("PDF Pro CSV artifact verified.");
