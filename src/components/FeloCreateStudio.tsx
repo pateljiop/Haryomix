@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import pptxgen from "pptxgenjs";
 import JSZip from "jszip";
 
@@ -19,6 +19,13 @@ export function FeloCreateStudio(){
  const [size,setSize]=useState("1024x1024");
  const [job,setJob]=useState<PptJob|null>(null);
  const [previewIndex,setPreviewIndex]=useState(0);
+ const [previewPlaying,setPreviewPlaying]=useState(false);
+ useEffect(()=>{
+  const count=job?.fallbackSlides?.length||0;
+  if(!previewPlaying||count===0)return;
+  const timer=window.setInterval(()=>setPreviewIndex(index=>(index+1)%count),3600);
+  return ()=>window.clearInterval(timer);
+ },[previewPlaying,job?.fallbackSlides?.length]);
  const [image,setImage]=useState("");
  const [downloadUrl,setDownloadUrl]=useState("");
  const [busy,setBusy]=useState(false);
@@ -35,7 +42,7 @@ export function FeloCreateStudio(){
    if(Array.isArray(data.slides)&&data.slides.length){
     const fallbackSlides=data.slides.filter((slide:unknown):slide is SlideContent=>Boolean(slide&&typeof slide==="object"&&typeof (slide as SlideContent).title==="string"&&Array.isArray((slide as SlideContent).bullets)));
     if(!fallbackSlides.length)throw new Error("AI provider ne valid slide content nahi diya. Dobara try karo.");
-    setJob({taskId:`local-${Date.now()}`,businessId:"local-pptx",status:"COMPLETED",fallbackSlides,provider:typeof data.provider==="string"?data.provider:"AI",title:typeof data.title==="string"?data.title:topic});setPreviewIndex(0);
+    setJob({taskId:`local-${Date.now()}`,businessId:"local-pptx",status:"COMPLETED",fallbackSlides,provider:typeof data.provider==="string"?data.provider:"AI",title:typeof data.title==="string"?data.title:topic});setPreviewIndex(0);setPreviewPlaying(false);
     setDownloadUrl("");setMessage(`Slides ${typeof data.provider==="string"?data.provider:"AI"} se ready hain. “Export editable PPTX” dabao.`);return;
    }
    const taskId=typeof data.taskId==="string"?data.taskId:typeof data.task_id==="string"?data.task_id:"";
@@ -250,8 +257,10 @@ export function FeloCreateStudio(){
     </div>
     {job.fallbackSlides[previewIndex]?.notes&&<details style={{padding:"12px 18px",borderTop:"1px solid #253149",color:"#d6e0f1"}}><summary style={{cursor:"pointer",fontSize:12,fontWeight:700}}>Presenter notes</summary><p style={{fontSize:12,lineHeight:1.7,color:"#b8c6dc",whiteSpace:"pre-wrap"}}>{job.fallbackSlides[previewIndex]?.notes}</p></details>}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:14,borderTop:"1px solid #253149",flexWrap:"wrap"}}>
-     <button type="button" className="hmx-btn" disabled={previewIndex===0} onClick={()=>setPreviewIndex(i=>Math.max(0,i-1))}>← Previous slide</button>
-     <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center"}}>{job.fallbackSlides.map((_,i)=><button type="button" key={i} aria-label={"Go to slide "+(i+2)} title={"Slide "+(i+2)} onClick={()=>setPreviewIndex(i)} style={{width:8,height:8,padding:0,border:0,borderRadius:8,cursor:"pointer",background:i===previewIndex?"#55d6d0":"#42516b"}}/>)}</div>
+     <button type="button" className="hmx-btn" disabled={previewIndex===0} onClick={()=>{setPreviewPlaying(false);setPreviewIndex(i=>Math.max(0,i-1));}}>← Previous slide</button>
+     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+      <button type="button" className="hmx-btn" aria-pressed={previewPlaying} onClick={()=>setPreviewPlaying(value=>!value)}>{previewPlaying?"Ⅱ Pause preview":"▶ Auto-play preview"}</button>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center"}}>{job.fallbackSlides.map((_,i)=><button type="button" key={i} aria-label={"Go to slide "+(i+2)} title={"Slide "+(i+2)} onClick={()=>setPreviewIndex(i)} style={{width:8,height:8,padding:0,border:0,borderRadius:8,cursor:"pointer",background:i===previewIndex?"#55d6d0":"#42516b"}}/>)}</div>
      <button type="button" className="hmx-btn" disabled={previewIndex===job.fallbackSlides.length-1} onClick={()=>setPreviewIndex(i=>Math.min((job.fallbackSlides?.length||1)-1,i+1))}>Next slide →</button>
     </div>
    </section>}
