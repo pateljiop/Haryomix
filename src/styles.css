@@ -33,3 +33,14 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .hmx-seo-faq[open] summary:after{content:"−"}
 .hmx-seo-faq p{max-width:850px;margin:14px 0 0;color:var(--hm-muted);font-size:14px;line-height:1.75}
 @media(max-width:640px){.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:1fr}.hmx-seo-faq summary{padding-right:20px;font-size:14px}}
+
+
+/* PDF toolbox actions: strong contrast, clear enabled/disabled states, and reliable touch targets. */
+.hmx-tool-grid .hmx-tool-card{position:relative;min-height:96px;padding:15px;text-align:left;align-items:flex-start;justify-content:flex-start;gap:8px;border:1px solid #34445f;background:#121b2b;color:#edf3ff;cursor:pointer;opacity:1;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+.hmx-tool-grid .hmx-tool-card strong{color:#f2f6ff;font-size:13px;line-height:1.4;font-weight:750;}
+.hmx-tool-grid .hmx-tool-card span{color:#aab8cf;font-size:12px;line-height:1.55;}
+.hmx-tool-grid .hmx-tool-card:hover:not(:disabled){border-color:#6688ff;background:#18243a;transform:translateY(-2px);}
+.hmx-tool-grid .hmx-tool-card:focus-visible{outline:2px solid #8da7ff;outline-offset:3px;}
+.hmx-tool-grid .hmx-tool-card:disabled{cursor:not-allowed;opacity:1;border-color:#354052;background:#202938;}
+.hmx-tool-grid .hmx-tool-card:disabled strong{color:#8794a8;}
+.hmx-tool-grid .hmx-tool-card:disabled span{color:#a0aabd;}
