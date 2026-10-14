@@ -90,6 +90,7 @@ jobs:
             /workspace/exam-center
             /workspace/practice-quiz
             /workspace/progress-tracker
+            /workspace/question-bank
             /workspace/haryomix-ai
             /workspace/ai-create-studio
             /workspace/flashcards
@@ -114,7 +115,7 @@ jobs:
             fi
             echo "Verified HTTP 200 + SPA shell: $DEPLOYMENT_URL$route"
           done
-          echo "All fifteen workspace URLs return the application shell."
+          echo "All sixteen workspace URLs return the application shell."
 
       - name: Verify browser-rendered student workspaces
         shell: bash
@@ -142,6 +143,7 @@ jobs:
           /workspace/exam-center|Exam Center
           /workspace/practice-quiz|Practice Quiz
           /workspace/progress-tracker|Progress Tracker
+          /workspace/question-bank|Question Bank
           /workspace/haryomix-ai|Haryomix AI
           /workspace/ai-create-studio|AI Create Studio
           /workspace/flashcards|Flashcards

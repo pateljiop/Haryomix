@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-type LearningTool = "exam" | "quiz" | "progress" | "notes" | "flashcards" | "focus" | "utilities";
+type LearningTool = "exam" | "quiz" | "progress" | "questionbank" | "notes" | "flashcards" | "focus" | "utilities";
 type TrackId = "school" | "graduation" | "competitive";
 
 const tracks: { id: TrackId; title: string; eyebrow: string; description: string; options: string[] }[] = [
@@ -13,6 +13,7 @@ const tools: { id: LearningTool; title: string; description: string; icon: strin
   { id: "exam", title: "Exam Copilot", description: "Turn a topic into revision notes and explanations.", icon: "✳", label: "Create study material" },
   { id: "quiz", title: "Practice Quiz", description: "Take a timed MCQ test, see your score and review every answer.", icon: "✓", label: "Start a practice test" },
   { id: "progress", title: "Progress Tracker", description: "Track saved quiz attempts, average score and results by learning track.", icon: "↗", label: "Review progress" },
+  { id: "questionbank", title: "Question Bank", description: "Search starter questions by learning track, reveal explanations and export results.", icon: "?", label: "Browse questions" },
   { id: "notes", title: "Smart Notes", description: "Write and organize notes, then search or export them from this browser.", icon: "▤", label: "Open notes" },
   { id: "flashcards", title: "Flashcards", description: "Practice definitions, formulas and facts using active recall.", icon: "▧", label: "Practice recall" },
   { id: "focus", title: "Focus Timer", description: "Run focused study sessions with short breaks between them.", icon: "◷", label: "Start focus" },
