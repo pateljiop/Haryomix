@@ -164,7 +164,7 @@ export function FeloCreateStudio(){
       if(!xmlFile)continue;
       let xml=await xmlFile.async("string");
       if(!xml.includes("<p:transition")){
-        const slideNumber=Number(fileName.match(/slide(\\d+)\\.xml$/)?.[1]||1);
+        const slideNumber=Number(fileName.match(/slide(\d+)\.xml$/)?.[1]||1);
         const transition=slideNumber===1
           ? '<p:transition spd="med"><p:fade/></p:transition>'
           : slideNumber%3===0
