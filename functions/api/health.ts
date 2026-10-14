@@ -38,7 +38,9 @@ export async function onRequestGet({ env }: { env: Env }): Promise<Response> {
   return Response.json({
     service: "haryomix-api",
     status,
-    database: {
+    // Keep the original string field for existing health consumers.
+    database: databaseConfigured ? (databaseReachable ? "connected" : "unavailable") : "not-configured",
+    databaseChecks: {
       configured: databaseConfigured,
       reachable: databaseReachable,
       rateLimitTableReady,
