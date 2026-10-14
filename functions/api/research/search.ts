@@ -1,11 +1,11 @@
 interface ResearchItem {
   title: string;
-  source: "OpenAlex" | "Crossref" | "arXiv" | "Internet Archive";
+  source: "OpenAlex" | "Crossref" | "arXiv" | "Internet Archive" | "Web search (Grok)";
   url: string;
   date?: string;
   description?: string;
 }
-interface Env { OPENALEX_API_KEY?: string }
+interface Env { OPENALEX_API_KEY?: string; XAI_API_KEY?: string; GROK_API_KEY?: string }
 const headers = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "public, max-age=300, s-maxage=900",
@@ -63,7 +63,39 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const [openAlex, crossref, arxivXml, archive] = await Promise.all([
     safeJson(openAlexUrl), safeJson(crossrefUrl), safeText(arxivUrl), safeJson(archiveUrl),
   ]);
-  const items: ResearchItem[] = [];
+  const webItems: ResearchItem[] = [];
+  const grokKey = env.XAI_API_KEY || env.GROK_API_KEY;
+  if (grokKey) {
+    try {
+      const response = await fetch("https://api.x.ai/v1/responses", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${grokKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "grok-4.7",
+          input: [{ role: "user", content: `Search the live web for: ${query}. Prioritize official sources and recent publication dates. Return a concise research summary with factual claims supported by web citations. Do not invent URLs or dates.` }],
+          tools: [{ type: "web_search" }],
+          max_output_tokens: 1800,
+          store: false,
+        }),
+        signal: AbortSignal.timeout(25000),
+      });
+      if (response.ok) {
+        const data: any = await response.json();
+        for (const output of data.output ?? []) {
+          for (const part of output.content ?? []) {
+            for (const citation of part.annotations ?? []) {
+              const url = clean(citation.url, 500);
+              const title = clean(citation.title, 240) || url;
+              if (title && /^https?:\/\//i.test(url)) {
+                webItems.push({ title, source: "Web search (Grok)", url, description: clean(part.text, 300) });
+              }
+            }
+          }
+        }
+      }
+    } catch { /* continue with metadata sources if live web search is unavailable */ }
+  }
+  const items: ResearchItem[] = [...webItems];
   for (const work of openAlex?.results ?? []) {
     const title = clean(work.title, 240);
     const id = clean(work.id, 300);
@@ -105,7 +137,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   return reply({
     query,
     sources: deduped,
-    searched: { openAlex: Boolean(openAlex), openAlexKeyConfigured: Boolean(env.OPENALEX_API_KEY), crossref: Boolean(crossref), arxiv: Boolean(arxivXml), internetArchive: Boolean(archive) },
+    searched: { grokWebSearch: webItems.length > 0, grokKeyConfigured: Boolean(grokKey), openAlex: Boolean(openAlex), openAlexKeyConfigured: Boolean(env.OPENALEX_API_KEY), crossref: Boolean(crossref), arxiv: Boolean(arxivXml), internetArchive: Boolean(archive) },
     message: deduped.length
       ? "Results are metadata and discovery links. Availability, peer review, full-text access and syllabus relevance must be checked at the original source."
       : "The research providers did not return results right now. Try a shorter or more specific query.",
