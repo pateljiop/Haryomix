@@ -63,11 +63,10 @@ export function FeloCreateStudio(){
     const deck=new pptxgen();
     deck.layout="LAYOUT_WIDE";
     deck.author="Haryomix AI Create Studio";deck.subject=topic;deck.title=job.title||topic;deck.company="Haryomix";
-    deck.lang="en-US";
     deck.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos"};
     const C={navy:"0A1020",navy2:"121D36",ink:"17233B",muted:"66738A",blue:"4169E1",cyan:"55D6D0",pale:"F3F6FC",white:"FFFFFF",line:"DDE5F1",softBlue:"EAF0FF",softCyan:"E7F8F6",softGold:"FFF5DF",gold:"D59A26"};
     const W=13.333,H=7.5;
-    const addText=(slide:any,text:string,opts:Record<string,unknown>)=>slide.addText(text,{fontFace:"Aptos",margin:0,breakLine:false,fit:"shrink",...opts});
+    const addText=(slide:any,text:string,opts:any)=>slide.addText(text,{fontFace:"Aptos",margin:0,breakLine:false,fit:"shrink",...opts});
     const addFooter=(slide:any,n:number,total:number,dark=false)=>{
       slide.addShape(deck.ShapeType.line,{x:0.62,y:7.05,w:12.08,h:0,line:{color:dark?"2B3853":C.line,width:0.7}});
       addText(slide,"HARYOMIX  /  AI CREATE STUDIO",{x:0.66,y:7.12,w:4.6,h:0.16,fontSize:7.5,bold:true,charSpacing:1.2,color:dark?"9AABC9":C.muted});
@@ -78,9 +77,9 @@ export function FeloCreateStudio(){
     cover.addShape(deck.ShapeType.ellipse,{x:8.9,y:-1.5,w:5.6,h:5.6,line:{color:"24385F",width:1.4,transparency:10},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.ellipse,{x:9.55,y:-0.85,w:4.3,h:4.3,line:{color:"2B4D8A",width:1.2,transparency:15},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.ellipse,{x:10.15,y:-0.25,w:3.1,h:3.1,line:{color:C.cyan,width:1.1,transparency:28},fill:{color:C.navy,transparency:100}});
-    cover.addShape(deck.ShapeType.roundRect,{x:0.86,y:0.72,w:2.55,h:0.38,rectRadius:0.08,line:{color:"33466A",width:0.8},fill:{color:C.navy2}});
+    cover.addShape(deck.ShapeType.roundRect,{x:0.86,y:0.72,w:2.55,h:0.38,line:{color:"33466A",width:0.8},fill:{color:C.navy2}});
     addText(cover,"EXPERT PRESENTATION",{x:1.02,y:0.83,w:2.25,h:0.13,fontSize:8,bold:true,charSpacing:1.3,color:C.cyan});
-    addText(cover,job.title||topic,{x:0.86,y:1.7,w:9.8,h:2.2,fontFace:"Aptos Display",fontSize:32,bold:true,color:C.white,breakLine:false,fit:"shrink",valign:"mid",lineSpacingMultiple:1.0});
+    addText(cover,job.title||topic,{x:0.86,y:1.7,w:9.8,h:2.2,fontFace:"Aptos Display",fontSize:32,bold:true,color:C.white,breakLine:false,fit:"shrink",valign:"middle",lineSpacingMultiple:1.0});
     cover.addShape(deck.ShapeType.line,{x:0.9,y:4.15,w:1.35,h:0,line:{color:C.cyan,width:3}});
     addText(cover,"A structured, editable deck designed for clarity, depth and practical use.",{x:0.9,y:4.45,w:8.5,h:0.65,fontSize:16,color:"C7D3E9",breakLine:false,fit:"shrink"});
     addText(cover,"PREPARED WITH",{x:0.9,y:5.75,w:1.55,h:0.18,fontSize:7.5,bold:true,charSpacing:1,color:"8192B1"});
@@ -127,14 +126,14 @@ export function FeloCreateStudio(){
         bullets.forEach((bullet,i)=>{
           const col=i%2,row=Math.floor(i/2);
           const x=0.72+col*6.0,y=top+row*gap;
-          slide.addShape(deck.ShapeType.roundRect,{x,y,w:5.72,h:Math.max(0.72,gap-0.12),rectRadius:0.07,line:{color:dark?"304264":C.line,width:0.7},fill:{color:dark?C.navy2:C.white}});
+          slide.addShape(deck.ShapeType.roundRect,{x,y,w:5.72,h:Math.max(0.72,gap-0.12),line:{color:dark?"304264":C.line,width:0.7},fill:{color:dark?C.navy2:C.white}});
           slide.addShape(deck.ShapeType.rect,{x:x+0.02,y:y+0.12,w:0.045,h:Math.max(0.42,gap-0.36),line:{color:C.blue,transparency:100},fill:{color:i%2===0?C.blue:C.cyan}});
           addText(slide,String(i+1).padStart(2,"0"),{x:x+0.22,y:y+0.14,w:0.4,h:0.16,fontSize:8,bold:true,color:C.blue});
           addText(slide,bullet,{x:x+0.72,y:y+0.13,w:4.72,h:Math.max(0.42,gap-0.28),fontSize:12.5,color:ink,fit:"shrink",valign:"mid"});
         });
       }
       if(item.takeaway){
-        slide.addShape(deck.ShapeType.roundRect,{x:0.72,y:6.18,w:11.8,h:0.58,rectRadius:0.06,line:{color:dark?"304264":"C8EDE8",width:0.7},fill:{color:dark?C.navy2:C.softCyan}});
+        slide.addShape(deck.ShapeType.roundRect,{x:0.72,y:6.18,w:11.8,h:0.58,line:{color:dark?"304264":"C8EDE8",width:0.7},fill:{color:dark?C.navy2:C.softCyan}});
         addText(slide,"KEY TAKEAWAY",{x:0.94,y:6.36,w:1.38,h:0.14,fontSize:7.5,bold:true,charSpacing:0.8,color:dark?C.cyan:"157C78"});
         addText(slide,item.takeaway,{x:2.42,y:6.29,w:9.78,h:0.28,fontSize:10.5,bold:true,color:ink,fit:"shrink",valign:"mid"});
       }
