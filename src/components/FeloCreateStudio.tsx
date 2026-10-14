@@ -137,7 +137,7 @@ export function FeloCreateStudio(){
         addText(slide,"KEY TAKEAWAY",{x:0.94,y:6.36,w:1.38,h:0.14,fontSize:7.5,bold:true,charSpacing:0.8,color:dark?C.cyan:"157C78"});
         addText(slide,item.takeaway,{x:2.42,y:6.29,w:9.78,h:0.28,fontSize:10.5,bold:true,color:ink,fit:"shrink",valign:"mid"});
       }
-      addFooter(slide,index+2,job.fallbackSlides.length+1,dark);
+      addFooter(slide,index+2,fallbackSlides.length+1,dark);
       if(item.notes&&typeof slide.addNotes==="function")slide.addNotes(item.notes);
     });
     await deck.writeFile({fileName:`${(job.title||topic).replace(/[^a-z0-9-_ ]/gi,"").trim().replace(/\\s+/g,"-").slice(0,60)||"haryomix-presentation"}.pptx`});
