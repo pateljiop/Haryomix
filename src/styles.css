@@ -138,3 +138,46 @@ body{background:#06080f;color:#edf3ff}
 .id-arranger-pro{border-color:#263752!important;background:#0a1020!important;color:#edf3ff!important}.id-arranger-pro .id-pro-toolbar{background:#101827;border-color:#26334a}.id-arranger-pro .id-pro-brand strong{color:#edf2ff}.id-arranger-pro .id-pro-brand small{color:#9aa9bf}.id-arranger-pro .id-pro-quiet,.id-arranger-pro .id-pro-icon,.id-arranger-pro .id-pro-zoom{background:#172235;color:#dbe7fa;border-color:#34435c}.id-arranger-pro .id-pro-subbar{background:#111a2a;border-color:#26334a;color:#a7b3c9}.id-arranger-pro .id-pro-canvas-stage{background-color:#253247;background-image:radial-gradient(#43516a .7px,transparent .7px)}.id-arranger-pro .id-pro-section-title{color:#a7b3c9}.id-arranger-pro .id-arranger-upload-grid,.id-arranger-pro .id-arranger-controls{background:#111a2a;border-color:#29374d}.id-arranger-pro .id-arranger-upload{background:#0d1524;border-color:#34435c}.id-arranger-pro .id-arranger-upload strong,.id-arranger-pro .id-arranger-controls .hmx-field>span{color:#e2eaf7}.id-arranger-pro .id-arranger-upload-hint{color:#9aa9bf}
 @media(max-width:760px){.hmx-nav{top:8px;left:8px;right:8px;padding:10px 12px;border-radius:13px}.hmx-brand{font-size:14px;gap:7px}.hmx-brand img{width:29px;height:29px}.hmx-byline{font-size:8px;padding:4px 5px}.hmx-navlinks{border:1px solid #263650;background:#0b1220;color:#dbe7fa;box-shadow:0 20px 40px rgb(0 0 0 / .3)}.hmx-hero{padding-top:88px;min-height:100svh}.hmx-hero .hmx-heading{font-size:clamp(2.8rem,12vw,5rem)}.hmx-hero-copy{padding-inline:20px}.hmx-toolbox-head{align-items:start;flex-direction:column}.hmx-toolbox-grid{grid-template-columns:1fr}.hmx-toolbox-card,.hmx-toolbox-card.large{grid-row:auto;min-height:220px}.hmx-tool-layout{grid-template-columns:1fr}.hmx-tool-intro{position:static}.hmx-tool-row{grid-template-columns:32px minmax(0,1fr) 20px;gap:10px;padding:19px 0}.hmx-workspace-nav{padding:10px}.hmx-workspace-nav .hmx-brand span{display:none}}
 @media(prefers-reduced-motion:reduce){.hmx-app *, .hmx-workspace *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* HARYOMIX V2 — keyboard focus, readable controls and touch-friendly affordances */
+.hmx-app :is(a,button,[role="button"],input,select,textarea,summary):focus-visible,
+.hmx-workspace :is(a,button,[role="button"],input,select,textarea,summary):focus-visible{
+  outline:3px solid #8bcfff;
+  outline-offset:3px;
+  box-shadow:0 0 0 5px rgb(73 139 255 / .16);
+}
+.hmx-workspace button:disabled,
+.hmx-studio-shell button:disabled,
+.hmx-app button:disabled{
+  cursor:not-allowed;
+  opacity:.48;
+  transform:none;
+  box-shadow:none;
+}
+.hmx-workspace :is(input,select,textarea),
+.hmx-studio-shell :is(input,select,textarea){
+  accent-color:#6da4ff;
+}
+.hmx-workspace :is(input,select,textarea)::placeholder,
+.hmx-studio-shell :is(input,select,textarea)::placeholder{
+  color:#71829e;
+  opacity:1;
+}
+.hmx-workspace :is(.hmx-btn,.hmx-tool-card,.hmx-directory-card),
+.hmx-studio-shell :is(.hmx-btn,.hmx-tool-card){
+  -webkit-tap-highlight-color:transparent;
+}
+.hmx-workspace :is(.hmx-btn,.hmx-tool-card):active,
+.hmx-app :is(.hmx-tool-launch,.hmx-nav-cta,.hmx-tool-row):active{
+  transform:translateY(1px);
+}
+.hmx-workspace :is(.hmx-note,[role="alert"]){
+  overflow-wrap:anywhere;
+}
+@media(max-width:600px){
+  .hmx-workspace :is(.hmx-btn,button),
+  .hmx-studio-shell :is(.hmx-btn,button){min-height:42px}
+  .hmx-workspace :is(input,select,textarea),
+  .hmx-studio-shell :is(input,select,textarea){font-size:16px}
+}
