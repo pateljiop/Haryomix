@@ -25,7 +25,7 @@ export function ExamCenter({ onNavigate }: { onNavigate: (tool: LearningTool) =>
   const [level, setLevel] = useState("Class 9–10");
   const selected = tracks.find(item => item.id === track) ?? tracks[0];
 
-  function chooseTrack(id: TrackId) {
+  function openLearningTool(tool: LearningTool) {\n    try { window.localStorage.setItem("haryomix.exam-context.v1", JSON.stringify({ track, level, trackTitle: selected.title, savedAt: Date.now() })); } catch { /* Continue to the tool if browser storage is unavailable. */ }\n    onNavigate(tool);\n  }\n\n  function chooseTrack(id: TrackId) {
     setTrack(id);
     const next = tracks.find(item => item.id === id);
     if (next) setLevel(next.options[0]);
@@ -52,11 +52,11 @@ export function ExamCenter({ onNavigate }: { onNavigate: (tool: LearningTool) =>
         <div className="hmx-btn-row" role="group" aria-label="Choose class, course or exam">
           {selected.options.map(option => <button key={option} type="button" className={level === option ? "hmx-btn primary" : "hmx-btn"} aria-pressed={level === option} onClick={() => setLevel(option)}>{option}</button>)}
         </div>
-        <p className="hmx-planner-subtitle" style={{ marginTop: 12 }}>Selected: <strong>{level}</strong>. Use this selection to guide your next study session; detailed official syllabus mapping will be added per course and exam.</p>
+        <p className="hmx-planner-subtitle" style={{ marginTop: 12 }}>Selected: <strong>{level}</strong>. This selection is saved for your next study session and will prefill the study guide where supported.</p>
       </div>
       <div className="hmx-planner-list-head"><div><h3>Study tools</h3><p>Each tool opens in its own focused workspace.</p></div></div>
       <div className="hmx-tool-directory" aria-label="Study tools">
-        {tools.map(tool => <button key={tool.id} type="button" className="hmx-directory-card" onClick={() => onNavigate(tool.id)}>
+        {tools.map(tool => <button key={tool.id} type="button" className="hmx-directory-card" onClick={() => openLearningTool(tool.id)}>
           <span className="hmx-directory-card-top"><span className="hmx-directory-icon">{tool.icon}</span><span className="hmx-directory-number">TOOL</span></span>
           <strong>{tool.title}</strong>
           <span className="hmx-directory-description">{tool.description}</span>
