@@ -147,7 +147,7 @@ async function waitForDownload(filename, timeoutMs = 20000) {
   throw new Error("Download did not complete: " + filename);
 }
 
-async function waitForMatchingDownload(pattern, timeoutMs = 20000) {
+  const compressedPath = await waitForMatchingDownload(/^smoke-pixel-\d+kb\.jpg$/);
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
     const name = readdirSync(profile).find(candidate => pattern.test(candidate));
