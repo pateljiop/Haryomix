@@ -393,7 +393,7 @@ async function run() {
   await fill("#pdf-range", "1", "page range to remove");
   await clickText("button.hmx-tool-card", "Remove pages", "remove first PDF page");
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Removed 1 page(s).')", "PDF page removal completes");
-  const removedPath = await waitForDownload("haryomix-removed-pages.pdf");
+  const removedPath = await waitForDownload("haryomix-pages-removed.pdf");
   const removed = await PDFDocument.load(readFileSync(removedPath));
   if (removed.getPageCount() !== 1 || removed.getPage(0).getWidth() !== 300 || removed.getPage(0).getHeight() !== 400) {
     throw new Error("Remove-pages artifact did not preserve only the unselected page.");
@@ -420,8 +420,8 @@ async function run() {
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Watermark added')", "PDF watermark completes");
   const watermarkPath = await waitForDownload("haryomix-watermarked.pdf");
   const watermarked = await PDFDocument.load(readFileSync(watermarkPath));
-  if (watermarked.getPageCount() !== 2 || watermarked.getPages().some(page => page.getContentStream() == null)) {
-    throw new Error("Watermarked PDF artifact did not preserve the source pages.");
+  if (watermarked.getPageCount() !== 2 || watermarked.getPages()[0].getWidth() !== 100 || watermarked.getPages()[0].getHeight() !== 200 || readFileSync(watermarkPath).length <= statSync(join(profile, "smoke-a.pdf")).size) {
+    throw new Error("Watermarked PDF artifact did not preserve source pages or add watermark content.");
   }
   console.log("PDF watermark artifact verified: exported PDF retains both source pages.");
 
