@@ -292,6 +292,32 @@ test("PPT API can parse a mocked Felo presentation task response", async () => {
   });
 });
 
+test("PPT API falls back to xAI Grok when Felo is not configured", async () => {
+  await withMockFetch(async input => {
+    assert.equal(String(input), "https://api.x.ai/v1/chat/completions");
+    const requestBody = JSON.parse(input instanceof Request ? await input.clone().text() : "{}");
+    assert.equal(requestBody.model, "grok-4.7");
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+      title: "Solar Energy",
+      slides: [
+        { title: "Introduction", bullets: ["Solar panels convert sunlight into electricity", "Photovoltaic cells generate direct current"] },
+        { title: "Benefits", bullets: ["Low operational emissions", "Can reduce grid electricity use"] },
+        { title: "Conclusion", bullets: ["Output depends on sunlight and system design", "Storage can support use after sunset"] }
+      ]
+    }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }, async () => {
+    const response = await pptPost({
+      request: jsonRequest("https://example.test/api/ai/ppt", { action: "create", query: "Create a presentation about solar energy for students", slides: 3 }),
+      env: { DB: mockDb(), XAI_API_KEY: "test-xai-key" },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "ai-generated-pptx");
+    assert.equal(body.provider, "grok");
+    assert.equal(body.slides.length, 3);
+  });
+});
+
 test("PPT API falls back to Groq slide content when Felo is not configured", async () => {
   await withMockFetch(async input => {
     assert.equal(String(input), "https://api.groq.com/openai/v1/chat/completions");
