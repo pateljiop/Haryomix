@@ -221,13 +221,13 @@ async function run() {
     ["/workspace/pdf-studio", "PDF Studio"],
     ["/workspace/image-studio", "Image Studio"],
     ["/workspace/exam-copilot", "Exam Copilot"],
+    ["/workspace/exam-center", "Exam Center"],
     ["/workspace/haryomix-ai", "Haryomix AI"],
     ["/workspace/ai-create-studio", "AI Create Studio"],
-    ["/workspace/study-planner", "Study Planner"],
     ["/workspace/flashcards", "Flashcards"],
     ["/workspace/focus-timer", "Focus Timer"],
     ["/workspace/student-utilities", "Student Utilities"],
-    ["/workspace/study-library", "Study Library"],
+    ["/workspace/notes", "Smart Notes"],
   ];
   for (const [route, title] of dedicatedRoutes) {
     await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
@@ -255,30 +255,27 @@ async function run() {
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('PowerPoint exported')", "PPT export success status");
   console.log("PPT Studio produced a downloadable .pptx artifact using the selected style.");
 
-  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-title') && !!document.querySelector('#hmx-library-search')", "Study Library editor and search");
-  await fill("#hmx-library-title", "Browser smoke note", "Study Library title");
-  await fill("#hmx-library-content", "A process is a program in execution.", "Study Library note content");
-  await fill("#hmx-library-tags", "BCA, Operating Systems", "Study Library tags");
-  await clickText("button", "Save to library +", "save Study Library note");
-  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Study item saved')", "Study Library note save status");
-  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Study Library saved note appears");
-  await fill("#hmx-library-search", "Browser smoke note", "search Study Library");
-  await waitFor("document.querySelectorAll('.hmx-library-list li').length===1", "Study Library search filters results");
-  await navigate("/workspace/focus-timer", "!!document.querySelector('.hmx-focus-modes')", "leave Study Library after saving");
-  await navigate("/workspace/study-library", "!!document.querySelector('#hmx-library-search')", "return to Study Library");
-  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Study Library item persists after navigation");
-  console.log("Study Library save, search and IndexedDB persistence flows passed.");
+  await navigate("/workspace/notes", "!!document.querySelector('#hmx-library-title') && !!document.querySelector('#hmx-library-search')", "Smart Notes editor and search");
+  await fill("#hmx-library-title", "Browser smoke note", "Smart Notes title");
+  await fill("#hmx-library-content", "A process is a program in execution.", "Smart Notes note content");
+  await fill("#hmx-library-tags", "BCA, Operating Systems", "Smart Notes tags");
+  await clickText("button", "Save note +", "save Smart Notes note");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Note saved')", "Smart Notes note save status");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Smart Notes saved note appears");
+  await fill("#hmx-library-search", "Browser smoke note", "search Smart Notes");
+  await waitFor("document.querySelectorAll('.hmx-library-list li').length===1", "Smart Notes search filters results");
+  await navigate("/workspace/focus-timer", "!!document.querySelector('.hmx-focus-modes')", "leave Smart Notes after saving");
+  await navigate("/workspace/notes", "!!document.querySelector('#hmx-library-search')", "return to Smart Notes");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Smart Notes item persists after navigation");
+  console.log("Smart Notes save, search and IndexedDB persistence flows passed.");
 
-  await navigate("/workspace/study-planner", "!!document.querySelector('#hmx-plan-title')", "Study Planner form");
-  await fill("#hmx-plan-title", "Browser smoke study task", "planner title");
-  await fill("#hmx-plan-subject", "E2E Subject", "planner subject");
-  await fill("#hmx-plan-minutes", "25", "planner estimated minutes");
-  await click("form.hmx-planner-form button[type='submit']", "add study task");
-  await waitFor("Array.from(document.querySelectorAll('.hmx-planner-task-main > strong')).some(el=>el.textContent.includes('Browser smoke study task'))", "Study Planner task appears");
-  await waitFor("JSON.parse(localStorage.getItem('haryomix.study-planner.v1')||'[]').some(task=>task.title==='Browser smoke study task'&&task.subject==='E2E Subject')", "Study Planner task persists");
-  await click(".hmx-planner-check", "complete study task");
-  await waitFor("JSON.parse(localStorage.getItem('haryomix.study-planner.v1')||'[]').some(task=>task.title==='Browser smoke study task'&&task.completed)", "Study Planner completion persists");
-  console.log("Study Planner create/complete/localStorage flow passed.");
+  await navigate("/workspace/exam-center", "!!Array.from(document.querySelectorAll('.hmx-directory-card')).find(el=>(el.textContent||'').includes('School learning')) && !!Array.from(document.querySelectorAll('.hmx-directory-card')).find(el=>(el.textContent||'').includes('Graduation & university'))", "Exam Center learning tracks");
+  await clickText(".hmx-directory-card", "Graduation & university", "select graduation learning track");
+  await clickText(".hmx-btn", "BCA / Computer Applications", "select BCA course");
+  await waitFor("document.querySelector('.hmx-result')?.textContent.includes('BCA / Computer Applications')", "selected graduation course is visible");
+  await clickText(".hmx-directory-card", "Create study material", "open Exam Copilot from Exam Center");
+  await waitFor("document.querySelector('.hmx-workspace-head h1')?.textContent==='Exam Copilot'", "Exam Center opens the dedicated Exam Copilot page");
+  console.log("Exam Center track selection and dedicated study-tool navigation passed.");
 
   await navigate("/workspace/flashcards", "!!document.querySelector('.hmx-flash-tabs button')", "Flashcards tabs");
   await click(".hmx-flash-tabs button:nth-child(2)", "open flashcard form");
