@@ -181,3 +181,12 @@ body{background:#06080f;color:#edf3ff}
   .hmx-workspace :is(input,select,textarea),
   .hmx-studio-shell :is(input,select,textarea){font-size:16px}
 }
+
+
+/* Photo & Signature Studio */
+.hmx-photo-signature .hmx-photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hmx-photo-signature .hmx-field{min-width:0}
+.hmx-photo-signature .hmx-photo-preview{display:block;width:auto;max-width:100%;height:auto;max-height:520px;object-fit:contain;margin:18px auto;border:1px solid #344660;border-radius:10px;background-color:#fff;background-image:linear-gradient(45deg,#e8edf4 25%,transparent 25%),linear-gradient(-45deg,#e8edf4 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e8edf4 75%),linear-gradient(-45deg,transparent 75%,#e8edf4 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+.hmx-photo-signature input[type=color]{min-height:44px;padding:4px}
+.hmx-photo-signature input[type=range]{width:100%;accent-color:#6da4ff}
+@media(max-width:600px){.hmx-photo-signature .hmx-photo-grid{grid-template-columns:1fr}.hmx-photo-signature .hmx-btn-row{display:grid;grid-template-columns:1fr}.hmx-photo-signature .hmx-photo-preview{max-height:360px}}
