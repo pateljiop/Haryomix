@@ -25,15 +25,21 @@ export function FeloCreateStudio(){
   if(topic.trim().length<10){setMessage("Topic ko thoda detail me likho (minimum 10 characters).");return;}
   setBusy(true);setMessage("Presentation task start ho raha hai…");setJob(null);
   try{
-   const data=await api("/api/ai/ppt",{action:"create",query:topic,slides:Number(slides),style});
-   if(data.mode==="ai-generated-pptx"&&Array.isArray(data.slides)&&data.slides.length){
+   const responseData=await api("/api/ai/ppt",{action:"create",query:topic,slides:Number(slides),style});
+   // Accept slide payloads even if an edge/cache layer strips the optional mode field.
+   const data=(responseData?.data&&typeof responseData.data==="object")
+    ? {...responseData.data,...responseData}
+    : responseData;
+   if(Array.isArray(data.slides)&&data.slides.length){
     const fallbackSlides=data.slides.filter((slide:unknown):slide is SlideContent=>Boolean(slide&&typeof slide==="object"&&typeof (slide as SlideContent).title==="string"&&Array.isArray((slide as SlideContent).bullets)));
     if(!fallbackSlides.length)throw new Error("AI provider ne valid slide content nahi diya. Dobara try karo.");
     setJob({taskId:`local-${Date.now()}`,businessId:"local-pptx",status:"COMPLETED",fallbackSlides,provider:typeof data.provider==="string"?data.provider:"AI",title:typeof data.title==="string"?data.title:topic});
     setDownloadUrl("");setMessage(`Slides ${typeof data.provider==="string"?data.provider:"AI"} se ready hain. “Export editable PPTX” dabao.`);return;
    }
-   if(typeof data.taskId!=="string"||!data.taskId||typeof data.businessId!=="string"||!data.businessId)throw new Error("Presentation service ne valid task details nahi diye. Dobara try karo.");
-   let currentJob:PptJob={taskId:data.taskId,businessId:data.businessId,status:typeof data.status==="string"?data.status:"RUNNING",liveDocId:data.liveDocId,provider:typeof data.provider==="string"?data.provider:"felo"};
+   const taskId=typeof data.taskId==="string"?data.taskId:typeof data.task_id==="string"?data.task_id:"";
+   const businessId=typeof data.businessId==="string"?data.businessId:typeof data.ppt_business_id==="string"?data.ppt_business_id:typeof data.ppt_biz_id==="string"?data.ppt_biz_id:"";
+   if(!taskId||!businessId)throw new Error(typeof data.error==="string"&&data.error?data.error:"Presentation service response incomplete (missing task ID or presentation ID). Check the deployment and retry.");
+   let currentJob:PptJob={taskId,businessId,status:typeof data.status==="string"?data.status:"RUNNING",liveDocId:data.liveDocId,provider:typeof data.provider==="string"?data.provider:"felo"};
    setJob(currentJob);setDownloadUrl("");setMessage("PPT task start ho gaya hai. Main automatically status check kar raha hoon…");
    const terminal=["COMPLETED","FAILED","ERROR","PENDING","EXPIRED","CANCELED"];
    let finished=false;
