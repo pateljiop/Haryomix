@@ -1,0 +1,37 @@
+name: Sync Haryomix study library
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: haryomix-study-library-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync private study PDF inventory
+        env:
+          STUDY_SYNC_TOKEN: ${{ secrets.HARYOMIX_STUDY_SYNC_TOKEN }}
+          HARYOMIX_SITE_URL: ${{ vars.HARYOMIX_SITE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          site="${HARYOMIX_SITE_URL:-https://haryomix.pages.dev}"
+          if [[ -z "${STUDY_SYNC_TOKEN:-}" ]]; then
+            echo "Study library sync skipped: add HARYOMIX_STUDY_SYNC_TOKEN as a GitHub Actions secret after configuring Cloudflare."
+            exit 0
+          fi
+          code="$(curl --silent --show-error --max-time 60 --output /tmp/study-sync.json --write-out '%{http_code}' -X POST "${site%/}/api/study-sync" -H "Authorization: Bearer $STUDY_SYNC_TOKEN" -H 'Accept: application/json')"
+          cat /tmp/study-sync.json
+          if [[ "$code" != "200" ]] || ! grep -q '"ok":true' /tmp/study-sync.json; then
+            echo "Study library sync failed with HTTP $code." >&2
+            exit 1
+          fi
+          echo "Study library inventory synced successfully."
