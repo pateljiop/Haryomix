@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { parseQuizAttempts } from "../lib/quiz-progress";
+
+const PROGRESS_STORAGE_KEY = "haryomix.practice-quiz.history.v1";
 
 type Track = "school" | "graduation" | "competitive";
 type Question = { prompt: string; options: string[]; answer: number; explanation: string };
@@ -43,6 +46,8 @@ export function PracticeQuiz() {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [remaining, setRemaining] = useState(600);
+  const [saveNotice, setSaveNotice] = useState("");
+  const savedSubmission = useRef(false);
   const questions = questionSets[track];
   const score = useMemo(() => questions.reduce((sum, question, index) => sum + (answers[index] === question.answer ? 1 : 0), 0), [questions, answers]);
   const answered = Object.keys(answers).length;
@@ -61,7 +66,31 @@ export function PracticeQuiz() {
     }
   }, [remaining, started, submitted]);
 
+  useEffect(() => {
+    if (!submitted || savedSubmission.current) return;
+    savedSubmission.current = true;
+    const attempt = {
+      id: typeof window.crypto?.randomUUID === "function" ? window.crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10),
+      track,
+      score,
+      total: questions.length,
+      answered,
+      percentage: Math.round(score / questions.length * 100),
+      completedAt: Date.now(),
+      remainingSeconds: remaining,
+    };
+    try {
+      const history = parseQuizAttempts(window.localStorage.getItem(PROGRESS_STORAGE_KEY) ?? "[]");
+      window.localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify([...history, attempt].slice(-1000)));
+      setSaveNotice("Result saved to your local Progress Tracker.");
+    } catch {
+      setSaveNotice("Your result is shown, but browser storage could not save this attempt.");
+    }
+  }, [submitted, track, score, questions.length, answered, remaining]);
+
   function startTest() {
+    savedSubmission.current = false;
+    setSaveNotice("");
     setAnswers({});
     setCurrent(0);
     setRemaining(600);
@@ -75,6 +104,8 @@ export function PracticeQuiz() {
   }
 
   function changeTrack(value: Track) {
+    savedSubmission.current = false;
+    setSaveNotice("");
     setTrack(value);
     setAnswers({});
     setCurrent(0);
@@ -90,6 +121,7 @@ export function PracticeQuiz() {
     </div>
     <div className="hmx-panel-body">
       <div className="hmx-note">This starter question set is for practice, not an official past paper. Check official syllabus and exam notifications for exam-specific coverage.</div>
+      {saveNotice && <div className="hmx-note" role="status" aria-live="polite">{saveNotice}</div>}
       <div className="hmx-field" style={{ maxWidth: 520 }}>
         <label htmlFor="hmx-quiz-track">Preparation track</label>
         <select id="hmx-quiz-track" className="hmx-select" value={track} disabled={started} onChange={event => changeTrack(event.target.value as Track)}>
