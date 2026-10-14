@@ -1,0 +1,1 @@
+interface Env { DB?: { prepare(sql: string): { bind(...values: unknown[]): { all<T = Record<string, unknown>>(): Promise<{ results?: T[] }>; run(): Promise<unknown> } } }; GOOGLE_DRIVE_FOLDER_ID?: string; GOOGLE_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?: string; HARYOMIX_STUDY_SYNC_TOKEN?: string; }
