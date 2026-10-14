@@ -20,7 +20,7 @@ function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function StudyLibrary() {
+export function SmartNotes() {
   const [items, setItems] = useState<StudyResource[]>([]);
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<StudyResourceKind>("note");
@@ -92,7 +92,7 @@ export function StudyLibrary() {
     if (kind !== "link" && !cleanContent) { setNotice("Add the note or resource content before saving."); return; }
     if (kind === "link" && (!cleanUrl || !/^https?:\/\//i.test(cleanUrl))) { setNotice("Add a valid http:// or https:// source URL for a link."); return; }
     if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) { setNotice("Source URL must begin with http:// or https://."); return; }
-    if (!editingId && items.length >= 500) { setNotice("Library limit reached (500 items). Export a backup or delete older items first."); return; }
+    if (!editingId && items.length >= 500) { setNotice("Notes limit reached (500 items). Export a backup or delete older items first."); return; }
     const existing = items.find(item => item.id === editingId);
     const now = Date.now();
     const item: StudyResource = {
@@ -110,7 +110,7 @@ export function StudyLibrary() {
       await saveStudyResource(item);
       await refresh(item.id);
       resetForm();
-      setNotice(existing ? "Study item updated in IndexedDB." : "Study item saved in this browser.");
+      setNotice(existing ? "Note updated in this browser." : "Note saved in this browser.");
       setStorageError("");
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : "Could not save this study item.");
@@ -124,7 +124,7 @@ export function StudyLibrary() {
       await deleteStudyResource(item.id);
       await refresh();
       if (editingId === item.id) resetForm();
-      setNotice("Study item deleted.");
+      setNotice("Note deleted.");
       setStorageError("");
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : "Could not delete this item.");
@@ -136,10 +136,10 @@ export function StudyLibrary() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "haryomix-study-library.json";
+    anchor.download = "haryomix-notes.json";
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setNotice("Study library backup exported.");
+    setNotice("Study notes backup exported.");
   }
 
   function importBackup(event: ChangeEvent<HTMLInputElement>) {
@@ -147,7 +147,7 @@ export function StudyLibrary() {
     event.currentTarget.value = "";
     if (!file) return;
     if (file.size > 5_000_000) { setNotice("Backup is too large. Choose a file under 5 MB."); return; }
-    if (!window.confirm("Importing replaces the current library. Export a backup first if you want to keep it. Continue?")) return;
+    if (!window.confirm("Importing replaces your current notes. Export a backup first if you want to keep it. Continue?")) return;
     const reader = new FileReader();
     reader.onload = () => {
       void (async () => {
@@ -179,7 +179,7 @@ export function StudyLibrary() {
       "",
       item.sourceUrl ? "Source: " + item.sourceUrl : "",
       "",
-      "_Exported from Haryomix Study Library._",
+      "_Exported from Haryomix Smart Notes._",
     ].filter((line, index, lines) => line !== "" || lines[index - 1] !== "").join("\n");
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -212,33 +212,33 @@ export function StudyLibrary() {
       setNotice("Study library cleared.");
       setStorageError("");
     } catch (error) {
-      setStorageError(error instanceof Error ? error.message : "Could not clear the study library.");
+      setStorageError(error instanceof Error ? error.message : "Could not clear the notes.");
     } finally { setBusy(false); }
   }
 
   return <div className="hmx-study-library">
     <div className="hmx-panel">
       <div className="hmx-panel-head">
-        <div><h2>Study Library</h2><p className="hmx-library-subtitle">Keep class notes, revision summaries and trusted resources together.</p></div>
+        <div><h2>Smart Notes</h2><p className="hmx-library-subtitle">Keep class notes, revision summaries and trusted resources together.</p></div>
         <span className="hmx-planner-local">ON THIS DEVICE</span>
       </div>
       <div className="hmx-panel-body">
-        <div className="hmx-note">Your library uses this browser's IndexedDB storage. It is not uploaded or synced to an account. Export JSON regularly before clearing site data or switching devices.</div>
+        <div className="hmx-note">Your notes use this browser's IndexedDB storage. It is not uploaded or synced to an account. Export JSON regularly before clearing site data or switching devices.</div>
         {storageError && <div className="hmx-note" role="alert">{storageError}</div>}
         {notice && <div className="hmx-note" role="status" aria-live="polite">{notice}</div>}
         <div className="hmx-library-toolbar">
           <div className="hmx-library-count"><strong>{items.length}</strong><span> / 500 saved items</span></div>
           <div className="hmx-btn-row">
             <button type="button" className="hmx-btn" onClick={exportBackup} disabled={loading || !items.length}>Export backup ↓</button>
-            <label className="hmx-btn hmx-library-import">Import backup ↥<input type="file" accept="application/json,.json" aria-label="Import study library backup; replaces current library" onChange={importBackup} disabled={busy}/></label>
-            <button type="button" className="hmx-btn" onClick={() => void clearLibrary()} disabled={busy || !items.length}>Clear library</button>
+            <label className="hmx-btn hmx-library-import">Import backup ↥<input type="file" accept="application/json,.json" aria-label="Import notes backup; replaces current library" onChange={importBackup} disabled={busy}/></label>
+            <button type="button" className="hmx-btn" onClick={() => void clearLibrary()} disabled={busy || !items.length}>Clear notes</button>
           </div>
         </div>
         {loading
-          ? <div className="hmx-planner-empty"><strong>Opening your study library…</strong></div>
+          ? <div className="hmx-planner-empty"><strong>Opening your notes…</strong></div>
           : <div className="hmx-library-layout">
             <section className="hmx-library-editor">
-              <h3>{editingId ? "Edit study item" : "Add to your library"}</h3>
+              <h3>{editingId ? "Edit study item" : "Add to your notes workspace"}</h3>
               {!editingId && <div className="hmx-field"><label>Start with a ready-made note template (no AI)</label><div className="hmx-btn-row">{[
                 {label:"Lecture notes",title:"Lecture Notes — ",tags:"lecture, class",content:"## Topic / lecture date\n\n## Learning objectives\n- \n\n## Key concepts\n- \n\n## Definitions\n- \n\n## Examples / diagrams\n- \n\n## Questions to ask\n- \n\n## Quick recap\n- "},
                 {label:"Exam revision",title:"Exam Revision — ",tags:"revision, exam",content:"## Syllabus topic\n\n## Must-know definitions\n- \n\n## Important points\n1. \n2. \n3. \n\n## Formulas / dates / facts\n- \n\n## Common mistakes\n- \n\n## 5-minute self-test\n1. \n2. \n3. \n\n## Still unclear\n- "},
@@ -252,7 +252,7 @@ export function StudyLibrary() {
                 <div className="hmx-field"><label htmlFor="hmx-library-content">{kind === "note" ? "Notes" : kind === "resource" ? "Resource summary / key points" : "Description (optional)"}</label><textarea id="hmx-library-content" className="hmx-textarea" value={content} onChange={event => setContent(event.target.value)} maxLength={100000} required={kind !== "link"} rows={7} placeholder={kind === "note" ? "Write your own notes or paste a concise summary…" : kind === "resource" ? "Capture the key points you want to revise…" : "What is this link useful for?"}/></div>
                 <div className="hmx-field"><label htmlFor="hmx-library-tags">Tags (comma separated)</label><input id="hmx-library-tags" className="hmx-input" value={tagsInput} onChange={event => setTagsInput(event.target.value)} placeholder="e.g. BCA, DBMS, exam"/></div>
                 <div className="hmx-field"><label htmlFor="hmx-library-url">Source URL {kind === "link" ? "(required)" : "(optional)"}</label><input id="hmx-library-url" className="hmx-input" type="url" value={sourceUrl} onChange={event => setSourceUrl(event.target.value)} maxLength={2048} required={kind === "link"} placeholder="https://example.com/resource"/></div>
-                <div className="hmx-btn-row"><button type="submit" className="hmx-btn primary" disabled={busy}>{busy ? "Saving…" : editingId ? "Save changes" : "Save to library +"}</button>{editingId && <button type="button" className="hmx-btn" onClick={resetForm} disabled={busy}>Cancel edit</button>}</div>
+                <div className="hmx-btn-row"><button type="submit" className="hmx-btn primary" disabled={busy}>{busy ? "Saving…" : editingId ? "Save changes" : "Save note +"}</button>{editingId && <button type="button" className="hmx-btn" onClick={resetForm} disabled={busy}>Cancel edit</button>}</div>
               </form>
             </section>
             <section className="hmx-library-browser">
@@ -260,7 +260,7 @@ export function StudyLibrary() {
               <div className="hmx-field"><label htmlFor="hmx-library-search">Search notes and resources</label><input id="hmx-library-search" className="hmx-input" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search titles, notes, tags or URLs…"/></div>
               <div className="hmx-field"><label htmlFor="hmx-library-filter">Filter by type</label><select id="hmx-library-filter" className="hmx-select" value={kindFilter} onChange={event => setKindFilter(event.target.value as "all" | StudyResourceKind)}><option value="all">All items</option><option value="note">Class notes</option><option value="resource">Revision resources</option><option value="link">Web links</option></select></div>
               {visibleItems.length === 0
-                ? <div className="hmx-planner-empty"><span>▤</span><strong>{items.length ? "No matching items." : "Your study library is empty."}</strong><p>{items.length ? "Try a different search or type filter." : "Save notes, summaries and useful links here. Export a backup before switching devices."}</p></div>
+                ? <div className="hmx-planner-empty"><span>▤</span><strong>{items.length ? "No matching items." : "Your notes is empty."}</strong><p>{items.length ? "Try a different search or type filter." : "Save notes, summaries and useful links here. Export a backup before switching devices."}</p></div>
                 : <ul className="hmx-library-list">{visibleItems.map(item => <li key={item.id} className={"hmx-library-item" + (item.id === selectedId ? " selected" : "")}>
                   <button type="button" className="hmx-library-item-open" onClick={() => setSelectedId(item.id)}><span className="hmx-library-kind">{item.kind === "note" ? "NOTE" : item.kind === "resource" ? "RESOURCE" : "LINK"}</span><strong>{item.title}</strong><small>Updated {formatDate(item.updatedAt)}</small><span className="hmx-library-tags">{item.tags.map(tag => <span key={tag}>{tag}</span>)}</span></button>
                   <div className="hmx-library-item-actions"><button type="button" className="hmx-btn" onClick={() => startEdit(item)} disabled={busy}>Edit</button><button type="button" className="hmx-planner-delete" onClick={() => void remove(item)} disabled={busy} aria-label={"Delete " + item.title}>×</button></div>
