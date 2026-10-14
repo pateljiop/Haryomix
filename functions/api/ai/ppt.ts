@@ -27,8 +27,10 @@ type SlideContent = { title: string; bullets: string[]; notes?: string };
 async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", key: string, query: string, count: number, style: string): Promise<SlideContent[]> {
   const instruction = `Create exactly ${count} slides for an editable PowerPoint presentation. Topic and requirements: ${query}. Visual direction: ${style}. Return ONLY valid JSON, no Markdown fences, in this exact shape: {"title":"presentation title","slides":[{"title":"slide title","bullets":["bullet 1","bullet 2","bullet 3"],"notes":"short speaker notes"}]}. Each slide should have 2-4 concise bullets, accurate and useful content, a logical narrative, an introduction and conclusion. Do not invent citations, sources, statistics, or quotes. Follow the user's language. If a fact is uncertain, qualify it.`;
   let response: Response;
-  if (provider === "groq") {
-    response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  if (provider === "groq" || provider === "grok") {
+    const endpoint = provider === "grok" ? "https://api.x.ai/v1/chat/completions" : "https://api.groq.com/openai/v1/chat/completions";
+    const model = provider === "grok" ? "grok-4.7" : "openai/gpt-oss-120b";
+    response = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model, temperature: 0.2, max_tokens: 8000, messages: [{ role: "system", content: "You produce accurate slide content and strictly valid JSON only." }, { role: "user", content: instruction }] }),
