@@ -62,7 +62,7 @@ export function FeloCreateStudio(){
    if(job.fallbackSlides?.length){
     const deck=new pptxgen();
     deck.layout="LAYOUT_WIDE";deck.author="Haryomix AI Create Studio";deck.subject=topic;deck.title=job.title||topic;deck.company="Haryomix";
-    deck.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos",lang:"en-US"};
+    deck.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos"};
     const cover=deck.addSlide();cover.background={color:"0B1020"};
     cover.addText(job.title||topic,{x:0.8,y:1.25,w:11.7,h:2.2,fontFace:"Aptos Display",fontSize:30,bold:true,color:"FFFFFF",breakLine:false,fit:"shrink"});
     cover.addText("Generated with Haryomix AI Create Studio",{x:0.85,y:4.05,w:10.5,h:0.5,fontFace:"Aptos",fontSize:14,color:"8BA4D9"});
@@ -72,7 +72,7 @@ export function FeloCreateStudio(){
      slide.addText(item.title||`Slide ${index+1}`,{x:0.65,y:0.45,w:12.0,h:0.75,fontFace:"Aptos Display",fontSize:25,bold:true,color:"14213D",fit:"shrink"});
      slide.addShape(deck.ShapeType.line,{x:0.68,y:1.35,w:1.25,h:0,line:{color:"356AE6",width:3}});
      const bullets=item.bullets.slice(0,5);const gap=Math.min(0.92,3.8/Math.max(bullets.length,1));
-     bullets.forEach((bullet,i)=>slide.addText(bullet,{x:0.95,y:1.75+i*gap,w:11.2,h:Math.max(0.48,gap-0.08),fontFace:"Aptos",fontSize:Math.min(20,Math.max(15,22-bullets.length)),color:"273449",bullet:{indent:16},paraSpaceAfterPt:8,breakLine:false,fit:"shrink",valign:"mid"}));
+     bullets.forEach((bullet,i)=>slide.addText(bullet,{x:0.95,y:1.75+i*gap,w:11.2,h:Math.max(0.48,gap-0.08),fontFace:"Aptos",fontSize:Math.min(20,Math.max(15,22-bullets.length)),color:"273449",bullet:{indent:16},paraSpaceAfterPt:8,breakLine:false,fit:"shrink",valign:"middle"}));
      slide.addText(`${index+1} / ${job.fallbackSlides!.length}`,{x:11.3,y:7.05,w:1.2,h:0.2,fontFace:"Aptos",fontSize:9,color:"68758A",align:"right"});
      if(item.notes&&"addNotes" in slide&&typeof slide.addNotes==="function")slide.addNotes(item.notes);
     });
