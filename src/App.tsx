@@ -4,8 +4,8 @@ import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "examcenter" | "quiz" | "progress" | "questionbank" | "ai" | "create" | "notes" | "flashcards" | "focus" | "utilities" | "calculator" | "converter";
-const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", examcenter: "/workspace/exam-center", quiz: "/workspace/practice-quiz", progress: "/workspace/progress-tracker", questionbank: "/workspace/question-bank", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", notes: "/workspace/notes", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter" };
+type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "examcenter" | "quiz" | "progress" | "questionbank" | "ai" | "create" | "notes" | "flashcards" | "focus" | "utilities" | "calculator" | "converter" | "idarranger";
+const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", examcenter: "/workspace/exam-center", quiz: "/workspace/practice-quiz", progress: "/workspace/progress-tracker", questionbank: "/workspace/question-bank", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", notes: "/workspace/notes", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter", idarranger: "/workspace/id-arranger" };
 function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; if (normalizedPath === "/workspace/study-planner") return "examcenter"; if (normalizedPath === "/workspace/study-library") return "notes"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
@@ -17,6 +17,7 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "create", n: "07", title: "AI Create Studio", desc: "Create presentation decks and images with the built-in creative tools." },
   { id: "calculator", n: "08", title: "Scientific Calculator", desc: "Evaluate scientific calculations locally without AI or an API key." },
   { id: "converter", n: "09", title: "Unit Converter", desc: "Convert length, mass, temperature, area, volume, speed, time and digital storage." },
+  { id: "idarranger", n: "10", title: "ID Arranger", desc: "Arrange card front/back images into print-ready A4 sheets, locally in your browser." },
 ];
 
 export default function App() {
