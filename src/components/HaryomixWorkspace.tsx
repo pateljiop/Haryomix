@@ -203,7 +203,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
   return <div className="hmx-panel">
     <div className="hmx-panel-head"><h2>Presentation studio</h2><span style={{fontSize:11,color:"#7a8292"}}>Professional slide system</span></div>
     <div className="hmx-panel-body">
-      <div className="hmx-note" style={{marginBottom:20}}>Build a presentation with a clear narrative, executive-style cover, agenda, structured content slides, consistent typography, and a closing takeaway slide. The export is an expert-style template, not verified research; review claims and add sources for factual data.</div>
+      <div className="hmx-note" style={{marginBottom:20}}>Generate real slide-specific content with AI, then export an editable PowerPoint with a cover, agenda, designed content slides, takeaway slide, and optional speaker notes. Review important facts and add source links before submitting.</div>
       <div className="hmx-field"><label htmlFor="ppt-title">Presentation title</label><input id="ppt-title" className="hmx-input" value={title} onChange={e=>setTitle(e.target.value)}/></div>
       <div className="hmx-field"><label htmlFor="ppt-course">Course, subject or organization</label><input id="ppt-course" className="hmx-input" value={course} onChange={e=>setCourse(e.target.value)}/></div>
       <div className="hmx-field"><label htmlFor="ppt-audience">Audience</label><input id="ppt-audience" className="hmx-input" value={audience} onChange={e=>setAudience(e.target.value)}/></div>
