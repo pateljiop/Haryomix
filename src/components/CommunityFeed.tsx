@@ -88,7 +88,7 @@ export function CommunityFeed() {
             <textarea value={message} onChange={e => setMessage(e.target.value)} minLength={3} maxLength={500} required rows={4} placeholder="What are you working on?" style={{ ...inputStyle, resize: "vertical" }} />
           </label>
           <button className="hmx-tool-launch" type="submit" disabled={busy}>{busy ? "Publishing…" : "Publish to community ↗"}</button>
-          <p role="status" aria-live="polite" style={{ margin: 0, color: notice.startsWith("Your post is") ? "#246a43" : "#747b8d", fontSize: 12, lineHeight: 1.6 }}>{notice || "Posts are public. Do not share passwords, private documents or personal contact details."}</p>
+          <p role="status" aria-live="polite" style={{ margin: 0, color: notice.startsWith("Your post is") ? "#7ce0a6" : "#9aa8bf", fontSize: 12, lineHeight: 1.6 }}>{notice || "Posts are public. Do not share passwords, private documents or personal contact details."}</p>
         </form>
         <p style={{ color: "#747b8d", fontSize: 12, lineHeight: 1.6, marginTop: 12 }}>Posts are public and may appear immediately. Reports are stored privately for review, but review is not yet automated or guaranteed to be immediate.</p>
       </div>
@@ -125,10 +125,10 @@ export function CommunityFeed() {
             </div>
           </form>}
         </article>)}
-        <p role="status" aria-live="polite" style={{ color: reportNotice ? "#246a43" : "#747b8d", fontSize: 12, margin: 0 }}>{reportNotice}</p>
+        <p role="status" aria-live="polite" style={{ color: reportNotice ? "#7ce0a6" : "#9aa8bf", fontSize: 12, margin: 0 }}>{reportNotice}</p>
       </div>
     </div>
-    <style>{`#community .hmx-overline{color:#287ea8!important}#community .hmx-heading{color:#20251f!important;text-shadow:none!important;-webkit-text-fill-color:#20251f!important}#community .hmx-copy{color:#596273!important}@media(max-width:760px){#community>div{grid-template-columns:minmax(0,1fr)!important}}`}</style>
+    <style>{`#community .hmx-overline{color:#70d8ff!important}#community .hmx-heading{color:#edf2ff!important;text-shadow:none!important;-webkit-text-fill-color:#edf2ff!important}#community .hmx-copy{color:#a7b3c9!important}@media(max-width:760px){#community>div{grid-template-columns:minmax(0,1fr)!important}}`}</style>
   </section>;
 }
 
