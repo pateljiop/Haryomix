@@ -98,6 +98,12 @@ export function FeloCreateStudio(){
     fallbackSlides.forEach((item,index)=>{
       const slide=deck.addSlide();const dark=index%5===4;
       slide.background={color:dark?C.navy:(index%2===0?C.white:C.pale)};
+      // Quiet editorial background: fine guide lines and soft orbital accents, kept behind content.
+      const bgLine=dark?"22314D":"E7ECF5";
+      for(let gridX=1.1;gridX<12.7;gridX+=1.15){slide.addShape(deck.ShapeType.line,{x:gridX,y:0.05,w:0,h:6.85,line:{color:bgLine,width:0.35,transparency:dark?55:45}});}
+      for(let gridY=0.75;gridY<6.9;gridY+=0.82){slide.addShape(deck.ShapeType.line,{x:0.18,y:gridY,w:12.95,h:0,line:{color:bgLine,width:0.35,transparency:dark?55:45}});}
+      slide.addShape(deck.ShapeType.ellipse,{x:10.45,y:-0.78,w:3.3,h:3.3,line:{color:dark?"35517C":"C9D8F8",width:1,transparency:25},fill:{color:dark?C.navy:C.white,transparency:100}});
+      slide.addShape(deck.ShapeType.ellipse,{x:11.0,y:-0.23,w:2.2,h:2.2,line:{color:dark?C.cyan:C.blue,width:0.8,transparency:62},fill:{color:dark?C.navy:C.white,transparency:100}});
       const ink=dark?C.white:C.ink,muted=dark?"B4C1D9":C.muted;
       const section=(item.section||(["FOUNDATIONS","KEY IDEAS","PRACTICAL APPLICATION","ANALYSIS","TAKEAWAYS"][index%5])).toUpperCase().slice(0,36);
       slide.addShape(deck.ShapeType.rect,{x:0,y:0,w:0.16,h:H,line:{color:C.blue,transparency:100},fill:{color:C.blue}});
@@ -203,22 +209,28 @@ export function FeloCreateStudio(){
     @keyframes hmxSlideEnter{from{opacity:0;transform:translateY(14px) scale(.985);filter:blur(3px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
     @keyframes hmxOrbDrift{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-12px,9px,0) scale(1.04)}}
     @keyframes hmxAccentSweep{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+    @keyframes hmxBulletEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes hmxGridGlow{0%,100%{opacity:.24}50%{opacity:.48}}
     .hmx-slide-motion{animation:hmxSlideEnter .52s cubic-bezier(.2,.75,.25,1) both}
     .hmx-preview-orb{animation:hmxOrbDrift 9s ease-in-out infinite}
-    @media(prefers-reduced-motion:reduce){.hmx-slide-motion,.hmx-preview-orb{animation:none!important}}
+    .hmx-preview-grid{animation:hmxGridGlow 7s ease-in-out infinite}
+    .hmx-preview-bullet{animation:hmxBulletEnter .42s cubic-bezier(.2,.75,.25,1) both}
+    @media(prefers-reduced-motion:reduce){.hmx-slide-motion,.hmx-preview-orb,.hmx-preview-grid,.hmx-preview-bullet{animation:none!important}}
    `}</style>
    {job?.fallbackSlides&&job.fallbackSlides.length>0&&<section aria-label="Presentation preview" style={{marginTop:22,border:"1px solid #dce4f0",borderRadius:18,overflow:"hidden",background:"#0b1220",color:"#f5f7ff",boxShadow:"0 14px 40px rgba(13,25,48,.12)"}}>
     <div style={{padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,borderBottom:"1px solid #253149",flexWrap:"wrap"}}>
      <div><div style={{fontSize:10,fontWeight:800,letterSpacing:1.8,color:"#64d9d0"}}>LIVE SLIDE PREVIEW</div><div style={{fontSize:13,color:"#aab8d0",marginTop:4}}>Review your slides before exporting</div></div>
      <div style={{fontSize:12,color:"#c6d2e8",fontVariantNumeric:"tabular-nums"}}>{previewIndex+2} / {(job.fallbackSlides?.length||0)+1}</div>
     </div>
-    <div key={previewIndex} className="hmx-slide-motion" style={{minHeight:330,padding:"clamp(20px,5vw,42px)",background:previewIndex%5===4?"linear-gradient(135deg,#101b33,#17294a)":"linear-gradient(135deg,#ffffff,#f2f6fc)",color:"#17233b",position:"relative"}}>
+    <div key={previewIndex} className="hmx-slide-motion" style={{minHeight:330,padding:"clamp(20px,5vw,42px)",background:previewIndex%5===4?"linear-gradient(135deg,#101b33,#17294a)":"linear-gradient(135deg,#ffffff,#f2f6fc)",color:"#17233b",position:"relative",isolation:"isolate",overflow:"hidden"}}>
+     <div aria-hidden="true" className="hmx-preview-grid" style={{position:"absolute",inset:0,zIndex:-1,pointerEvents:"none",backgroundImage:"linear-gradient(rgba(65,105,225,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(65,105,225,.055) 1px,transparent 1px)",backgroundSize:"32px 32px"}}/>
+     <div aria-hidden="true" className="hmx-preview-orb" style={{position:"absolute",zIndex:-1,pointerEvents:"none",width:220,height:220,borderRadius:"50%",right:-55,top:-100,border:"1px solid "+(previewIndex%5===4?"rgba(85,214,208,.45)":"rgba(65,105,225,.22)"),boxShadow:"0 0 0 26px "+(previewIndex%5===4?"rgba(85,214,208,.035)":"rgba(65,105,225,.025)")}}/>
      <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:"#4169e1",textTransform:"uppercase"}}>{job.fallbackSlides[previewIndex]?.section||(["FOUNDATIONS","KEY IDEAS","PRACTICAL APPLICATION","ANALYSIS","TAKEAWAYS"][previewIndex%5])}</div>
      <h3 style={{fontSize:"clamp(23px,4vw,36px)",lineHeight:1.12,letterSpacing:"-0.035em",margin:"14px 0 12px",color:previewIndex%5===4?"#fff":"#17233b"}}>{job.fallbackSlides[previewIndex]?.title||"Slide preview"}</h3>
      {job.fallbackSlides[previewIndex]?.subtitle&&<p style={{fontSize:14,lineHeight:1.6,color:previewIndex%5===4?"#c3d0e7":"#66738a",margin:"0 0 20px"}}>{job.fallbackSlides[previewIndex]?.subtitle}</p>}
      <div style={{height:3,width:54,borderRadius:8,background:"#55d6d0",margin:"14px 0 22px"}}/>
      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,220px),1fr))",gap:12}}>
-      {job.fallbackSlides[previewIndex]?.bullets.slice(0,5).map((bullet,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start",padding:14,borderRadius:12,border:"1px solid "+(previewIndex%5===4?"#304264":"#dce5f1"),background:previewIndex%5===4?"rgba(21,34,59,.86)":"rgba(255,255,255,.9)"}}>
+      {job.fallbackSlides[previewIndex]?.bullets.slice(0,5).map((bullet,i)=><div key={i} className="hmx-preview-bullet" style={{animationDelay:`${Math.min(i,4)*85}ms`,display:"flex",gap:11,alignItems:"flex-start",padding:14,borderRadius:12,border:"1px solid "+(previewIndex%5===4?"#304264":"#dce5f1"),background:previewIndex%5===4?"rgba(21,34,59,.86)":"rgba(255,255,255,.9)"}}>
        <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",flex:"0 0 25px",height:25,borderRadius:8,background:i%2===0?"#4169e1":"#55bfb8",color:"#fff",fontSize:10,fontWeight:800}}>{String(i+1).padStart(2,"0")}</span>
        <span style={{fontSize:13,lineHeight:1.55,color:previewIndex%5===4?"#e1e9f7":"#263650"}}>{bullet}</span>
       </div>)}
