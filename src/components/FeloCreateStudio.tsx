@@ -164,9 +164,12 @@ export function FeloCreateStudio(){
       if(!xmlFile)continue;
       let xml=await xmlFile.async("string");
       if(!xml.includes("<p:transition")){
-        const transition=fileName.endsWith("slide1.xml")
+        const slideNumber=Number(fileName.match(/slide(\\d+)\\.xml$/)?.[1]||1);
+        const transition=slideNumber===1
           ? '<p:transition spd="med"><p:fade/></p:transition>'
-          : '<p:transition spd="med"><p:wipe dir="l"/></p:transition>';
+          : slideNumber%3===0
+            ? '<p:transition spd="med"><p:push dir="l"/></p:transition>'
+            : '<p:transition spd="med"><p:wipe dir="l"/></p:transition>';
         if(xml.includes("<p:timing"))xml=xml.replace("<p:timing",transition+"<p:timing");
         else if(xml.includes("</p:clrMapOvr>"))xml=xml.replace("</p:clrMapOvr>","</p:clrMapOvr>"+transition);
         else xml=xml.replace("</p:sld>",transition+"</p:sld>");
@@ -221,6 +224,13 @@ export function FeloCreateStudio(){
     <div style={{padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,borderBottom:"1px solid #253149",flexWrap:"wrap"}}>
      <div><div style={{fontSize:10,fontWeight:800,letterSpacing:1.8,color:"#64d9d0"}}>LIVE SLIDE PREVIEW</div><div style={{fontSize:13,color:"#aab8d0",marginTop:4}}>Review your slides before exporting</div></div>
      <div style={{fontSize:12,color:"#c6d2e8",fontVariantNumeric:"tabular-nums"}}>{previewIndex+2} / {(job.fallbackSlides?.length||0)+1}</div>
+    </div>
+    <div className="hmx-slide-motion" style={{minHeight:230,padding:"clamp(24px,5vw,42px)",marginBottom:12,background:"linear-gradient(125deg,#080f20 0%,#142343 62%,#1c3760 100%)",color:"#fff",position:"relative",isolation:"isolate",overflow:"hidden",borderRadius:12}}>
+     <div aria-hidden="true" className="hmx-preview-orb" style={{position:"absolute",zIndex:-1,pointerEvents:"none",width:260,height:260,borderRadius:"50%",right:-55,top:-125,border:"1px solid rgba(85,214,208,.5)",boxShadow:"0 0 0 28px rgba(85,214,208,.035),0 0 0 62px rgba(85,214,208,.025)"}}/>
+     <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:"#55d6d0"}}>PRESENTATION COVER</div>
+     <h3 style={{fontSize:"clamp(25px,4vw,38px)",lineHeight:1.12,letterSpacing:"-0.035em",maxWidth:"82%",margin:"16px 0",color:"#fff"}}>{job.title||topic}</h3>
+     <div style={{width:52,height:3,background:"#55d6d0",borderRadius:8,margin:"14px 0"}}/>
+     <div style={{fontSize:12,color:"#c7d3e9"}}>Prepared with {job.provider||"AI-assisted research"} · HARYOMIX</div>
     </div>
     <div key={previewIndex} className="hmx-slide-motion" style={{minHeight:330,padding:"clamp(20px,5vw,42px)",background:previewIndex%5===4?"linear-gradient(135deg,#101b33,#17294a)":"linear-gradient(135deg,#ffffff,#f2f6fc)",color:"#17233b",position:"relative",isolation:"isolate",overflow:"hidden"}}>
      <div aria-hidden="true" className="hmx-preview-grid" style={{position:"absolute",inset:0,zIndex:-1,pointerEvents:"none",backgroundImage:"linear-gradient(rgba(65,105,225,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(65,105,225,.055) 1px,transparent 1px)",backgroundSize:"32px 32px"}}/>
