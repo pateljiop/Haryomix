@@ -33,3 +33,13 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .hmx-seo-faq[open] summary:after{content:"−"}
 .hmx-seo-faq p{max-width:850px;margin:14px 0 0;color:var(--hm-muted);font-size:14px;line-height:1.75}
 @media(max-width:640px){.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:1fr}.hmx-seo-faq summary{padding-right:20px;font-size:14px}}
+
+
+/* PDF Studio tool cards: high-contrast labels and clear disabled states. */
+.hmx-panel .hmx-tool-grid .hmx-tool-card{background:#111827!important;border:1px solid #344158!important;color:#eef3ff!important;box-shadow:none!important;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card strong{color:#f3f6ff!important;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card span{color:#b6c2d7!important;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:hover:not(:disabled){background:#172238!important;border-color:#6485ff!important;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:disabled{background:#202938!important;border-color:#354052!important;color:#a5b0c3!important;opacity:1!important;cursor:not-allowed;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:disabled strong{color:#b5c0d2!important;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:disabled span{color:#96a2b7!important;}
