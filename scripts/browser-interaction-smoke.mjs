@@ -327,6 +327,22 @@ async function run() {
   await waitFor("document.querySelector('.hmx-focus-time strong')?.textContent==='05:00'", "timer resets to five minutes");
   console.log("Focus Timer mode/start/pause/reset flow passed.");
 
+  await navigate("/workspace/photo-signature", "!!document.querySelector('#photo-file') && !!document.querySelector('#photo-width')", "Photo & Signature Studio controls");
+  await setFiles("#photo-file", [join(profile, "smoke-pixel.png")]);
+  await waitFor("document.querySelector('#photo-file')?.files?.length===1 && document.querySelector('.hmx-photo-signature .hmx-note[role=status]')?.textContent.includes('Source: 1 × 1 px')", "photo fixture loaded locally");
+  await clickText("button", "Prepare image", "prepare resized photo");
+  await waitFor("document.querySelector('.hmx-photo-signature .hmx-result')?.textContent.includes('smoke-pixel-resized.jpg')", "photo resize output is ready");
+  await clickText("button", "Download image", "download resized photo");
+  const resizedPhotoPath = await waitForDownload("smoke-pixel-resized.jpg");
+  const resizedPhotoBytes = readFileSync(resizedPhotoPath);
+  if (resizedPhotoBytes.length < 100 || resizedPhotoBytes[0] !== 0xff || resizedPhotoBytes[1] !== 0xd8) {
+    throw new Error("Photo Studio did not produce a valid-looking JPEG artifact.");
+  }
+  await clickText("button", "Create A4 photo sheet", "create A4 photo sheet");
+  const photoSheetPath = await waitForDownload("smoke-pixel-A4-photo-sheet.jpg");
+  if (readFileSync(photoSheetPath).length < 1000) throw new Error("Photo Studio A4 sheet artifact is unexpectedly small.");
+  console.log("Photo & Signature Studio resize and A4 sheet downloads passed artifact checks.");
+
   await navigate("/workspace/pdf-studio", "!!document.querySelector('input.hmx-file-input')", "PDF Studio upload control");
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('2 supported file(s) selected')", "PDF fixtures loaded");

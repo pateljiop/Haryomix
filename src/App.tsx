@@ -4,8 +4,8 @@ import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "examcenter" | "quiz" | "progress" | "questionbank" | "ai" | "create" | "notes" | "flashcards" | "focus" | "utilities" | "calculator" | "converter" | "idarranger";
-const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", examcenter: "/workspace/exam-center", quiz: "/workspace/practice-quiz", progress: "/workspace/progress-tracker", questionbank: "/workspace/question-bank", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", notes: "/workspace/notes", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter", idarranger: "/workspace/id-arranger" };
+type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "examcenter" | "quiz" | "progress" | "questionbank" | "ai" | "create" | "notes" | "flashcards" | "focus" | "utilities" | "calculator" | "converter" | "idarranger" | "photosignature";
+const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", examcenter: "/workspace/exam-center", quiz: "/workspace/practice-quiz", progress: "/workspace/progress-tracker", questionbank: "/workspace/question-bank", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", notes: "/workspace/notes", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter", idarranger: "/workspace/id-arranger", photosignature: "/workspace/photo-signature" };
 function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; if (normalizedPath === "/workspace/study-planner") return "examcenter"; if (normalizedPath === "/workspace/study-library") return "notes"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
@@ -18,6 +18,7 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "calculator", n: "08", title: "Scientific Calculator", desc: "Evaluate scientific calculations locally without AI or an API key." },
   { id: "converter", n: "09", title: "Unit Converter", desc: "Convert length, mass, temperature, area, volume, speed, time and digital storage." },
   { id: "idarranger", n: "10", title: "ID Arranger", desc: "Arrange card front/back images into print-ready A4 sheets, locally in your browser." },
+  { id: "photosignature", n: "11", title: "Photo & Signature Studio", desc: "Resize and compress form photos and signatures; create an A4 photo sheet locally." },
 ];
 
 export default function App() {
@@ -31,7 +32,7 @@ export default function App() {
   if (workspace) return <HaryomixWorkspace key={initialTool} initialTool={initialTool} onHome={goHome} />;
   return <main className="hmx-app">
     <nav className="hmx-nav" aria-label="Main navigation">
-      <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX WORKSPACE</span></a>
+      <a className="hmx-brand" href="#top"><img src="/assets/brand/02_Compact_Logo.png" alt="" /> Hariom Builds <span className="hmx-byline">HARYOMIX · V2</span></a>
       <div id="hmx-mobile-navigation" className={`hmx-navlinks${mobileMenuOpen ? " is-open" : ""}`}>
         <a href="#tools" onClick={() => setMobileMenuOpen(false)}>Features</a>
         <a href="#tools" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Workspace</a>
@@ -44,7 +45,7 @@ export default function App() {
       </div>
     </nav>
     <section id="top" className="hmx-hero">
-      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Code fast.<br/>Learn deeper.<br/><span className="hmx-hero-gradient">Ship without friction.</span></h1><p className="hmx-copy">One focused workspace for the things you make and the things you learn. Debug code, build presentations, work with PDFs and images, and prepare for school, university and competitive exams—all from one browser-first desk.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace("index")}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
+      <div className="hmx-hero-copy"><p className="hmx-overline">HARIOM BUILDS <span aria-hidden="true">/</span> HARYOMIX V2 · CODE · CREATE · AUTOMATE</p><h1 className="hmx-heading">Build in flow.<br/>Study with focus.<br/><span className="hmx-hero-gradient">Everything in one desk.</span></h1><p className="hmx-copy">A premium, browser-first workspace for creating, studying and getting everyday work done. Edit PDFs and images, build presentations, debug code and prepare for exams in one focused place.</p><div className="hmx-hero-actions"><button className="hmx-tool-launch" onClick={() => openWorkspace("index")}>Launch workspace ↗</button><a className="hmx-study-launch" href="#tools">Explore capabilities ↓</a></div><div className="hmx-hero-tags"><span>#code</span><span>#build</span><span>#revise</span><span>#tools</span></div></div>
       <HeroWorkspace />
       <a href="#tools" className="hmx-scroll-cue"><span>SCROLL TO EXPLORE</span><span>↓</span></a>
     </section>
