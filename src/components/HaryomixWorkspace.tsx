@@ -99,11 +99,22 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
   const [detail,setDetail]=useState("Balanced");
   const [notes,setNotes]=useState(true);
   const [busy,setBusy]=useState(false);
+  const [generationStatus,setGenerationStatus]=useState("");
   const items=useMemo(()=>points.split("\n").map(s=>s.trim()).filter(Boolean).slice(0,24),[points]);
   async function exportPpt(){
     if(!title.trim()||!items.length)return;
     setBusy(true);
+    setGenerationStatus("AI is writing the actual slide content…");
     try {
+      const aiResponse=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"ppt",prompt:JSON.stringify({title,course,audience,purpose,style:tone,contentDensity:detail,language:"Follow the user's language",requiredSlides:items.map((topic,index)=>({index:index+1,topic})),instructions:"Create substantive, topic-specific slide content. Return ONLY valid JSON with this exact shape: {\"slides\":[{\"title\":string,\"bullets\":string[],\"speakerNotes\":string}]}. Return exactly one slide per requiredSlides entry, in the same order. Each slide needs 3-5 concrete informative bullets, not generic placeholders such as 'explain the concept'. Use accurate facts; do not invent statistics or citations. Make the content useful for the specified audience and objective."})})});
+      const aiData=await aiResponse.json().catch(()=>({}));
+      if(!aiResponse.ok)throw new Error(typeof aiData.error==="string"?aiData.error:"AI slide generation failed. Check provider configuration and retry.");
+      if(typeof aiData.answer!=="string")throw new Error("AI returned no slide content. Please retry.");
+      let generated:any;
+      try{const raw=aiData.answer.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,"");generated=JSON.parse(raw)}catch{throw new Error("AI slide content was not valid structured data. Please retry.");}
+      if(!Array.isArray(generated?.slides)||generated.slides.length!==items.length||generated.slides.some((s:any)=>typeof s.title!=="string"||!s.title.trim()||!Array.isArray(s.bullets)||s.bullets.length<3||s.bullets.some((b:any)=>typeof b!=="string"||!b.trim()))){throw new Error("AI did not return complete content for every slide. No placeholder presentation was exported; please retry.");}
+      const generatedSlides=generated.slides as Array<{title:string;bullets:string[];speakerNotes?:string}>;
+      setGenerationStatus("Building the editable PowerPoint file…");
       const pptxgen=(await import("pptxgenjs")).default;
       const pptx=new pptxgen();
       pptx.layout="LAYOUT_WIDE";
@@ -151,30 +162,25 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
         });
         footer(agenda,slideNo++);
       }
-      items.forEach((item,i)=>{
-        const sl=base(String(i+1).padStart(2,"0")+" / "+item);
-        sl.addText(item,{x:.62,y:.9,w:11.8,h:.68,fontFace:"Aptos Display",fontSize:25,bold:true,color:C.ink,fit:"shrink",margin:0});
+      generatedSlides.forEach((item,i)=>{
+        const slideTitle=clean(item.title);
+        const sl=base(String(i+1).padStart(2,"0")+" / "+slideTitle);
+        sl.addText(slideTitle,{x:.62,y:.9,w:11.8,h:.68,fontFace:"Aptos Display",fontSize:25,bold:true,color:C.ink,fit:"shrink",margin:0});
         sl.addShape(pptx.ShapeType.line,{x:.65,y:1.72,w:11.95,h:0,line:{color:C.line,width:1}});
-        const isOpening=/executive|summary|problem|why it matters|key takeaways|conclusion|recommend/i.test(item);
-        const bullets=isOpening
-          ? ["Context: define the situation and the decision to be made.","Evidence: separate verified facts, assumptions, and open questions.","Implication: explain what the audience should understand or do next."]
-          : detail==="Detailed"
-            ? ["Core idea: define the concept in one precise sentence.","How it works: explain the mechanism, sequence, or key components.","Example: use a concrete scenario to make the concept tangible.","Trade-off: note a limitation, dependency, or alternative."]
-            : detail==="Concise"
-              ? ["Main point: state the conclusion first.","Evidence or example: show why it matters.","Implication: connect the point to the overall objective."]
-              : ["Core idea: explain the concept in plain, accurate language.","Evidence or example: make the idea concrete and understandable.","Practical implication: explain when this matters and what follows."];
-        const cards=bullets.slice(0,detail==="Detailed"?4:3);
+        const cards=item.bullets.slice(0,detail==="Detailed"?5:4);
         cards.forEach((b,j)=>{
-          const y=2.05+j*(detail==="Detailed"?.94:1.13);
-          sl.addShape(pptx.ShapeType.roundRect,{x:.7,y,w:11.85,h:detail==="Detailed"?.76:.91,rectRadius:.08,fill:{color:C.white},line:{color:C.line,width:.8}});
-          sl.addShape(pptx.ShapeType.rect,{x:.7,y,w:.06,h:detail==="Detailed"?.76:.91,fill:{color:j===0?C.blue:j===1?C.cyan:C.green},line:{color:j===0?C.blue:j===1?C.cyan:C.green}});
-          sl.addText(String(j+1).padStart(2,"0"),{x:.95,y:y+.16,w:.42,h:.22,fontSize:9,bold:true,color:C.blue,margin:0});
-          sl.addText(b,{x:1.52,y:y+.13,w:10.4,h:detail==="Detailed"?.46:.6,fontFace:"Aptos",fontSize:detail==="Detailed"?12:14,color:C.ink,fit:"shrink",margin:0.02,valign:"middle"});
+          const cardHeight=detail==="Detailed"?.67:.78;
+          const gap=detail==="Detailed"?.82:.96;
+          const y=1.98+j*gap;
+          sl.addShape(pptx.ShapeType.roundRect,{x:.7,y,w:11.85,h:cardHeight,rectRadius:.08,fill:{color:C.white},line:{color:C.line,width:.8}});
+          sl.addShape(pptx.ShapeType.rect,{x:.7,y,w:.06,h:cardHeight,fill:{color:j%3===0?C.blue:j%3===1?C.cyan:C.green},line:{color:j%3===0?C.blue:j%3===1?C.cyan:C.green}});
+          sl.addText(String(j+1).padStart(2,"0"),{x:.95,y:y+.12,w:.42,h:.22,fontSize:9,bold:true,color:C.blue,margin:0});
+          sl.addText(b,{x:1.52,y:y+.09,w:10.4,h:cardHeight-.16,fontFace:"Aptos",fontSize:detail==="Detailed"?12:13,color:C.ink,fit:"shrink",margin:0.02,valign:"middle"});
         });
         sl.addText("AUDIENCE  /  "+clean(audience),{x:.72,y:6.15,w:8.5,h:.24,fontSize:8,color:C.muted,charSpacing:.4,margin:0});
         footer(sl,slideNo++);
         if(notes){
-          sl.addNotes(`Presenter guidance: ${item}.\n\nOpen with the central message, define any necessary terms, and connect the point to the presentation objective. Use one relevant real-world example and cite reliable sources for any factual or numerical claim you add. Do not present placeholder statements as verified research.\n\nAudience: ${audience}. Purpose: ${purpose}`);
+          sl.addNotes(`Presenter guidance: ${item.speakerNotes||slideTitle}.\n\nAudience: ${audience}. Purpose: ${purpose}`);
         }
       });
       const final=base("Closing / Decision");
@@ -187,9 +193,11 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       final.addText("Created by Hariom Builds · "+clean(course),{x:.75,y:6.55,w:9,h:.25,fontSize:9,color:"A9C8FF",margin:0});
       footer(final,slideNo);
       await pptx.writeFile({fileName:slug(title)+".pptx"});
-      setNotice(`Expert-style PowerPoint exported: ${slideNo} slides, consistent layout, agenda, takeaway slide${notes?", and speaker notes":""}. The outline is professionally structured but factual claims and sources still need your review.`);
+      setNotice(`AI-generated PowerPoint exported successfully: ${slideNo} slides with topic-specific content, editable text, agenda, takeaway slide${notes?", and speaker notes":""}. Review important facts and add sources before submitting.`);
     } catch(e) {
-      setNotice("PowerPoint export failed: "+(e instanceof Error?e.message:"unknown error"));
+      const message="PowerPoint failed: "+(e instanceof Error?e.message:"unknown error");
+      setGenerationStatus(message);
+      setNotice(message);
     } finally {setBusy(false);}
   }
   return <div className="hmx-panel">
