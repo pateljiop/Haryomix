@@ -184,8 +184,8 @@ async function createFixtures() {
   secondPage.drawText("Haryomix audit fixture beta", { x: 12, y: 320, size: 10 });
   writeFileSync(join(profile, "smoke-a.pdf"), await first.save());
   const second = await PDFDocument.create();
-  const secondPage = second.addPage([500, 600]);
-  secondPage.drawText("Haryomix comparison fixture gamma", { x: 18, y: 500, size: 12 });
+  const comparisonPage = second.addPage([500, 600]);
+  comparisonPage.drawText("Haryomix comparison fixture gamma", { x: 18, y: 500, size: 12 });
   writeFileSync(join(profile, "smoke-b.pdf"), await second.save());
   writeFileSync(join(profile, "smoke-pixel.png"), createValidPngFixture());
 }
