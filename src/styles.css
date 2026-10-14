@@ -33,3 +33,13 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .hmx-seo-faq[open] summary:after{content:"−"}
 .hmx-seo-faq p{max-width:850px;margin:14px 0 0;color:var(--hm-muted);font-size:14px;line-height:1.75}
 @media(max-width:640px){.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:1fr}.hmx-seo-faq summary{padding-right:20px;font-size:14px}}
+
+
+/* PDF toolbox: restore readable contrast against the dark workspace and clarify unavailable actions. */
+.hmx-panel .hmx-tool-grid .hmx-tool-card{background:#111a2b;color:#edf2ff;border-color:#2b3a52;cursor:pointer;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card strong{color:#f3f6ff;font-weight:750;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card span{color:#aebbd1;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:hover:not(:disabled){background:#17243a;border-color:#6f8cff;box-shadow:0 8px 22px rgb(0 0 0 / .18);}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:disabled{background:#202a3b;color:#a1acc0;border-color:#354158;opacity:.72;cursor:not-allowed;box-shadow:none;transform:none;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:disabled strong,.hmx-panel .hmx-tool-grid .hmx-tool-card:disabled span{color:#a1acc0;}
+.hmx-panel .hmx-tool-grid .hmx-tool-card:focus-visible{outline:2px solid #8aa4ff;outline-offset:3px;}
