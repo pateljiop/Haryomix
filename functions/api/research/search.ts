@@ -55,7 +55,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const query = clean(body.query, 180);
   if (query.length < 3) return reply({ error: "Enter at least 3 characters to search." }, 400);
   const q = encodeURIComponent(query);
-  const openAlexParams = new URLSearchParams({ search: query, per_page: "5", select: "id,doi,title,publication_year,publication_date,authorships,biblio,primary_location" });\n  if (env.OPENALEX_API_KEY) openAlexParams.set("api_key", env.OPENALEX_API_KEY);\n  const openAlexUrl = `https://api.openalex.org/works?${openAlexParams.toString()}`;\n  const crossrefUrl = `https://api.crossref.org/works?query.bibliographic=${q}&rows=5&select=title,author,published,publisher,DOI,type`;
+  const openAlexParams = new URLSearchParams({ search: query, per_page: "5", select: "id,doi,title,publication_year,publication_date,authorships,biblio,primary_location" });
+  if (env.OPENALEX_API_KEY) openAlexParams.set("api_key", env.OPENALEX_API_KEY);
+  const openAlexUrl = `https://api.openalex.org/works?${openAlexParams.toString()}`;
   const arxivUrl = `https://export.arxiv.org/api/query?search_query=all:${q}&start=0&max_results=5&sortBy=relevance&sortOrder=descending`;
   const archiveUrl = `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=date&fl[]=description&mediatype[]=texts&rows=5&page=1&output=json`;
   const [openAlex, crossref, arxivXml, archive] = await Promise.all([
