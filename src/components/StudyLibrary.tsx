@@ -234,9 +234,8 @@ export function SmartNotes() {
             <button type="button" className="hmx-btn" onClick={() => void clearLibrary()} disabled={busy || !items.length}>Clear notes</button>
           </div>
         </div>
-        {loading
-          ? <div className="hmx-planner-empty"><strong>Opening your notes…</strong></div>
-          : <div className="hmx-library-layout">
+        {loading && <div className="hmx-planner-empty"><strong>Opening your notes…</strong></div>}
+        <div className="hmx-library-layout" aria-busy={loading}>
             <section className="hmx-library-editor">
               <h3>{editingId ? "Edit study item" : "Add to your notes workspace"}</h3>
               {!editingId && <div className="hmx-field"><label>Start with a ready-made note template (no AI)</label><div className="hmx-btn-row">{[
@@ -271,7 +270,7 @@ export function SmartNotes() {
                 <div className="hmx-library-detail-foot"><span>Created {formatDate(selected.createdAt)}</span><span>Updated {formatDate(selected.updatedAt)}</span></div>
               </article>}
             </section>
-          </div>}
+          </div>
       </div>
     </div>
   </div>;
