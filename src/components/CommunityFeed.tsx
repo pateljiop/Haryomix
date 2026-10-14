@@ -74,7 +74,7 @@ export function CommunityFeed() {
     }
   }
 
-  return <section id="community" style={{ padding: "clamp(52px, 8vw, 100px) 24px", background: "#f5f5f2", color: "#20251f" }}>
+  return <section id="community" style={{ padding: "clamp(52px, 8vw, 100px) 24px", background: "linear-gradient(180deg, #0b1020 0%, #080c16 100%)", color: "#edf2ff", borderTop: "1px solid #1d2940" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(0, .9fr) minmax(0, 1.1fr)", gap: 36 }}>
       <div>
         <p className="hmx-overline">Made better together</p>
@@ -90,7 +90,7 @@ export function CommunityFeed() {
           <button className="hmx-tool-launch" type="submit" disabled={busy}>{busy ? "Publishing…" : "Publish to community ↗"}</button>
           <p role="status" aria-live="polite" style={{ margin: 0, color: notice.startsWith("Your post is") ? "#7ce0a6" : "#9aa8bf", fontSize: 12, lineHeight: 1.6 }}>{notice || "Posts are public. Do not share passwords, private documents or personal contact details."}</p>
         </form>
-        <p style={{ color: "#747b8d", fontSize: 12, lineHeight: 1.6, marginTop: 12 }}>Posts are public and may appear immediately. Reports are stored privately for review, but review is not yet automated or guaranteed to be immediate.</p>
+        <p style={{ color: "#a7b3c9", fontSize: 12, lineHeight: 1.6, marginTop: 12 }}>Posts are public and may appear immediately. Reports are stored privately for review, but review is not yet automated or guaranteed to be immediate.</p>
       </div>
       <div style={{ display: "grid", alignContent: "start", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
@@ -98,16 +98,16 @@ export function CommunityFeed() {
           <button type="button" className="hmx-study-launch" onClick={() => void refresh()}>Refresh ↻</button>
         </div>
         {posts.length === 0 && !notice && <p style={{ color: "#747b8d" }}>No posts yet. Start the conversation.</p>}
-        {posts.map(post => <article key={post.id} style={{ padding: 18, background: "#fff", border: "1px solid #e2e4de", borderRadius: 14 }}>
+        {posts.map(post => <article key={post.id} style={{ padding: 18, background: "linear-gradient(145deg, #111a2b, #0c1322)", color: "#edf2ff", border: "1px solid #28364f", borderRadius: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
             <strong style={{ fontSize: 14 }}>{post.displayName}</strong>
-            <time style={{ color: "#858b80", fontSize: 11 }} dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString()}</time>
+            <time style={{ color: "#8796b0", fontSize: 11 }} dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString()}</time>
           </div>
           <p style={{ margin: 0, lineHeight: 1.65, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{post.message}</p>
           <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
             <button type="button" className="hmx-study-launch" onClick={() => { setReportPostId(reportPostId === post.id ? null : post.id); setReportNotice(""); setReportReason("spam"); setReportDetails(""); }} aria-expanded={reportPostId === post.id}>Report post</button>
           </div>
-          {reportPostId === post.id && <form onSubmit={submitReport} style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e4de", display: "grid", gap: 10 }}>
+          {reportPostId === post.id && <form onSubmit={submitReport} style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #26334a", display: "grid", gap: 10 }}>
             <label style={{ display: "grid", gap: 6, fontSize: 12 }}>Why are you reporting this?
               <select value={reportReason} onChange={e => setReportReason(e.target.value as ReportReason)} style={inputStyle}>
                 <option value="spam">Spam or misleading</option>
@@ -133,6 +133,6 @@ export function CommunityFeed() {
 }
 
 const inputStyle: CSSProperties = {
-  width: "100%", boxSizing: "border-box", border: "1px solid #d8dbd4", borderRadius: 10,
-  background: "#fff", color: "#20251f", padding: "12px 13px", font: "inherit", outlineOffset: 2,
+  width: "100%", boxSizing: "border-box", border: "1px solid #34435c", borderRadius: 10,
+  background: "#0b1220", color: "#edf2ff", padding: "12px 13px", font: "inherit", outlineOffset: 2,
 };
