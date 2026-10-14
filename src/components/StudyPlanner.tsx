@@ -164,7 +164,7 @@ export function StudyPlanner() {
     <div className="hmx-panel">
       <div className="hmx-panel-head">
         <div><h2>Study Planner</h2><p className="hmx-planner-subtitle">Plan the next step, not the whole semester at once.</p></div>
-        <span className="hmx-planner-local">LOCAL-FIRST</span>
+        <div className="hmx-btn-row"><a className="hmx-btn" href="/workspace/study-library">Open Notes ↗</a><span className="hmx-planner-local">LOCAL-FIRST</span></div>
       </div>
       <div className="hmx-panel-body">
         <div className="hmx-note">Your tasks stay in this browser. No account or AI key is required. Export a backup before clearing browser data or switching devices.</div>
