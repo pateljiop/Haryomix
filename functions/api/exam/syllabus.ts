@@ -64,7 +64,7 @@ async function askAI(env: Env, exam: string, countryContext: string, results: Re
       const data = await response.json() as any;
       const raw = provider.name === "gemini" ? data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") : data?.choices?.[0]?.message?.content;
       if (typeof raw === "string" && raw.trim()) {
-        const parsed = JSON.parse(raw.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, ""));
+        const parsed = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
         if (!parsed || typeof parsed.summary !== "string" || !Array.isArray(parsed.syllabus) || !["high", "medium", "low"].includes(parsed.confidence)) throw new Error("invalid_research_response");
         return { ...parsed, provider: provider.name };
       }
@@ -92,7 +92,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (row.count > 8) return reply({ error: "Exam syllabus research limit reached for this hour. Please retry later.", code: "rate_limited" }, 429);
   } catch { return reply({ error: "Request protection is temporarily unavailable." }, 503); }
   let results: Result[];
-  try { results = await searchWeb('India "' + exam.replace(/["\]/g, " ") + '" official syllabus exam pattern'); }
+  try { results = await searchWeb('India "' + exam.replace(/"/g, " ") + '" official syllabus exam pattern'); }
   catch { return reply({ error: "Live web search is unavailable right now. Please retry; no syllabus has been invented.", code: "search_unavailable" }, 502); }
   if (!results.length) return reply({ error: "No searchable syllabus pages were found for this exam name. Check the spelling or include the conducting body and exam year.", code: "no_results" }, 404);
   try {
