@@ -223,6 +223,7 @@ async function run() {
     ["/workspace/exam-copilot", "Exam Copilot"],
     ["/workspace/exam-center", "Exam Center"],
     ["/workspace/practice-quiz", "Practice Quiz"],
+    ["/workspace/progress-tracker", "Progress Tracker"],
     ["/workspace/haryomix-ai", "Haryomix AI"],
     ["/workspace/ai-create-studio", "AI Create Studio"],
     ["/workspace/flashcards", "Flashcards"],
@@ -233,7 +234,7 @@ async function run() {
   for (const [route, title] of dedicatedRoutes) {
     await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
   }
-  console.log("All 13 tool pages plus the workspace directory render independently without the old sidebar.");
+  console.log("All 14 tool pages plus the workspace directory render independently without the old sidebar.");
 
   await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
@@ -287,7 +288,10 @@ async function run() {
   await clickText("button", "Submit test", "submit practice quiz");
   await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('1 / 5 correct')", "quiz score is calculated");
   await waitFor("document.querySelector('.hmx-result')?.textContent.includes('Answer review')", "quiz answer review appears");
-  console.log("Practice Quiz timed session, scoring and answer review passed.");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Result saved to your local Progress Tracker')", "quiz result persists for progress tracking");
+  await navigate("/workspace/progress-tracker", "document.querySelector('.hmx-planner-stats')?.textContent.includes('Tests completed') && document.querySelector('.hmx-planner-task-list')?.textContent.includes('One-Day Competitive Exams')", "Progress Tracker shows saved quiz attempt");
+  await waitFor("document.querySelector('.hmx-planner-stats')?.textContent.includes('1')", "Progress Tracker counts completed attempt");
+  console.log("Practice Quiz scoring, persistence, answer review and Progress Tracker passed.");
 
   await navigate("/workspace/flashcards", "!!document.querySelector('.hmx-flash-tabs button')", "Flashcards tabs");
   await click(".hmx-flash-tabs button:nth-child(2)", "open flashcard form");
