@@ -25,7 +25,7 @@ export async function onRequestGet({ request, env }: { request: Request; env: En
   try {
     const result = q
       ? await env.DB.prepare("SELECT id, title, file_size AS fileSize, source_modified_at AS updatedAt FROM study_documents WHERE status='ready' AND title LIKE ? ORDER BY title COLLATE NOCASE LIMIT 100").bind("%" + q.replace(/[\\%_]/g, "\\$&") + "%").all()
-      : await env.DB.prepare("SELECT id, title, file_size AS fileSize, source_modified_at AS updatedAt FROM study_documents WHERE status='ready' ORDER BY title COLLATE NOCASE LIMIT 100").all();
+      : await env.DB.prepare("SELECT id, title, file_size AS fileSize, source_modified_at AS updatedAt FROM study_documents WHERE status='ready' ORDER BY title COLLATE NOCASE LIMIT 100").bind().all();
     return json({ documents: result.results ?? [] });
   } catch { return json({ error: "Study library is temporarily unavailable." }, 503); }
 }
