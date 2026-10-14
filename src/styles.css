@@ -33,3 +33,12 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .hmx-seo-faq[open] summary:after{content:"−"}
 .hmx-seo-faq p{max-width:850px;margin:14px 0 0;color:var(--hm-muted);font-size:14px;line-height:1.75}
 @media(max-width:640px){.hmx-seo-content .hmx-toolbox-grid{grid-template-columns:1fr}.hmx-seo-faq summary{padding-right:20px;font-size:14px}}
+
+
+/* PDF Studio action cards: preserve readable contrast and distinguish unavailable actions. */
+.hmx-tool-grid .hmx-tool-card{background:#f8fafc!important;color:#111827!important;border:1px solid #cbd5e1!important;opacity:1!important;cursor:pointer;}
+.hmx-tool-grid .hmx-tool-card strong{color:#111827!important;font-weight:800;}
+.hmx-tool-grid .hmx-tool-card span{color:#475569!important;}
+.hmx-tool-grid .hmx-tool-card:disabled{background:#e2e8f0!important;border-color:#cbd5e1!important;cursor:not-allowed;opacity:1!important;}
+.hmx-tool-grid .hmx-tool-card:disabled strong,.hmx-tool-grid .hmx-tool-card:disabled span{color:#64748b!important;}
+.hmx-tool-grid .hmx-tool-card:focus-visible{outline:3px solid #60a5fa;outline-offset:2px;}
