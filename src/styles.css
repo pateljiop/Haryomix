@@ -66,3 +66,16 @@ html{background:var(--hm-paper);color:var(--hm-ink);color-scheme:light;scroll-be
 .id-arranger-actions{margin-top:20px}
 @media(max-width:620px){.id-arranger-upload-grid,.id-arranger-controls{grid-template-columns:minmax(0,1fr)}.id-arranger-preview-head{align-items:flex-start;flex-direction:column}.id-arranger-sheet-wrap{padding:8px;max-height:580px}.id-arranger .hmx-panel-body{padding:14px}}
 @media print{.id-arranger-sheet-wrap{padding:0;background:white;border:0}.id-arranger-sheet{width:100%;box-shadow:none}}
+
+
+/* Keep the lower SEO/FAQ band consistent with Haryomix's dark workspace identity. */
+.hmx-seo-content{background:linear-gradient(180deg,#0b1020 0%,#080c16 100%);color:#edf2ff;border-top:1px solid #1d2940}
+.hmx-seo-content .hmx-heading,.hmx-seo-content h2,.hmx-seo-content h3,.hmx-seo-content strong{color:#f1f5ff}
+.hmx-seo-content .hmx-copy,.hmx-seo-content p,.hmx-seo-content .hmx-seo-faq p{color:#a7b3c9}
+.hmx-seo-content .hmx-overline{color:#70d8ff}
+.hmx-seo-content .hmx-toolbox-card{background:linear-gradient(145deg,#111a2b,#0c1322);border-color:#28364f;color:#edf2ff;box-shadow:0 12px 34px rgb(0 0 0 / .16)}
+.hmx-seo-content .hmx-toolbox-card:hover{border-color:#3c83a8}
+.hmx-seo-content .hmx-seo-faq{border-color:#26334a}
+.hmx-seo-content .hmx-seo-faq summary{color:#eaf1ff}
+.hmx-seo-content .hmx-seo-faq summary:after{color:#72d8ff}
+.hmx-seo-content .hmx-toolbox-card p,.hmx-seo-content .hmx-toolbox-card span{color:#a7b3c9}
