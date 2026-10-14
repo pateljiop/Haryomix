@@ -16,7 +16,7 @@ import {
 } from "../src/lib/image-utils.ts";
 
 test("PDF page ranges expand, sort, and de-duplicate selections", () => {
-  assert.deepEqual(parsePdfPageRange("3, 1-2,2,5-4".replace("5-4", "4-5"), 5), [1, 2, 3, 4, 5]);
+  assert.deepEqual(parsePdfPageRange("3, 1-2,2,4-5", 5), [1, 2, 3, 4, 5]);
 });
 
 test("PDF page range validation rejects empty, malformed, reversed, and out-of-bounds input", () => {
@@ -27,8 +27,9 @@ test("PDF page range validation rejects empty, malformed, reversed, and out-of-b
   assert.throws(() => parsePdfPageRange("1", 0), /positive integer/);
 });
 
-test("custom PDF page order preserves the requested order and ranges", () => {
+test("custom PDF page order preserves the requested order, ranges, and intentional duplicates", () => {
   assert.deepEqual(parsePdfPageOrder("3,1-2,5", 5), [3, 1, 2, 5]);
+  assert.deepEqual(parsePdfPageOrder("2,2,1", 3), [2, 2, 1]);
   assert.throws(() => parsePdfPageOrder("4", 3), /between 1 and 3/);
 });
 
@@ -64,13 +65,30 @@ test("PDF reorder export keeps only requested pages in the requested order", asy
   assert.deepEqual(reordered.getPages().map(page => [page.getWidth(), page.getHeight()]), [[500, 600], [100, 200]]);
 });
 
-test("PDF reorder export rejects empty or invalid page selections", async () => {
+test("PDF reorder export preserves duplicate page selections in the exported file", async () => {
+  const source = await PDFDocument.create();
+  source.addPage([100, 200]);
+  source.addPage([300, 400]);
+  const bytes = await source.save();
+
+  const outputBytes = await reorderPdfDocument(bytes, [2, 2, 1]);
+  const output = await PDFDocument.load(outputBytes);
+  assert.equal(output.getPageCount(), 3);
+  assert.deepEqual(output.getPages().map(page => [page.getWidth(), page.getHeight()]), [
+    [300, 400],
+    [300, 400],
+    [100, 200],
+  ]);
+});
+
+test("PDF reorder export rejects empty, invalid, and unreadable inputs", async () => {
   const source = await PDFDocument.create();
   source.addPage([100, 100]);
   const bytes = await source.save();
   await assert.rejects(reorderPdfDocument(bytes, []), /at least one page/);
   await assert.rejects(reorderPdfDocument(bytes, [2]), /between 1 and 1/);
   await assert.rejects(reorderPdfDocument(bytes, [0]), /between 1 and 1/);
+  await assert.rejects(reorderPdfDocument(new Uint8Array([1, 2, 3]), [1]));
 });
 
 test("image dimensions are rounded and clamped to safe canvas bounds", () => {
@@ -79,15 +97,24 @@ test("image dimensions are rounded and clamped to safe canvas bounds", () => {
   assert.deepEqual(normalizeImageDimensions(Number.NaN, Number.POSITIVE_INFINITY), { width: 1, height: 1 });
 });
 
-test("target image size is clamped to supported minimum and maximum", () => {
+test("image dimensions honor a custom maximum and sanitize invalid maximums", () => {
+  assert.deepEqual(normalizeImageDimensions(900, 450, 256), { width: 256, height: 256 });
+  assert.deepEqual(normalizeImageDimensions(12, 8, 0), { width: 1, height: 1 });
+  assert.deepEqual(normalizeImageDimensions(12, 8, Number.NaN), { width: 12, height: 8 });
+});
+
+test("target image size is clamped and rounded to supported byte limits", () => {
   assert.equal(getTargetSizeBytes(200), 200 * 1024);
   assert.equal(getTargetSizeBytes(1), 10 * 1024);
+  assert.equal(getTargetSizeBytes(10000), 10000 * 1024);
   assert.equal(getTargetSizeBytes(20000), 10000 * 1024);
+  assert.equal(getTargetSizeBytes(200.4), 200 * 1024);
   assert.equal(getTargetSizeBytes(Number.NaN), 10 * 1024);
 });
 
-test("image export extensions match the selected MIME type", () => {
+test("image export extensions match supported MIME types and use JPEG as fallback", () => {
   assert.equal(getImageExportExtension("image/jpeg"), "jpg");
   assert.equal(getImageExportExtension("image/png"), "png");
   assert.equal(getImageExportExtension("image/webp"), "webp");
+  assert.equal(getImageExportExtension("image/unknown"), "jpg");
 });
