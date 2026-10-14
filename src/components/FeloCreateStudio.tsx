@@ -65,7 +65,7 @@ export function FeloCreateStudio(){
     deck.author="Haryomix AI Create Studio";deck.subject=topic;deck.title=job.title||topic;deck.company="Haryomix";
     deck.theme={headFontFace:"Aptos Display",bodyFontFace:"Aptos"};
     const C={navy:"0A1020",navy2:"121D36",ink:"17233B",muted:"66738A",blue:"4169E1",cyan:"55D6D0",pale:"F3F6FC",white:"FFFFFF",line:"DDE5F1",softBlue:"EAF0FF",softCyan:"E7F8F6",softGold:"FFF5DF",gold:"D59A26"};
-    const W=13.333,H=7.5;
+    const H=7.5;
     const addText=(slide:any,text:string,opts:any)=>slide.addText(text,{fontFace:"Aptos",margin:0,breakLine:false,fit:"shrink",...opts});
     const addFooter=(slide:any,n:number,total:number,dark=false)=>{
       slide.addShape(deck.ShapeType.line,{x:0.62,y:7.05,w:12.08,h:0,line:{color:dark?"2B3853":C.line,width:0.7}});
@@ -85,15 +85,15 @@ export function FeloCreateStudio(){
     addText(cover,"PREPARED WITH",{x:0.9,y:5.75,w:1.55,h:0.18,fontSize:7.5,bold:true,charSpacing:1,color:"8192B1"});
     addText(cover,job.provider||"AI-assisted research and synthesis",{x:0.9,y:6.05,w:7.5,h:0.28,fontSize:10,color:"DCE5F7"});
     addText(cover,"HARYOMIX",{x:10.5,y:6.15,w:1.95,h:0.28,fontSize:12,bold:true,charSpacing:2,color:C.white,align:"right"});
-    addFooter(cover,1,job.fallbackSlides.length+1,true);
-    job.fallbackSlides.forEach((item,index)=>{
+    addFooter(cover,1,fallbackSlides.length+1,true);
+    fallbackSlides.forEach((item,index)=>{
       const slide=deck.addSlide();const dark=index%5===4;
       slide.background={color:dark?C.navy:(index%2===0?C.white:C.pale)};
       const ink=dark?C.white:C.ink,muted=dark?"B4C1D9":C.muted;
       const section=(item.section||(["FOUNDATIONS","KEY IDEAS","PRACTICAL APPLICATION","ANALYSIS","TAKEAWAYS"][index%5])).toUpperCase().slice(0,36);
       slide.addShape(deck.ShapeType.rect,{x:0,y:0,w:0.16,h:H,line:{color:C.blue,transparency:100},fill:{color:C.blue}});
       addText(slide,section,{x:0.72,y:0.48,w:8.6,h:0.18,fontSize:8,bold:true,charSpacing:1.8,color:dark?C.cyan:C.blue});
-      addText(slide,item.title||("Key idea "+(index+1)),{x:0.7,y:0.83,w:11.95,h:0.78,fontFace:"Aptos Display",fontSize:25,bold:true,color:ink,fit:"shrink",valign:"mid"});
+      addText(slide,item.title||("Key idea "+(index+1)),{x:0.7,y:0.83,w:11.95,h:0.78,fontFace:"Aptos Display",fontSize:25,bold:true,color:ink,fit:"shrink",valign:"middle"});
       slide.addShape(deck.ShapeType.line,{x:0.72,y:1.72,w:1.12,h:0,line:{color:C.cyan,width:2.7}});
       if(item.subtitle){
         addText(slide,item.subtitle,{x:0.72,y:1.88,w:11.8,h:0.42,fontSize:11,color:muted,fit:"shrink"});
@@ -107,14 +107,14 @@ export function FeloCreateStudio(){
         const stepW=11.8/Math.min(bullets.length,4);
         bullets.slice(0,4).forEach((bullet,i)=>{
           const x=0.72+i*stepW;
-          slide.addShape(deck.ShapeType.roundRect,{x,y:top+0.12,w:stepW-0.18,h:2.8,rectRadius:0.08,line:{color:dark?"304264":C.line,width:0.8},fill:{color:dark?C.navy2:C.white}});
+          slide.addShape(deck.ShapeType.roundRect,{x,y:top+0.12,w:stepW-0.18,h:2.8,line:{color:dark?"304264":C.line,width:0.8},fill:{color:dark?C.navy2:C.white}});
           slide.addShape(deck.ShapeType.ellipse,{x:x+0.18,y:top+0.32,w:0.48,h:0.48,line:{color:C.blue,transparency:100},fill:{color:C.blue}});
           addText(slide,String(i+1).padStart(2,"0"),{x:x+0.18,y:top+0.47,w:0.48,h:0.12,fontSize:9,bold:true,color:C.white,align:"center"});
           addText(slide,bullet,{x:x+0.18,y:top+1.02,w:stepW-0.55,h:1.55,fontSize:13,bold:true,color:ink,fit:"shrink",valign:"top",breakLine:false});
         });
       }else if(layout==="spotlight"){
         const first=bullets[0]||"";
-        slide.addShape(deck.ShapeType.roundRect,{x:0.72,y:top+0.05,w:4.15,h:2.85,rectRadius:0.08,line:{color:dark?"304264":"D8E3FF",width:0.8},fill:{color:dark?C.navy2:C.softBlue}});
+        slide.addShape(deck.ShapeType.roundRect,{x:0.72,y:top+0.05,w:4.15,h:2.85,line:{color:dark?"304264":"D8E3FF",width:0.8},fill:{color:dark?C.navy2:C.softBlue}});
         addText(slide,"CORE INSIGHT",{x:1.02,y:top+0.35,w:3.3,h:0.18,fontSize:8,bold:true,charSpacing:1.3,color:C.blue});
         addText(slide,first,{x:1.02,y:top+0.76,w:3.45,h:1.7,fontFace:"Aptos Display",fontSize:19,bold:true,color:ink,fit:"shrink",valign:"mid"});
         bullets.slice(1,5).forEach((bullet,i)=>{
