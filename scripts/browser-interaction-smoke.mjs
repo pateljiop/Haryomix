@@ -614,10 +614,10 @@ async function run() {
   console.log("PDF optimize artifact verified.");
 
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
-  await clickText("button.hmx-tool-card", "Add signature", "validate empty signature");
+  await clickText("button.hmx-btn.primary", "Add signature", "validate empty signature");
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Draw your signature')", "empty signature is rejected");
   await evaluate("(()=>{const c=document.querySelector('#pdf-signature');const ctx=c?.getContext('2d');if(!ctx)return false;ctx.fillStyle='#172554';ctx.fillRect(10,10,80,8);return true})()");
-  await clickText("button.hmx-tool-card", "Add signature", "insert drawn test signature");
+  await clickText("button.hmx-btn.primary", "Add signature", "insert drawn test signature");
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Signature image added to page 1')", "visual signature export completes");
   const signedPath = await waitForDownload("haryomix-signed.pdf");
   const signed = await PDFDocument.load(readFileSync(signedPath));
