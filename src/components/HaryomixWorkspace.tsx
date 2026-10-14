@@ -248,11 +248,20 @@ function createOfflineStudyGuide(input:{course:string;examType:string;subject:st
  lines.push("## Source check","","Add your prescribed textbook, class notes and official syllabus here. Verify time-sensitive information before an exam.");
  return lines.join("\n");
 }
+function readExamContext(): { track: "school" | "graduation" | "competitive"; level: string } | null {
+ try {
+  const raw = window.localStorage.getItem("haryomix.exam-context.v1");
+  if (!raw) return null;
+  const value = JSON.parse(raw) as { track?: unknown; level?: unknown };
+  if ((value.track === "school" || value.track === "graduation" || value.track === "competitive") && typeof value.level === "string") return { track: value.track, level: value.level };
+ } catch { /* Keep the default form usable if storage is unavailable or malformed. */ }
+ return null;
+}
 function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
- const [course,setCourse]=useState("Any course / open learning");
- const [examType,setExamType]=useState("Competitive / one-day exam");
- const [subject,setSubject]=useState("Current Affairs");
- const [topic,setTopic]=useState("India and world current affairs, economy, science and technology, important days, awards, sports, government schemes");
+ const [course,setCourse]=useState(()=>{const context=readExamContext();return context ? context.level : "Any course / open learning"});
+ const [examType,setExamType]=useState(()=>{const context=readExamContext();return context?.track==="school" ? "School / board exam" : context?.track==="graduation" ? "College / university exam" : context?.track==="competitive" ? "Competitive / one-day exam" : "Competitive / one-day exam"});
+ const [subject,setSubject]=useState(()=>readExamContext()?.track==="competitive" ? "Current Affairs" : "");
+ const [topic,setTopic]=useState(()=>readExamContext()?.track==="competitive" ? "India and world current affairs, economy, science and technology, important days, awards, sports, government schemes" : "");
  const [language,setLanguage]=useState("Simple English");
  const [includeQuiz,setIncludeQuiz]=useState(false);
  const [notes,setNotes]=useState("");
