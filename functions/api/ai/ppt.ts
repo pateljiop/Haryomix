@@ -143,7 +143,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
         const fallback=await generateFallbackSlides(env,query,count,style);
         return reply({mode:"ai-generated-pptx",status:"COMPLETED",provider:fallback.provider,title:fallback.title,slides:fallback.slides});
       } catch {
-        return reply({error:"Felo could not create the presentation and Gemini/Groq fallback also failed. Check API keys, provider quota, and model access.",code:"all_providers_failed"},502);
+        return reply({error:"Felo could not create the presentation and all configured AI fallbacks failed. Check API keys, provider quota, and model access.",code:"all_providers_failed"},502);
       }
     }
     const taskId=clean(body.taskId,100), businessId=clean(body.businessId,100);
