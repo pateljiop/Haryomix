@@ -55,7 +55,7 @@ async function generateSlidesWithProvider(provider: "groq" | "gemini", key: stri
   if (slides.length < Math.min(count, 3)) throw new Error("invalid_slide_count");
   return slides.slice(0, count).map((slide: any, index: number) => ({
     title: typeof slide?.title === "string" && slide.title.trim() ? slide.title.trim().slice(0, 180) : `Slide ${index + 1}`,
-    bullets: (Array.isArray(slide?.bullets) ? slide.bullets : []).filter((value: unknown): value is string => typeof value === "string" && value.trim()).slice(0, 5).map((value: string) => value.trim().slice(0, 500)),
+    bullets: (Array.isArray(slide?.bullets) ? slide.bullets : []).filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())).slice(0, 5).map((value: string) => value.trim().slice(0, 500)),
     notes: typeof slide?.notes === "string" ? slide.notes.slice(0, 1500) : "",
   })).map((slide: SlideContent) => ({ ...slide, bullets: slide.bullets.length ? slide.bullets : ["Review the key concepts and apply them to the presentation topic."] }));
 }
@@ -106,7 +106,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
       const prompt=`Create a polished, accurate, editable PowerPoint presentation. Target ${count} slides. Topic and requirements: ${query}. Visual direction: ${style}. Use a strong narrative, meaningful slide titles, concise readable text, examples/data only when supportable, a clear conclusion, and no fabricated citations or statistics. Language should follow the user's prompt.`;
       if(env.FELO_API_KEY){
         try {
-          const result=await felo("/v2/ppts",env.FELO_API_KEY,{method:"POST",body:JSON.stringify({query:prompt})});
+          const result=await felo("/v2/ppts",env.FELO_API_KEY!,{method:"POST",body:JSON.stringify({query:prompt})});
           const data=result?.data||{};
           if(data.task_id&&data.ppt_business_id) return reply({taskId:data.task_id,businessId:data.ppt_business_id,liveDocId:data.livedoc_short_id||null,status:"RUNNING",provider:"felo"});
         } catch {
@@ -123,19 +123,19 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
     const taskId=clean(body.taskId,100), businessId=clean(body.businessId,100);
     if(action==="status"){
       if(!taskId) return reply({error:"Task ID is required."},400);
-      const result=await felo(`/v2/tasks/${encodeURIComponent(taskId)}/status`,env.FELO_API_KEY);
+      const result=await felo(`/v2/tasks/${encodeURIComponent(taskId)}/status`,env.FELO_API_KEY!);
       const status=clean(result?.data?.status,40).toUpperCase();
       const historical=status==="COMPLETED"||status==="FAILED"||status==="ERROR" ? await felo(`/v2/tasks/${encodeURIComponent(taskId)}/historical`,env.FELO_API_KEY) : null;
       return reply({status:status||"RUNNING",liveUrl:historical?.data?.ppt_url||null,error:historical?.data?.error_message||null,businessId:historical?.data?.ppt_biz_id||businessId||null});
     }
     if(action==="export"){
       if(!businessId) return reply({error:"Presentation ID is required."},400);
-      await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY,{method:"POST",body:"{}"});
+      await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY!,{method:"POST",body:"{}"});
       return reply({status:"PROCESSING"});
     }
     if(action==="export-status"){
       if(!businessId) return reply({error:"Presentation ID is required."},400);
-      const result=await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY);
+      const result=await felo(`/v2/ppts/${encodeURIComponent(businessId)}/export`,env.FELO_API_KEY!);
       return reply({status:clean(result?.data?.status,40).toUpperCase()||"PROCESSING",downloadUrl:result?.data?.download_url||null,expiresAt:result?.data?.expires_at||null});
     }
     return reply({error:"Unsupported action."},400);
