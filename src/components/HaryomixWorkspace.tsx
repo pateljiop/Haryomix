@@ -267,13 +267,13 @@ function StudyMarkdown({content}:{content:string}){
  return <div>{nodes}</div>;
 }
 function inlineStudyMarkdown(value:string):React.ReactNode{
- const parts=value.split(/(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|\`[^\`]+\`|https?:\\/\\/[^\\s)]+)/g);
- return parts.map((part,i)=>{if(part.startsWith("**")&&part.endsWith("**"))return <strong key={i}>{part.slice(2,-2)}</strong>;if(part.startsWith("*")&&part.endsWith("*"))return <em key={i}>{part.slice(1,-1)}</em>;if(part.startsWith("`")&&part.endsWith("`"))return <code key={i}>{part.slice(1,-1)}</code>;if(/^https?:\\/\\//i.test(part))return <a key={i} href={part} target="_blank" rel="noreferrer" style={{color:"#7cb7ff",overflowWrap:"anywhere"}}>{part}</a>;return part;});
+ const parts=value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
+ return parts.map((part,i)=>{if(part.startsWith("**")&&part.endsWith("**"))return <strong key={i}>{part.slice(2,-2)}</strong>;if(part.startsWith("*")&&part.endsWith("*"))return <em key={i}>{part.slice(1,-1)}</em>;if(part.startsWith("`")&&part.endsWith("`"))return <code key={i}>{part.slice(1,-1)}</code>;if(/^https?:\/\//i.test(part))return <a key={i} href={part} target="_blank" rel="noreferrer" style={{color:"#7cb7ff",overflowWrap:"anywhere"}}>{part}</a>;return part;});
 }
 function splitStudyOutput(content:string):{revision:string;detailed:string;quiz:string}{
- const revision=content.match(/(?:^|\\n)#{1,3}\\s*REVISION NOTES[^\\n]*\\n([\\s\\S]*?)(?=\\n#{1,3}\\s*(?:DETAILED NOTES|OPTIONAL PRACTICE QUIZ)|$)/i);
- const detailed=content.match(/(?:^|\\n)#{1,3}\\s*DETAILED NOTES[^\\n]*\\n([\\s\\S]*?)(?=\\n#{1,3}\\s*OPTIONAL PRACTICE QUIZ|$)/i);
- const quiz=content.match(/(?:^|\\n)#{1,3}\\s*OPTIONAL PRACTICE QUIZ[^\\n]*\\n([\\s\\S]*)$/i);
+ const revision=content.match(/(?:^|\n)#{1,3}\s*REVISION NOTES[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s*(?:DETAILED NOTES|OPTIONAL PRACTICE QUIZ)|$)/i);
+ const detailed=content.match(/(?:^|\n)#{1,3}\s*DETAILED NOTES[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s*OPTIONAL PRACTICE QUIZ|$)/i);
+ const quiz=content.match(/(?:^|\n)#{1,3}\s*OPTIONAL PRACTICE QUIZ[^\n]*\n([\s\S]*)$/i);
  return {revision:revision?.[1].trim()||"",detailed:detailed?.[1].trim()||content,quiz:quiz?.[1].trim()||""};
 }
 function readExamContext(): { track: "school" | "graduation" | "competitive"; level: string } | null {
