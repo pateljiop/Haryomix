@@ -35,6 +35,13 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const id = Number(body.documentId); const mode = body.mode === "quiz" ? "quiz" : "notes"; const topic = clean(body.topic, 180);
   if (!Number.isSafeInteger(id) || id < 1 || topic.length < 2) return json({ error: "Choose a document and enter a chapter or topic." }, 400);
   try {
+    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("haryomix-study:" + ip));
+    const rateKey = "study:" + Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+    const bucket = new Date().toISOString().slice(0, 13);
+    const rate = await env.DB.prepare("INSERT INTO community_rate_limits (rate_key,request_count,bucket) VALUES (?,1,?) ON CONFLICT(rate_key) DO UPDATE SET request_count=CASE WHEN community_rate_limits.bucket=excluded.bucket THEN community_rate_limits.request_count+1 ELSE 1 END,bucket=excluded.bucket RETURNING request_count AS count").bind(rateKey,bucket).first<{count:number}>();
+    if (!rate) return json({ error: "Study generation is temporarily unavailable." }, 503);
+    if (rate.count > 5) return json({ error: "You have reached the study generation limit. Please try again later." }, 429);
     const doc = await env.DB.prepare("SELECT drive_file_id AS driveId, title FROM study_documents WHERE id=? AND status='ready'").bind(id).first<{ driveId: string; title: string }>();
     if (!doc) return json({ error: "This study material is not available." }, 404);
     const token = await driveToken(env);
