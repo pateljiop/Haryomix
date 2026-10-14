@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 import { PDFDocument } from "pdf-lib";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -420,10 +421,19 @@ async function run() {
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Watermark added')", "PDF watermark completes");
   const watermarkPath = await waitForDownload("haryomix-watermarked.pdf");
   const watermarked = await PDFDocument.load(readFileSync(watermarkPath));
-  if (watermarked.getPageCount() !== 2 || watermarked.getPages()[0].getWidth() !== 100 || watermarked.getPages()[0].getHeight() !== 200 || readFileSync(watermarkPath).length <= statSync(join(profile, "smoke-a.pdf")).size) {
-    throw new Error("Watermarked PDF artifact did not preserve source pages or add watermark content.");
+  const watermarkPdfJs = await getDocument({ data: new Uint8Array(readFileSync(watermarkPath)) }).promise;
+  const watermarkText = (await Promise.all(
+    Array.from({ length: watermarkPdfJs.numPages }, async (_, index) => {
+      const page = await watermarkPdfJs.getPage(index + 1);
+      const text = await page.getTextContent();
+      return text.items.map(item => "str" in item ? item.str : "").join(" ");
+    }),
+  )).join(" ");
+  await watermarkPdfJs.destroy();
+  if (watermarked.getPageCount() !== 2 || watermarked.getPages()[0].getWidth() !== 100 || watermarked.getPages()[0].getHeight() !== 200 || !watermarkText.includes("SMOKE TEST")) {
+    throw new Error("Watermarked PDF artifact did not preserve source pages or render the requested watermark text; extracted text: " + watermarkText);
   }
-  console.log("PDF watermark artifact verified: exported PDF retains both source pages.");
+  console.log("PDF watermark artifact verified: both source pages remain and extracted PDF text contains the watermark.");
 
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "PDF metadata fixture loaded");
