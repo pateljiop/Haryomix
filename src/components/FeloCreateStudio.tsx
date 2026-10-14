@@ -1,5 +1,6 @@
 import { useState } from "react";
 import pptxgen from "pptxgenjs";
+import JSZip from "jszip";
 
 type SlideContent={title:string;bullets:string[];notes?:string;subtitle?:string;takeaway?:string;section?:string;layout?:string};
 type PptJob={taskId:string;businessId:string;status:string;liveDocId?:string|null;liveUrl?:string|null;fallbackSlides?:SlideContent[];provider?:string;title?:string};
@@ -85,6 +86,7 @@ export function FeloCreateStudio(){
     cover.addShape(deck.ShapeType.ellipse,{x:8.9,y:-1.5,w:5.6,h:5.6,line:{color:"24385F",width:1.4,transparency:10},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.ellipse,{x:9.55,y:-0.85,w:4.3,h:4.3,line:{color:"2B4D8A",width:1.2,transparency:15},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.ellipse,{x:10.15,y:-0.25,w:3.1,h:3.1,line:{color:C.cyan,width:1.1,transparency:28},fill:{color:C.navy,transparency:100}});
+    cover.addShape(deck.ShapeType.arc,{x:8.4,y:0.45,w:4.7,h:4.7,adjustPoint:0.3,line:{color:"55D6D0",width:1.4,transparency:34},fill:{color:C.navy,transparency:100}});
     cover.addShape(deck.ShapeType.roundRect,{x:0.86,y:0.72,w:2.55,h:0.38,line:{color:"33466A",width:0.8},fill:{color:C.navy2}});
     addText(cover,"EXPERT PRESENTATION",{x:1.02,y:0.83,w:2.25,h:0.13,fontSize:8,bold:true,charSpacing:1.3,color:C.cyan});
     addText(cover,job.title||topic,{x:0.86,y:1.7,w:9.8,h:2.2,fontFace:"Aptos Display",fontSize:32,bold:true,color:C.white,breakLine:false,fit:"shrink",valign:"middle",lineSpacingMultiple:1.0});
@@ -148,8 +150,32 @@ export function FeloCreateStudio(){
       addFooter(slide,index+2,fallbackSlides.length+1,dark);
       if(item.notes&&typeof slide.addNotes==="function")slide.addNotes(item.notes);
     });
-    await deck.writeFile({fileName:`${(job.title||topic).replace(/[^a-z0-9-_ ]/gi,"").trim().replace(/\\s+/g,"-").slice(0,60)||"haryomix-presentation"}.pptx`});
-    setMessage("Editable PPTX download ho gaya. Agar file nahi dikhe to browser downloads check karo.");
+    // Add native PowerPoint slide transitions to the exported Open XML package.
+    const pptxBuffer=await deck.write({outputType:"arraybuffer"});
+    const zip=await JSZip.loadAsync(pptxBuffer as ArrayBuffer);
+    const slideFiles=Object.keys(zip.files).filter(name=>/^ppt\/slides\/slide\d+\.xml$/.test(name));
+    for(const fileName of slideFiles){
+      const xmlFile=zip.file(fileName);
+      if(!xmlFile)continue;
+      let xml=await xmlFile.async("string");
+      if(!xml.includes("<p:transition")){
+        const transition=fileName.endsWith("slide1.xml")
+          ? '<p:transition spd="med"><p:fade/></p:transition>'
+          : '<p:transition spd="med"><p:wipe dir="l"/></p:transition>';
+        if(xml.includes("<p:timing"))xml=xml.replace("<p:timing",transition+"<p:timing");
+        else if(xml.includes("</p:clrMapOvr>"))xml=xml.replace("</p:clrMapOvr>","</p:clrMapOvr>"+transition);
+        else xml=xml.replace("</p:sld>",transition+"</p:sld>");
+        zip.file(fileName,xml);
+      }
+    }
+    const animatedPptx=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.presentationml.presentation"});
+    const downloadAnchor=document.createElement("a");
+    const fileUrl=URL.createObjectURL(animatedPptx);
+    downloadAnchor.href=fileUrl;
+    downloadAnchor.download=`${(job.title||topic).replace(/[^a-z0-9-_ ]/gi,"").trim().replace(/\\s+/g,"-").slice(0,60)||"haryomix-presentation"}.pptx`;
+    document.body.appendChild(downloadAnchor);downloadAnchor.click();downloadAnchor.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(fileUrl),1000);
+    setMessage("Editable PPTX download ho gaya. Fade/wipe slide transitions added hain. PowerPoint slideshow mein transitions dikhenge.");
    }else{
     const data=await api("/api/ai/ppt",{action:"export",businessId:job.businessId});setMessage(data.status==="PROCESSING"?"PPTX export started. Ab export status check karo.":"Export request accepted.");
    }
@@ -174,12 +200,20 @@ export function FeloCreateStudio(){
    <div className="hmx-field"><label htmlFor="felo-ppt-slides">Target slide count</label><select id="felo-ppt-slides" className="hmx-select" value={slides} onChange={e=>setSlides(e.target.value)}>{["5","8","10","12","15","20","25","30"].map(n=><option key={n} value={n}>{n} slides</option>)}</select></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-style">Visual style</label><input id="felo-ppt-style" className="hmx-input" value={style} onChange={e=>setStyle(e.target.value)}/></div>
    <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
+   <style>{`
+    @keyframes hmxSlideEnter{from{opacity:0;transform:translateY(14px) scale(.985);filter:blur(3px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+    @keyframes hmxOrbDrift{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-12px,9px,0) scale(1.04)}}
+    @keyframes hmxAccentSweep{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+    .hmx-slide-motion{animation:hmxSlideEnter .52s cubic-bezier(.2,.75,.25,1) both}
+    .hmx-preview-orb{animation:hmxOrbDrift 9s ease-in-out infinite}
+    @media(prefers-reduced-motion:reduce){.hmx-slide-motion,.hmx-preview-orb{animation:none!important}}
+   `}</style>
    {job?.fallbackSlides&&job.fallbackSlides.length>0&&<section aria-label="Presentation preview" style={{marginTop:22,border:"1px solid #dce4f0",borderRadius:18,overflow:"hidden",background:"#0b1220",color:"#f5f7ff",boxShadow:"0 14px 40px rgba(13,25,48,.12)"}}>
     <div style={{padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,borderBottom:"1px solid #253149",flexWrap:"wrap"}}>
      <div><div style={{fontSize:10,fontWeight:800,letterSpacing:1.8,color:"#64d9d0"}}>LIVE SLIDE PREVIEW</div><div style={{fontSize:13,color:"#aab8d0",marginTop:4}}>Review your slides before exporting</div></div>
      <div style={{fontSize:12,color:"#c6d2e8",fontVariantNumeric:"tabular-nums"}}>{previewIndex+2} / {(job.fallbackSlides?.length||0)+1}</div>
     </div>
-    <div style={{minHeight:330,padding:"clamp(20px,5vw,42px)",background:previewIndex%5===4?"linear-gradient(135deg,#101b33,#17294a)":"linear-gradient(135deg,#ffffff,#f2f6fc)",color:"#17233b",position:"relative"}}>
+    <div key={previewIndex} className="hmx-slide-motion" style={{minHeight:330,padding:"clamp(20px,5vw,42px)",background:previewIndex%5===4?"linear-gradient(135deg,#101b33,#17294a)":"linear-gradient(135deg,#ffffff,#f2f6fc)",color:"#17233b",position:"relative"}}>
      <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:"#4169e1",textTransform:"uppercase"}}>{job.fallbackSlides[previewIndex]?.section||(["FOUNDATIONS","KEY IDEAS","PRACTICAL APPLICATION","ANALYSIS","TAKEAWAYS"][previewIndex%5])}</div>
      <h3 style={{fontSize:"clamp(23px,4vw,36px)",lineHeight:1.12,letterSpacing:"-0.035em",margin:"14px 0 12px",color:previewIndex%5===4?"#fff":"#17233b"}}>{job.fallbackSlides[previewIndex]?.title||"Slide preview"}</h3>
      {job.fallbackSlides[previewIndex]?.subtitle&&<p style={{fontSize:14,lineHeight:1.6,color:previewIndex%5===4?"#c3d0e7":"#66738a",margin:"0 0 20px"}}>{job.fallbackSlides[previewIndex]?.subtitle}</p>}
