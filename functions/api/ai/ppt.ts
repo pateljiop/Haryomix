@@ -46,9 +46,9 @@ async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", 
   }
   if (!response.ok) throw new Error(response.status === 429 ? "rate_limit" : response.status === 401 || response.status === 403 ? "credentials_rejected" : "provider_error");
   const payload = await response.json() as any;
-  const raw = provider === "groq"
-    ? payload?.choices?.[0]?.message?.content
-    : payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("");
+  const raw = provider === "gemini"
+    ? payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("")
+    : payload?.choices?.[0]?.message?.content;
   if (typeof raw !== "string" || !raw.trim()) throw new Error("empty_response");
   const cleaned = raw.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, "");
   let parsed: any;
@@ -63,9 +63,10 @@ async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", 
 }
 async function generateFallbackSlides(env: Env, query: string, count: number, style: string): Promise<{ title: string; slides: SlideContent[]; provider: "grok" | "groq" | "gemini" }> {
   const failures: string[] = [];
-  const providers: Array<{ name: "groq" | "gemini"; key?: string }> = [
-    { name: "groq", key: env.GROQ_API_KEY },
+  const providers: Array<{ name: "grok" | "groq" | "gemini"; key?: string }> = [
+    { name: "grok", key: env.XAI_API_KEY },
     { name: "gemini", key: env.GEMINI_API_KEY },
+    { name: "groq", key: env.GROQ_API_KEY },
   ];
   for (const provider of providers) {
     if (!provider.key) continue;
