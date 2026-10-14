@@ -147,7 +147,7 @@ async function waitForDownload(filename, timeoutMs = 20000) {
   throw new Error("Download did not complete: " + filename);
 }
 
-  const compressedPath = await waitForMatchingDownload(/^smoke-pixel-\d+kb\.jpg$/);
+async function waitForMatchingDownload(pattern, timeoutMs = 20000) {
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
     const name = readdirSync(profile).find(candidate => pattern.test(candidate));
@@ -598,7 +598,7 @@ async function run() {
   await fill("#image-target-kb", "10", "minimum target file size");
   await clickText("button.hmx-btn", "Compress to 10 KB", "compress image to target size");
   await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Saved') || document.querySelector('.hmx-note[role=status]')?.textContent.includes('target 10 KB was not achievable')", "image target-size compression finishes");
-  const compressedPath = await waitForMatchingDownload(/^smoke-pixel-\\d+kb\\.jpg$/);
+  const compressedPath = await waitForMatchingDownload(/^smoke-pixel-\d+kb\.jpg$/);
   const compressedBytes = readFileSync(compressedPath);
   if (compressedBytes[0] !== 0xff || compressedBytes[1] !== 0xd8) {
     throw new Error("Target-size image output is not a JPEG.");
