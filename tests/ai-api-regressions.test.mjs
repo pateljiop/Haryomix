@@ -392,6 +392,16 @@ test("legacy Workers AI endpoint returns a safe setup error without a binding", 
 test("research search combines Crossref, arXiv, and Internet Archive results", async () => {
   await withMockFetch(async input => {
     const url = String(input);
+    if (url.includes("api.openalex.org/works")) {
+      return new Response(JSON.stringify({ results: [{
+        id: "https://openalex.org/W1234567890",
+        doi: "https://doi.org/10.5555/openalex-test",
+        title: "OpenAlex Educational Research",
+        publication_year: 2026,
+        publication_date: "2026-03-04",
+        authorships: [{ author: { display_name: "Test Author" } }]
+      }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
     if (url.includes("api.crossref.org/works")) {
       return new Response(JSON.stringify({ message: { items: [{
         title: ["Open Educational Resources in Higher Education"],
@@ -414,8 +424,8 @@ test("research search combines Crossref, arXiv, and Internet Archive results", a
     });
     assert.equal(response.status, 200);
     const body = await response.json();
-    assert.equal(body.sources.length, 3);
-    assert.deepEqual(body.sources.map(item => item.source), ["Crossref", "arXiv", "Internet Archive"]);
+    assert.equal(body.sources.length, 4);
+    assert.deepEqual(body.sources.map(item => item.source), ["OpenAlex", "Crossref", "arXiv", "Internet Archive"]);\n    assert.equal(body.sources[0].url, "https://doi.org/10.5555/openalex-test");
     assert.match(body.sources[0].url, /^https:\/\/doi\.org\//);
     assert.match(body.sources[1].url, /^https:\/\/arxiv\.org\/abs\//);
     assert.match(body.sources[2].url, /^https:\/\/archive\.org\/details\//);
@@ -429,4 +439,23 @@ test("research search validates query and never requires an API key", async () =
   });
   assert.equal(invalid.status, 400);
   assert.match((await invalid.json()).error, /at least 3 characters/i);
+});
+
+
+test("research search keeps OpenAlex API key server-side and supports keyed requests", async () => {
+  let requestedUrl = "";
+  await withMockFetch(async input => {
+    requestedUrl = String(input);
+    return new Response(JSON.stringify({ results: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }, async () => {
+    const response = await researchSearchPost({
+      request: jsonRequest("https://example.test/api/research/search", { query: "open learning" }),
+      env: { OPENALEX_API_KEY: "test-openalex-secret" },
+    });
+    assert.equal(response.status, 200);
+    assert.match(requestedUrl, /api_key=test-openalex-secret/);
+    const body = await response.json();
+    assert.equal(body.searched.openAlexKeyConfigured, true);
+    assert.equal(JSON.stringify(body).includes("test-openalex-secret"), false);
+  });
 });
