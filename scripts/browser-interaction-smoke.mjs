@@ -553,6 +553,79 @@ async function run() {
   }
   console.log("PDF reverse-order artifact verified: source pages are in reverse order.");
 
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await clickText("button.hmx-tool-card", "Split into pages", "split PDF into one-page files");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Exported 2 one-page PDFs')", "PDF split completes");
+  const splitOnePath = await waitForDownload("smoke-a-page-1.pdf");
+  const splitTwoPath = await waitForDownload("smoke-a-page-2.pdf");
+  const splitOne = await PDFDocument.load(readFileSync(splitOnePath));
+  const splitTwo = await PDFDocument.load(readFileSync(splitTwoPath));
+  if (splitOne.getPageCount() !== 1 || splitTwo.getPageCount() !== 1 || splitOne.getPage(0).getWidth() !== 100 || splitTwo.getPage(0).getWidth() !== 300) {
+    throw new Error("Split PDF artifacts did not preserve one source page per file in order.");
+  }
+  console.log("PDF split artifacts verified: two one-page PDFs in source order.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await clickText("button.hmx-tool-card", "Rotate all pages", "rotate all PDF pages");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Rotated all pages 90 degrees')", "rotate-all completes");
+  const allRotatedPath = await waitForDownload("smoke-a-rotated.pdf");
+  const allRotated = await PDFDocument.load(readFileSync(allRotatedPath));
+  if (allRotated.getPageCount() !== 2 || allRotated.getPages().some(page => page.getRotation().angle !== 90)) {
+    throw new Error("Rotate-all PDF artifact does not rotate every page 90 degrees.");
+  }
+  console.log("PDF rotate-all artifact verified.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await fill("#pdf-page-label", "Pg", "page number label");
+  await clickText("button.hmx-tool-card", "Add page numbers", "add PDF page numbers");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Page numbers added')", "page numbering completes");
+  const numberedPath = await waitForDownload("haryomix-page-numbers.pdf");
+  const numbered = await PDFDocument.load(readFileSync(numberedPath));
+  const numberedPdfJs = await getDocument({ data: new Uint8Array(readFileSync(numberedPath)) }).promise;
+  const numberedText = (await Promise.all(Array.from({ length: numberedPdfJs.numPages }, async (_, index) => {
+    const page = await numberedPdfJs.getPage(index + 1);
+    const textContent = await page.getTextContent();
+    return textContent.items.map(item => "str" in item ? item.str : "").join(" ");
+  }))).join(" ");
+  await numberedPdfJs.destroy();
+  if (numbered.getPageCount() !== 2 || !numberedText.includes("Pg 1 / 2") || !numberedText.includes("Pg 2 / 2")) {
+    throw new Error("Page-number PDF artifact is missing the expected labels: " + numberedText);
+  }
+  console.log("PDF page-number artifact verified by extracted page text.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await clickText("button.hmx-tool-card", "Remove last page", "remove final PDF page");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Removed the last page')", "remove-last-page completes");
+  const lastRemovedPath = await waitForDownload("haryomix-without-last-page.pdf");
+  const lastRemoved = await PDFDocument.load(readFileSync(lastRemovedPath));
+  if (lastRemoved.getPageCount() !== 1 || lastRemoved.getPage(0).getWidth() !== 100) {
+    throw new Error("Remove-last-page artifact did not preserve only the first source page.");
+  }
+  console.log("PDF remove-last-page artifact verified.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await clickText("button.hmx-tool-card", "Optimize PDF", "optimize PDF structure");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('PDF repacked')", "PDF optimize completes");
+  const optimizedPath = await waitForDownload("smoke-a-optimized.pdf");
+  const optimized = await PDFDocument.load(readFileSync(optimizedPath));
+  if (optimized.getPageCount() !== 2 || optimized.getPages()[0].getWidth() !== 100 || optimized.getPages()[1].getWidth() !== 300) {
+    throw new Error("Optimized PDF artifact failed page count/dimension verification.");
+  }
+  console.log("PDF optimize artifact verified.");
+
+  await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf")]);
+  await clickText("button.hmx-tool-card", "Add signature", "validate empty signature");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Draw your signature')", "empty signature is rejected");
+  await evaluate("(()=>{const c=document.querySelector('#pdf-signature');const ctx=c?.getContext('2d');if(!ctx)return false;ctx.fillStyle='#172554';ctx.fillRect(10,10,80,8);return true})()");
+  await clickText("button.hmx-tool-card", "Add signature", "insert drawn test signature");
+  await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Signature image added to page 1')", "visual signature export completes");
+  const signedPath = await waitForDownload("haryomix-signed.pdf");
+  const signed = await PDFDocument.load(readFileSync(signedPath));
+  if (signed.getPageCount() !== 2 || statSync(signedPath).size <= statSync(join(profile, "smoke-a.pdf")).size) {
+    throw new Error("Signed PDF artifact failed page count or embedded signature size checks.");
+  }
+  console.log("PDF visual-signature validation and export verified.");
+
   await setFiles("input.hmx-file-input", [join(profile, "smoke-pixel.png")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('1 supported file(s) selected')", "image-to-PDF fixture loaded");
   await clickText("button.hmx-btn", "Images to PDF", "convert image to PDF");
