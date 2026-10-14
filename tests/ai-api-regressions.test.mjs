@@ -398,7 +398,7 @@ test("PPT API falls back to Gemini slide content when Felo generation fails", as
       return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
         title: "Water Cycle",
         slides: [
-          { title: "Evaporation", bullets: ["Heat changes liquid water into vapor", "Water vapor rises into the atmosphere"] },
+          { title: "Evaporation", subtitle: "Solar energy moves water into the atmosphere.", section: "WATER MOVEMENT", layout: "spotlight", takeaway: "Energy from the Sun drives the cycle.", bullets: ["Heat changes liquid water into vapor", "Water vapor rises into the atmosphere"], notes: "Explain the energy input and transition to condensation." },
           { title: "Condensation", bullets: ["Vapor cools and forms droplets", "Clouds are made of tiny droplets or ice crystals"] },
           { title: "Collection", bullets: ["Water returns through precipitation", "Runoff and groundwater collect in rivers and oceans"] }
         ]
@@ -415,6 +415,11 @@ test("PPT API falls back to Gemini slide content when Felo generation fails", as
     assert.equal(body.mode, "ai-generated-pptx");
     assert.equal(body.provider, "gemini");
     assert.equal(body.slides.length, 3);
+    assert.equal(body.slides[0].subtitle, "Solar energy moves water into the atmosphere.");
+    assert.equal(body.slides[0].section, "WATER MOVEMENT");
+    assert.equal(body.slides[0].layout, "spotlight");
+    assert.equal(body.slides[0].takeaway, "Energy from the Sun drives the cycle.");
+    assert.match(body.slides[0].notes, /energy input/i);
   });
 });
 
