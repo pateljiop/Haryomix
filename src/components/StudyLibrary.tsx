@@ -157,7 +157,7 @@ export function SmartNotes() {
           await replaceStudyResources(imported);
           await refresh(imported[0]?.id);
           resetForm();
-          setNotice("Imported " + imported.length + " study items. The previous library was replaced.");
+          setNotice("Imported " + imported.length + " notes. Your previous notes were replaced.");
           setStorageError("");
         } catch (error) {
           setNotice(error instanceof Error ? error.message : "Could not import this backup.");
@@ -201,7 +201,7 @@ export function SmartNotes() {
   }
 
   async function clearLibrary() {
-    if (!items.length) { setNotice("The library is already empty."); return; }
+    if (!items.length) { setNotice("Your notes are already empty."); return; }
     if (!window.confirm("Delete all " + items.length + " study items from this browser? This cannot be undone. Export a backup first if needed.")) return;
     setBusy(true);
     try {
@@ -209,7 +209,7 @@ export function SmartNotes() {
       setItems([]);
       setSelectedId("");
       resetForm();
-      setNotice("Study library cleared.");
+      setNotice("Notes cleared.");
       setStorageError("");
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : "Could not clear the notes.");
@@ -230,7 +230,7 @@ export function SmartNotes() {
           <div className="hmx-library-count"><strong>{items.length}</strong><span> / 500 saved items</span></div>
           <div className="hmx-btn-row">
             <button type="button" className="hmx-btn" onClick={exportBackup} disabled={loading || !items.length}>Export backup ↓</button>
-            <label className="hmx-btn hmx-library-import">Import backup ↥<input type="file" accept="application/json,.json" aria-label="Import notes backup; replaces current library" onChange={importBackup} disabled={busy}/></label>
+            <label className="hmx-btn hmx-library-import">Import backup ↥<input type="file" accept="application/json,.json" aria-label="Import notes backup; replaces current notes" onChange={importBackup} disabled={busy}/></label>
             <button type="button" className="hmx-btn" onClick={() => void clearLibrary()} disabled={busy || !items.length}>Clear notes</button>
           </div>
         </div>
