@@ -17,6 +17,7 @@ export function FeloCreateStudio(){
  const [prompt,setPrompt]=useState("");
  const [size,setSize]=useState("1024x1024");
  const [job,setJob]=useState<PptJob|null>(null);
+ const [previewIndex,setPreviewIndex]=useState(0);
  const [image,setImage]=useState("");
  const [downloadUrl,setDownloadUrl]=useState("");
  const [busy,setBusy]=useState(false);
@@ -33,7 +34,7 @@ export function FeloCreateStudio(){
    if(Array.isArray(data.slides)&&data.slides.length){
     const fallbackSlides=data.slides.filter((slide:unknown):slide is SlideContent=>Boolean(slide&&typeof slide==="object"&&typeof (slide as SlideContent).title==="string"&&Array.isArray((slide as SlideContent).bullets)));
     if(!fallbackSlides.length)throw new Error("AI provider ne valid slide content nahi diya. Dobara try karo.");
-    setJob({taskId:`local-${Date.now()}`,businessId:"local-pptx",status:"COMPLETED",fallbackSlides,provider:typeof data.provider==="string"?data.provider:"AI",title:typeof data.title==="string"?data.title:topic});
+    setJob({taskId:`local-${Date.now()}`,businessId:"local-pptx",status:"COMPLETED",fallbackSlides,provider:typeof data.provider==="string"?data.provider:"AI",title:typeof data.title==="string"?data.title:topic});setPreviewIndex(0);
     setDownloadUrl("");setMessage(`Slides ${typeof data.provider==="string"?data.provider:"AI"} se ready hain. “Export editable PPTX” dabao.`);return;
    }
    const taskId=typeof data.taskId==="string"?data.taskId:typeof data.task_id==="string"?data.task_id:"";
@@ -172,7 +173,34 @@ export function FeloCreateStudio(){
    <div className="hmx-field"><label htmlFor="felo-ppt-topic">Presentation topic and requirements</label><textarea id="felo-ppt-topic" className="hmx-textarea" style={{minHeight:140,fontFamily:"inherit"}} value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Topic, audience, language, key points, examples, level of detail, and desired conclusion…"/></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-slides">Target slide count</label><select id="felo-ppt-slides" className="hmx-select" value={slides} onChange={e=>setSlides(e.target.value)}>{["5","8","10","12","15","20","25","30"].map(n=><option key={n} value={n}>{n} slides</option>)}</select></div>
    <div className="hmx-field"><label htmlFor="felo-ppt-style">Visual style</label><input id="felo-ppt-style" className="hmx-input" value={style} onChange={e=>setStyle(e.target.value)}/></div>
-   <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
+   <div className="hmx-btn-row"><button className="hmx-btn primary" disabled={busy} onClick={createPpt}>{busy?"Working…":"Generate AI presentation"}</button>{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkStatus}>Check generation</button>}{job?.status==="COMPLETED"&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={exportPpt}>Export editable PPTX</button>}{job&&!job.fallbackSlides&&<button className="hmx-btn" disabled={busy} onClick={checkExport}>Check PPTX export</button>}</div>
+   {job?.fallbackSlides&&job.fallbackSlides.length>0&&<section aria-label="Presentation preview" style={{marginTop:22,border:"1px solid #dce4f0",borderRadius:18,overflow:"hidden",background:"#0b1220",color:"#f5f7ff",boxShadow:"0 14px 40px rgba(13,25,48,.12)"}}>
+    <div style={{padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,borderBottom:"1px solid #253149",flexWrap:"wrap"}}>
+     <div><div style={{fontSize:10,fontWeight:800,letterSpacing:1.8,color:"#64d9d0"}}>LIVE SLIDE PREVIEW</div><div style={{fontSize:13,color:"#aab8d0",marginTop:4}}>Review your slides before exporting</div></div>
+     <div style={{fontSize:12,color:"#c6d2e8",fontVariantNumeric:"tabular-nums"}}>{previewIndex+2} / {(job.fallbackSlides?.length||0)+1}</div>
+    </div>
+    <div style={{minHeight:330,padding:"clamp(20px,5vw,42px)",background:previewIndex%5===4?"linear-gradient(135deg,#101b33,#17294a)":"linear-gradient(135deg,#ffffff,#f2f6fc)",color:"#17233b",position:"relative"}}>
+     <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:"#4169e1",textTransform:"uppercase"}}>{job.fallbackSlides[previewIndex]?.section||(["FOUNDATIONS","KEY IDEAS","PRACTICAL APPLICATION","ANALYSIS","TAKEAWAYS"][previewIndex%5])}</div>
+     <h3 style={{fontSize:"clamp(23px,4vw,36px)",lineHeight:1.12,letterSpacing:"-0.035em",margin:"14px 0 12px",color:previewIndex%5===4?"#fff":"#17233b"}}>{job.fallbackSlides[previewIndex]?.title||"Slide preview"}</h3>
+     {job.fallbackSlides[previewIndex]?.subtitle&&<p style={{fontSize:14,lineHeight:1.6,color:previewIndex%5===4?"#c3d0e7":"#66738a",margin:"0 0 20px"}}>{job.fallbackSlides[previewIndex]?.subtitle}</p>}
+     <div style={{height:3,width:54,borderRadius:8,background:"#55d6d0",margin:"14px 0 22px"}}/>
+     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,220px),1fr))",gap:12}}>
+      {job.fallbackSlides[previewIndex]?.bullets.slice(0,5).map((bullet,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start",padding:14,borderRadius:12,border:"1px solid "+(previewIndex%5===4?"#304264":"#dce5f1"),background:previewIndex%5===4?"rgba(21,34,59,.86)":"rgba(255,255,255,.9)"}}>
+       <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",flex:"0 0 25px",height:25,borderRadius:8,background:i%2===0?"#4169e1":"#55bfb8",color:"#fff",fontSize:10,fontWeight:800}}>{String(i+1).padStart(2,"0")}</span>
+       <span style={{fontSize:13,lineHeight:1.55,color:previewIndex%5===4?"#e1e9f7":"#263650"}}>{bullet}</span>
+      </div>)}
+     </div>
+     {job.fallbackSlides[previewIndex]?.takeaway&&<div style={{marginTop:20,padding:"13px 15px",borderRadius:11,background:previewIndex%5===4?"#172b46":"#e7f8f6",border:"1px solid "+(previewIndex%5===4?"#2d536d":"#c8ede8")}}><div style={{fontSize:9,fontWeight:800,letterSpacing:1.2,color:"#238b84",marginBottom:5}}>KEY TAKEAWAY</div><div style={{fontSize:12,fontWeight:700,lineHeight:1.5,color:previewIndex%5===4?"#f1f7ff":"#263650"}}>{job.fallbackSlides[previewIndex]?.takeaway}</div></div>}
+     <div style={{display:"flex",justifyContent:"space-between",gap:12,marginTop:28,paddingTop:12,borderTop:"1px solid "+(previewIndex%5===4?"#304264":"#dce5f1"),fontSize:9,fontWeight:800,letterSpacing:1.1,color:previewIndex%5===4?"#9aabc9":"#7b879a"}}><span>HARYOMIX · AI CREATE STUDIO</span><span>{String(previewIndex+2).padStart(2,"0")} / {String((job.fallbackSlides?.length||0)+1).padStart(2,"0")}</span></div>
+    </div>
+    {job.fallbackSlides[previewIndex]?.notes&&<details style={{padding:"12px 18px",borderTop:"1px solid #253149",color:"#d6e0f1"}}><summary style={{cursor:"pointer",fontSize:12,fontWeight:700}}>Presenter notes</summary><p style={{fontSize:12,lineHeight:1.7,color:"#b8c6dc",whiteSpace:"pre-wrap"}}>{job.fallbackSlides[previewIndex]?.notes}</p></details>}
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:14,borderTop:"1px solid #253149",flexWrap:"wrap"}}>
+     <button type="button" className="hmx-btn" disabled={previewIndex===0} onClick={()=>setPreviewIndex(i=>Math.max(0,i-1))}>← Previous slide</button>
+     <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center"}}>{job.fallbackSlides.map((_,i)=><button type="button" key={i} aria-label={"Go to slide "+(i+2)} title={"Slide "+(i+2)} onClick={()=>setPreviewIndex(i)} style={{width:8,height:8,padding:0,border:0,borderRadius:8,cursor:"pointer",background:i===previewIndex?"#55d6d0":"#42516b"}}/>)}</div>
+     <button type="button" className="hmx-btn" disabled={previewIndex===job.fallbackSlides.length-1} onClick={()=>setPreviewIndex(i=>Math.min((job.fallbackSlides?.length||1)-1,i+1))}>Next slide →</button>
+    </div>
+   </section>}
+   {job?.fallbackSlides&&<div className="hmx-btn-row" style={{marginTop:14}}><button className="hmx-btn primary" disabled={busy} onClick={exportPpt}>Download editable PPTX</button></div>}
    {job&&<p style={{fontSize:12,color:"#6d7587",overflowWrap:"anywhere"}}>Task: {job.taskId}<br/>Status: {job.status}{job.provider?` • Provider: ${job.provider}`:""}</p>}{job?.liveUrl&&/^https:\/\//i.test(job.liveUrl)&&<p><a href={job.liveUrl} target="_blank" rel="noreferrer" className="hmx-btn" style={{display:"inline-block",textDecoration:"none"}}>Preview presentation</a></p>}{downloadUrl&&<p><a href={downloadUrl} target="_blank" rel="noreferrer" className="hmx-btn primary" style={{display:"inline-block",textDecoration:"none"}}>Download editable PPTX</a></p>}
   </>:<>
    <div className="hmx-field"><label htmlFor="felo-image-prompt">Describe the image</label><textarea id="felo-image-prompt" className="hmx-textarea" style={{minHeight:130,fontFamily:"inherit"}} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Subject, composition, mood, lighting, art direction, background, aspect ratio, intended use…"/></div>
