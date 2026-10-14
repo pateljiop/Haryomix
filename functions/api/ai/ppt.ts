@@ -61,12 +61,35 @@ async function generateSlidesWithProvider(provider: "grok" | "groq" | "gemini", 
     notes: typeof slide?.notes === "string" ? slide.notes.slice(0, 1500) : "",
   })).map((slide: SlideContent) => ({ ...slide, bullets: slide.bullets.length ? slide.bullets : ["Review the key concepts and apply them to the presentation topic."] }));
 }
-async function generateFallbackSlides(env: Env, query: string, count: number, style: string): Promise<{ title: string; slides: SlideContent[]; provider: "grok" | "groq" | "gemini" }> {
+async function generateFallbackSlides(env: Env, query: string, count: number, style: string): Promise<{ title: string; slides: SlideContent[]; provider: string }> {
   const failures: string[] = [];
-  const providers: Array<{ name: "grok" | "groq" | "gemini"; key?: string }> = [
-    { name: "grok", key: env.XAI_API_KEY },
+  // When both keys exist, Gemini creates the first draft and Grok performs an editorial pass.
+  // This gives the user a genuinely multi-model deck rather than a single-provider fallback.
+  if (env.GEMINI_API_KEY && env.XAI_API_KEY) {
+    try {
+      const draft = await generateSlidesWithProvider("gemini", env.GEMINI_API_KEY, query, count, style);
+      const reviewPrompt = [
+        "Act as a senior presentation strategist, domain expert, fact-checking editor, and visual storyteller.",
+        "Improve the following draft into an expert-level presentation. Keep the same requested topic and exactly the requested number of slides.",
+        "Strengthen the narrative, remove repetition, make bullets specific and useful, add practical examples/frameworks where supportable, and make slide titles insight-led.",
+        "Do not invent sources, citations, quotations, or statistics. Preserve uncertainty where facts cannot be verified.",
+        "Return only the exact JSON schema required for a PowerPoint: {title, slides:[{title, bullets, notes}]}.",
+        `Requested topic: ${query}`,
+        `Slide count: ${count}`,
+        `Visual direction: ${style}`,
+        `Gemini draft: ${JSON.stringify({ title: draft[0]?.title || query, slides: draft })}`,
+      ].join("\\n");
+      const refined = await generateSlidesWithProvider("grok", env.XAI_API_KEY, reviewPrompt, count, style);
+      return { title: refined[0]?.title || draft[0]?.title || query.slice(0, 100), slides: refined, provider: "Gemini + Grok editorial pass" };
+    } catch (error) {
+      failures.push(`dual_model:${error instanceof Error ? error.message : "provider_error"}`);
+      // Continue with the best available single provider below.
+    }
+  }
+  const providers: Array<{ name: "gemini" | "groq" | "grok"; key?: string }> = [
     { name: "gemini", key: env.GEMINI_API_KEY },
     { name: "groq", key: env.GROQ_API_KEY },
+    { name: "grok", key: env.XAI_API_KEY },
   ];
   for (const provider of providers) {
     if (!provider.key) continue;
@@ -128,7 +151,7 @@ export async function onRequestPost({request,env}:{request:Request;env:Env}):Pro
       if(!taskId) return reply({error:"Task ID is required."},400);
       const result=await felo(`/v2/tasks/${encodeURIComponent(taskId)}/status`,env.FELO_API_KEY!);
       const status=clean(result?.data?.status,40).toUpperCase();
-      const historical=status==="COMPLETED"||status==="FAILED"||status==="ERROR" ? await felo(`/v2/tasks/${encodeURIComponent(taskId)}/historical`,env.FELO_API_KEY) : null;
+      const historical=status==="COMPLETED"||status==="FAILED"||status==="ERROR" ? await felo(`/v2/tasks/${encodeURIComponent(taskId)}/historical`,env.FELO_API_KEY!) : null;
       return reply({status:status||"RUNNING",liveUrl:historical?.data?.ppt_url||null,error:historical?.data?.error_message||null,businessId:historical?.data?.ppt_biz_id||businessId||null});
     }
     if(action==="export"){
