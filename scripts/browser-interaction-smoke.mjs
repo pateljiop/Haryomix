@@ -147,6 +147,19 @@ async function waitForDownload(filename, timeoutMs = 20000) {
   throw new Error("Download did not complete: " + filename);
 }
 
+async function waitForMatchingDownload(pattern, timeoutMs = 20000) {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    const name = readdirSync(profile).find(candidate => pattern.test(candidate));
+    if (name && !readdirSync(profile).some(candidate => candidate.endsWith(".crdownload"))) {
+      const path = join(profile, name);
+      try { if (statSync(path).isFile()) return path; } catch {}
+    }
+    await wait(200);
+  }
+  throw new Error("Matching download did not complete: " + pattern);
+}
+
 function crc32(buffer) {
   let crc = 0xffffffff;
   for (const byte of buffer) {
@@ -178,11 +191,14 @@ function createValidPngFixture() {
 
 async function createFixtures() {
   const first = await PDFDocument.create();
-  first.addPage([100, 200]);
-  first.addPage([300, 400]);
+  const firstPage = first.addPage([100, 200]);
+  firstPage.drawText("AUDIT ALPHA", { x: 8, y: 150, size: 8 });
+  const secondPage = first.addPage([300, 400]);
+  secondPage.drawText("AUDIT BETA", { x: 12, y: 320, size: 10 });
   writeFileSync(join(profile, "smoke-a.pdf"), await first.save());
   const second = await PDFDocument.create();
-  second.addPage([500, 600]);
+  const comparisonPage = second.addPage([500, 600]);
+  comparisonPage.drawText("AUDIT GAMMA", { x: 18, y: 500, size: 12 });
   writeFileSync(join(profile, "smoke-b.pdf"), await second.save());
   writeFileSync(join(profile, "smoke-pixel.png"), createValidPngFixture());
 }
@@ -336,6 +352,77 @@ async function run() {
   console.log("Focus Timer mode/start/pause/reset flow passed.");
 
   await navigate("/workspace/pdf-studio", "!!document.querySelector('input.hmx-file-input')", "PDF Studio upload control");
+  // PDF Pro extra tools: validate each download, not just its success message.
+  await setFiles("#pdf-pro-files", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
+  await fill("#pdf-pro-range", "1-2", "PDF Pro page range");
+
+  await clickText("button.hmx-tool-card", "Extract PDF text", "extract selectable PDF text");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Extracted text from 2 page(s)')", "PDF text extraction completes");
+  const textPath = await waitForDownload("smoke-a-text.txt");
+  const extractedText = readFileSync(textPath, "utf8");
+  if (!extractedText.includes("AUDIT ALPHA") || !extractedText.includes("AUDIT BETA")) {
+    throw new Error("Extracted PDF text omitted fixture content: " + extractedText);
+  }
+  console.log("PDF Pro text extraction artifact verified.");
+
+  await clickText("button.hmx-tool-card", "PDF to Word-compatible RTF", "export Word-compatible RTF");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported editable text to an RTF file')", "RTF export completes");
+  const rtfPath = await waitForDownload("smoke-a-text.rtf");
+  const rtfText = readFileSync(rtfPath, "utf8");
+  if (!rtfText.startsWith("{\\rtf1") || !rtfText.includes("AUDIT ALPHA")) {
+    throw new Error("RTF export is malformed or missing extracted text.");
+  }
+  console.log("PDF Pro RTF artifact verified.");
+
+  await clickText("button.hmx-tool-card", "PDF text to CSV / Excel", "export PDF text coordinates to CSV");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported selectable text')", "PDF CSV export completes");
+  const csvPath = await waitForDownload("smoke-a-text-positions.csv");
+  const csvText = readFileSync(csvPath, "utf8");
+  if (!csvText.startsWith('"page","x","y","text"') || !csvText.includes("AUDIT ALPHA") || !csvText.includes("AUDIT BETA")) {
+    throw new Error("CSV export omitted expected page/text coordinate data: " + csvText);
+  }
+  console.log("PDF Pro CSV artifact verified.");
+
+  await fill("#pdf-pro-range", "2", "single-page PDF Pro export range");
+  await clickText("button.hmx-tool-card", "PDF to JPG", "render PDF page to JPEG");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported 1 page image(s) as JPEG')", "PDF-to-JPEG completes");
+  const jpgPath = await waitForDownload("smoke-a-page-2.jpg");
+  const jpgBytes = readFileSync(jpgPath);
+  if (jpgBytes[0] !== 0xff || jpgBytes[1] !== 0xd8 || jpgBytes[jpgBytes.length - 2] !== 0xff || jpgBytes[jpgBytes.length - 1] !== 0xd9) {
+    throw new Error("PDF-to-JPEG output does not have a valid JPEG signature.");
+  }
+  console.log("PDF Pro JPEG artifact verified.");
+
+  await clickText("button.hmx-tool-card", "PDF to PowerPoint", "convert PDF page to PowerPoint");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Created 1 PowerPoint slide(s)')", "PDF-to-PowerPoint completes");
+  const pptxPath = await waitForDownload("smoke-a-converted.pptx");
+  const pptxBytes = readFileSync(pptxPath);
+  if (pptxBytes.subarray(0, 2).toString() !== "PK" || !pptxBytes.includes(Buffer.from("ppt/slides/slide1.xml"))) {
+    throw new Error("PDF-to-PowerPoint output is not a recognizable PPTX ZIP package.");
+  }
+  console.log("PDF Pro PowerPoint artifact verified.");
+
+  await clickText("button.hmx-tool-card", "Re-save / repair PDF", "re-save PDF");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('PDF successfully opened and re-saved')", "PDF re-save completes");
+  const repairedPath = await waitForDownload("smoke-a-repaired.pdf");
+  const repaired = await PDFDocument.load(readFileSync(repairedPath));
+  if (repaired.getPageCount() !== 2 || repaired.getPages()[0].getWidth() !== 100 || repaired.getPages()[1].getHeight() !== 400) {
+    throw new Error("Re-saved PDF failed page count or dimensions verification.");
+  }
+  console.log("PDF Pro re-save artifact verified.");
+
+  await clickText("button.hmx-btn", "Load page thumbnails", "load PDF page thumbnails");
+  await waitFor("Array.from(document.querySelectorAll('img')).filter(img=>img.alt.startsWith('Original PDF page')).length===2", "PDF page thumbnails render");
+  await click("button[aria-label='Move page 2 earlier']", "move page 2 before page 1");
+  await clickText("button.hmx-btn-primary", "Export reordered PDF", "export thumbnail-organized PDF");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Exported 2 pages in the thumbnail order')", "thumbnail organizer export completes");
+  const organizedPath = await waitForDownload("smoke-a-organized.pdf");
+  const organized = await PDFDocument.load(readFileSync(organizedPath));
+  if (organized.getPageCount() !== 2 || organized.getPages()[0].getWidth() !== 300 || organized.getPages()[1].getWidth() !== 100) {
+    throw new Error("Thumbnail organizer export did not preserve the displayed page order.");
+  }
+  console.log("PDF Pro thumbnail organizer artifact verified.");
+
   await setFiles("input.hmx-file-input", [join(profile, "smoke-a.pdf"), join(profile, "smoke-b.pdf")]);
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('2 supported file(s) selected')", "PDF fixtures loaded");
   await clickText("button.hmx-tool-card", "Merge PDFs", "merge PDF files");
@@ -494,6 +581,29 @@ async function run() {
     throw new Error("Exported image artifact failed PNG signature/dimensions check: " + pngWidth + "x" + pngHeight);
   }
   console.log("Image export artifact verified: valid PNG with 64x32 output dimensions.");
+
+  await clickText("button.hmx-btn", "↷ Rotate right", "rotate image right");
+  await waitFor("document.querySelector('.hmx-image-preview')?.width===32 && document.querySelector('.hmx-image-preview')?.height===64", "rotation swaps image canvas dimensions");
+  await fill("#image-watermark", "HARYOMIX AUDIT MARK", "image watermark text");
+  await chooseValue("#image-format", "image/webp", "WebP export format");
+  await clickText("button.hmx-btn.primary", "Export image", "export rotated watermarked WebP");
+  const webpPath = await waitForDownload("smoke-pixel-edited.webp");
+  const webpBytes = readFileSync(webpPath);
+  if (webpBytes.subarray(0, 4).toString() !== "RIFF" || webpBytes.subarray(8, 12).toString() !== "WEBP") {
+    throw new Error("Image Studio WebP export has an invalid RIFF/WEBP signature.");
+  }
+  console.log("Image rotation, watermark and WebP export verified.");
+
+  await chooseValue("#image-format", "image/jpeg", "JPEG target-size format");
+  await fill("#image-target-kb", "10", "minimum target file size");
+  await clickText("button.hmx-btn", "Compress to 10 KB", "compress image to target size");
+  await waitFor("document.querySelector('.hmx-note[role=status]')?.textContent.includes('Saved') || document.querySelector('.hmx-note[role=status]')?.textContent.includes('target 10 KB was not achievable')", "image target-size compression finishes");
+  const compressedPath = await waitForMatchingDownload(/^smoke-pixel-\d+kb\.jpg$/);
+  const compressedBytes = readFileSync(compressedPath);
+  if (compressedBytes[0] !== 0xff || compressedBytes[1] !== 0xd8) {
+    throw new Error("Target-size image output is not a JPEG.");
+  }
+  console.log("Image target-size JPEG artifact verified.");
 
   await navigateHistory("back", "location.pathname === '/workspace/pdf-studio' && !!document.querySelector('input.hmx-file-input')", "back returns to PDF Studio");
   await navigateHistory("forward", "location.pathname === '/workspace/image-studio' && !!document.querySelector('input.hmx-file-input')", "forward returns to Image Studio");
