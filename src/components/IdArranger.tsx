@@ -38,6 +38,8 @@ export function IdArranger() {
   const [paper, setPaper] = useState<"A4" | "A5" | "Letter">("A4");
   const [gap, setGap] = useState(4);
   const [error, setError] = useState("");
+  const [darkMode, setDarkMode] = useState(true);
+  const [zoom, setZoom] = useState(100);
   const [busy, setBusy] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const card = presets[preset];
@@ -135,11 +137,13 @@ export function IdArranger() {
     win.document.close();
   }
 
-  return <div className="hmx-panel id-arranger">
+  return <div className={"hmx-panel id-arranger id-arranger-pro " + (darkMode ? "id-arranger-dark" : "id-arranger-light")}>
+    <div className="id-pro-toolbar"><div className="id-pro-brand"><span className="id-pro-logo">▣</span><div><strong>ID & Aadhaar Arranger <em>PRO</em></strong><small>Precision 1:1 Scale Print & PDF Merger</small></div></div><div className="id-pro-toolbar-actions"><button type="button" className="id-pro-quiet" onClick={() => setError("Upload front/back images below, then export at 100% / Actual Size.")}>Try Sample</button><button type="button" className="id-pro-icon" title="Upload images, choose layout and export at actual size." onClick={() => setError("Upload front/back images below. Choose a layout and export PDF at Actual Size (100%).")}>ⓘ</button><button type="button" className="id-pro-icon" aria-label="Toggle theme" onClick={() => setDarkMode(v => !v)}>{darkMode ? "☼" : "☾"}</button></div></div>
+    <div className="id-pro-subbar"><span>◉ {paper} · {paperSize.w} × {paperSize.h} mm</span><span className="id-pro-hint">Precision print canvas</span><div className="id-pro-zoom"><button type="button" onClick={() => setZoom(v => Math.max(50,v-10))}>−</button><span>{zoom}%</span><button type="button" onClick={() => setZoom(v => Math.min(150,v+10))}>+</button><button type="button" onClick={() => setZoom(100)}>Fit</button></div></div>
     <div className="hmx-panel-head"><h2>ID Arranger <span className="id-arranger-pill">LOCAL PROCESSING</span></h2><span className="id-arranger-step">PRINT PREP · 01</span></div>
     <div className="hmx-panel-body">
       <div className="hmx-note id-arranger-privacy"><strong>Your files stay in this browser.</strong> Images are not uploaded to Haryomix. Use this tool to arrange genuine card images for printing; it does not create or alter official identity details.</div>
-      <div className="id-arranger-upload-grid">
+      <div className="id-pro-section-title">▧ 1. UPLOAD & CROP IMAGES <span>{Number(Boolean(front)) + Number(Boolean(back))} / 2 Loaded</span></div><div className="id-arranger-upload-grid">
         {(["front", "back"] as Side[]).map(which => {
           const value = which === "front" ? front : back;
           return <label className="id-arranger-upload" key={which}>
@@ -151,15 +155,14 @@ export function IdArranger() {
           </label>;
         })}
       </div>
-      <div className="id-arranger-controls">
+      <div className="id-pro-section-title">▦ 2. SHEET LAYOUT & ORIENTATION</div><div className="id-arranger-controls">
         <label className="hmx-field"><span>Card size</span><select className="hmx-select" value={preset} onChange={e => setPreset(e.target.value as Preset)}>{Object.keys(presets).map(p => <option key={p}>{p}</option>)}</select></label>
         <label className="hmx-field"><span>Paper</span><select className="hmx-select" value={paper} onChange={e => setPaper(e.target.value as typeof paper)}><option>A4</option><option>A5</option><option>Letter</option></select></label>
         <label className="hmx-field"><span>Copies per side</span><select className="hmx-select" value={copies} onChange={e => setCopies(Number(e.target.value))}>{[1,2,3,4,5,6,8,10,12].map(n => <option key={n} value={n}>{n} copies</option>)}</select></label>
         <label className="hmx-field"><span>Arrange</span><select className="hmx-select" value={side} onChange={e => setSide(e.target.value as typeof side)}><option value="both">Front + back alternating</option><option value="front">Front only</option><option value="back">Back only</option></select></label>
         <label className="hmx-field"><span>Gap between cards: {gap} mm</span><input type="range" min="0" max="10" value={gap} onChange={e => setGap(Number(e.target.value))}/></label>
       </div>
-      <div className="id-arranger-preview-head"><div><h3>Print-sheet preview</h3><p>{paper} paper · {card.w} × {card.h} mm cards · {selectedSides.length ? "ready to arrange" : "upload a card image to begin"}</p></div><span>100% browser-local</span></div>
-      <div className="id-arranger-sheet-wrap"><canvas ref={canvasRef} className="id-arranger-sheet" aria-label="Print sheet preview"/></div>
+      <div className="id-pro-canvas-stage"><div className="id-pro-paper" style={{width: "min(" + zoom + "%, 560px)"}}><canvas ref={canvasRef} className="id-arranger-sheet" aria-label="Print sheet preview"/></div>{!selectedSides.length && <div className="id-pro-empty"><strong>Upload Front & Back ID Images to Begin</strong><span>Use the upload panels below to start</span></div>}<div className="id-pro-tip">💡 Preview your print sheet below · Export at Actual Size (100%)</div></div>
       {error && <div className="hmx-note" role="alert" style={{marginTop:16}}>{error}</div>}
       <div className="hmx-btn-row id-arranger-actions"><button className="hmx-btn primary" onClick={() => void exportPdf()} disabled={busy || !selectedSides.length}>{busy ? "Preparing…" : "Download print-ready PDF ↗"}</button><button className="hmx-btn" onClick={() => void exportPng()} disabled={busy || !selectedSides.length}>Export PNG</button><button className="hmx-btn" onClick={printSheet} disabled={!selectedSides.length}>Print sheet</button><button className="hmx-btn" onClick={() => { setFront(old => { if (old) URL.revokeObjectURL(old.url); return null; }); setBack(old => { if (old) URL.revokeObjectURL(old.url); return null; }); setError(""); }}>Clear images</button></div>
       <p className="id-arranger-footnote">Print at 100% / Actual Size. Disable “Fit to page” if your printer dialog offers it. The preview fills the selected paper size; check physical dimensions with a ruler before printing a final batch.</p>
