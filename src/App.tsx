@@ -12,16 +12,11 @@ const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
   { id: "ppt", n: "02", title: "PPT Studio", desc: "Turn a topic into structured, editable PowerPoint slides." },
   { id: "pdf", n: "03", title: "PDF Studio", desc: "Merge, split, rotate and reorder without rebuilding text." },
   { id: "image", n: "04", title: "Image Studio", desc: "Crop, resize, rotate, adjust and export in your browser." },
-  { id: "exam", n: "05", title: "Exam Copilot", desc: "Create revision notes and test yourself with active recall." },
-  { id: "ai", n: "06", title: "Haryomix AI", desc: "Ask the configured AI assistant for coding, study and writing help." },
+  { id: "examcenter", n: "05", title: "Exam Center", desc: "Choose Class 6–12, graduation or competitive-exam preparation and open focused study tools." },
+  { id: "ai", n: "06", title: "Haryomix AI", desc: "Get help with coding, study and writing in one assistant." },
   { id: "create", n: "07", title: "AI Create Studio", desc: "Create presentation decks and images with the built-in creative tools." },
-  { id: "examcenter", n: "08", title: "Exam Center", desc: "Choose your school class, graduation course or competitive exam, then open focused study tools." },
-  { id: "flashcards", n: "09", title: "Flashcards", desc: "Practice active recall with a spaced-repetition queue stored in your browser." },
-  { id: "focus", n: "10", title: "Focus Timer", desc: "Use Pomodoro focus blocks, short/long breaks and a local session history." },
-  { id: "utilities", n: "11", title: "Student Utilities", desc: "Calculate marks, CGPA and attendance; count words; format JSON and encode URLs." },
-  { id: "calculator", n: "12", title: "Scientific Calculator", desc: "Evaluate scientific calculations locally without AI or an API key." },
-  { id: "converter", n: "13", title: "Unit Converter", desc: "Convert length, mass, temperature, area, volume, speed, time and digital storage." },
-  { id: "notes", n: "14", title: "Smart Notes", desc: "Create, organize, search and export your notes locally." },
+  { id: "calculator", n: "08", title: "Scientific Calculator", desc: "Evaluate scientific calculations locally without AI or an API key." },
+  { id: "converter", n: "09", title: "Unit Converter", desc: "Convert length, mass, temperature, area, volume, speed, time and digital storage." },
 ];
 
 export default function App() {
@@ -41,9 +36,6 @@ export default function App() {
         <a href="#tools" onClick={() => { setMobileMenuOpen(false); openWorkspace(); }}>Workspace</a>
         <a href="/workspace/exam-center" onClick={event => { event.preventDefault(); setMobileMenuOpen(false); openWorkspace("examcenter"); }}>Exam Center</a>
         <a href="/workspace/notes" onClick={event => { event.preventDefault(); setMobileMenuOpen(false); openWorkspace("notes"); }}>Notes</a>
-        <a href="/workspace/flashcards" onClick={event => { event.preventDefault(); setMobileMenuOpen(false); openWorkspace("flashcards"); }}>Flashcards</a>
-        <a href="/workspace/focus-timer" onClick={event => { event.preventDefault(); setMobileMenuOpen(false); openWorkspace("focus"); }}>Focus Timer</a>
-        <a href="/workspace/student-utilities" onClick={event => { event.preventDefault(); setMobileMenuOpen(false); openWorkspace("utilities"); }}>Student Utilities</a>
         <a href="#student-tools" onClick={() => setMobileMenuOpen(false)}>Utility Hub</a>
       </div>
       <div className="hmx-nav-actions">
@@ -66,16 +58,12 @@ export default function App() {
         <button onClick={() => openWorkspace("ppt")} className="hmx-toolbox-card"><span className="hmx-card-icon">▤</span><h3>Presentation builder</h3><p>Organize a topic into clear, editable slides and export a PowerPoint file.</p><span className="hmx-card-open">Build a deck ↗</span></button>
         <button onClick={() => openWorkspace("image")} className="hmx-toolbox-card"><span className="hmx-card-icon">◩</span><h3>Image workshop</h3><p>Make images fit practical files, reports and slides.</p><span className="hmx-card-open">Edit an image ↗</span></button>
         <button onClick={() => openWorkspace("code")} className="hmx-toolbox-card"><span className="hmx-card-icon">{`{ }`}</span><h3>Debug with a plan</h3><p>Find likely syntax issues and investigate runtime errors.</p><span className="hmx-card-open">Check code ↗</span></button>
-        <button onClick={() => openWorkspace("exam")} className="hmx-toolbox-card"><span className="hmx-card-icon">✳</span><h3>Revision that sticks</h3><p>Make topic notes, practice questions and review weak areas.</p><span className="hmx-card-open">Start revising ↗</span></button>
         <button onClick={() => openWorkspace("ai")} className="hmx-toolbox-card"><span className="hmx-card-icon">✦</span><h3>Haryomix AI assistant</h3><p>Get help with coding, study and writing through the configured assistant.</p><span className="hmx-card-open">Open Haryomix AI ↗</span></button>
         <button onClick={() => openWorkspace("create")} className="hmx-toolbox-card"><span className="hmx-card-icon">✧</span><h3>AI Create Studio</h3><p>Explore the configured creative workflow for presentation decks and images.</p><span className="hmx-card-open">Create something ↗</span></button>
         <button onClick={() => openWorkspace("examcenter")} className="hmx-toolbox-card"><span className="hmx-card-icon">✳</span><h3>Exam Center</h3><p>Choose Class 6–12, graduation semester preparation or a one-day competitive exam from one learning hub.</p><span className="hmx-card-open">Explore exam prep ↗</span></button>
-        <button onClick={() => openWorkspace("flashcards")} className="hmx-toolbox-card"><span className="hmx-card-icon">▤</span><h3>Flashcards & active recall</h3><p>Create your own question decks, reveal answers and schedule reviews using a lightweight spaced-repetition algorithm.</p><span className="hmx-card-open">Practice cards ↗</span></button>
-        <button onClick={() => openWorkspace("focus")} className="hmx-toolbox-card"><span className="hmx-card-icon">◷</span><h3>Focus Timer</h3><p>Run 25-minute focus blocks, take short or long breaks, and track completed sessions with a local history.</p><span className="hmx-card-open">Start a focus block ↗</span></button>
-        <button onClick={() => openWorkspace("utilities")} className="hmx-toolbox-card"><span className="hmx-card-icon">⌘</span><h3>Student Utility Hub</h3><p>Calculate marks, credit-weighted CGPA and attendance; count assignment words; validate JSON and encode URLs without sending data to a server.</p><span className="hmx-card-open">Open student utilities ↗</span></button>
       </div>
     </div></section>
-    <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix by Hariom Builds supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><div className="hmx-hero-actions"><button className="hmx-study-launch" onClick={() => openWorkspace("examcenter")}>Open Exam Center ↗</button><button className="hmx-tool-launch" onClick={() => openWorkspace("notes")}>Smart Notes ↗</button><button className="hmx-tool-launch" onClick={() => openWorkspace("exam")}>Generate revision notes ↗</button><button className="hmx-tool-launch" onClick={() => openWorkspace("flashcards")}>Practice flashcards ↗</button><button className="hmx-tool-launch" onClick={() => openWorkspace("focus")}>Start a focus session ↗</button><button className="hmx-tool-launch" onClick={() => openWorkspace("utilities")}>Open student utilities ↗</button></div></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
+    <section className="hmx-section" id="study"><div className="hmx-section-inner hmx-study"><div><h2 className="hmx-heading">Understand it. Practice it. Own it.</h2><p className="hmx-copy">Haryomix by Hariom Builds supports BTech, BCA, diploma and other courses. Bring your topic, notes or syllabus and turn it into a manageable next step.</p><div className="hmx-hero-actions"><button className="hmx-study-launch" onClick={() => openWorkspace("examcenter")}>Open Exam Center ↗</button></div></div><div className="hmx-study-rail"><div className="hmx-study-step"><h3>01 / Break it down</h3><p>Turn a broad subject into small, revision-friendly concepts.</p></div><div className="hmx-study-step"><h3>02 / Practice actively</h3><p>Test your understanding and explain the answer in your own words.</p></div><div className="hmx-study-step"><h3>03 / Review the gaps</h3><p>Use mistakes to decide what to revisit instead of rereading everything.</p></div></div></div></section>
     <section className="hmx-section hmx-seo-content" id="student-tools">
       <div className="hmx-section-inner">
         <p className="hmx-overline">Hariom Builds · Haryomix</p>
