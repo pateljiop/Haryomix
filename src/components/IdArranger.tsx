@@ -120,7 +120,9 @@ export function IdArranger() {
       const png = await canvasBlob(canvasRef.current);
       const embedded = await pdf.embedPng(await png.arrayBuffer());
       page.drawImage(embedded, { x: 0, y: 0, width: page.getWidth(), height: page.getHeight() });
-      downloadBlob(new Blob([await pdf.save()], { type: "application/pdf" }), "haryomix-id-arranger.pdf");
+      const pdfBytes = await pdf.save();
+      const pdfBuffer = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength) as ArrayBuffer;
+      downloadBlob(new Blob([pdfBuffer], { type: "application/pdf" }), "haryomix-id-arranger.pdf");
     } catch (e) { setError(e instanceof Error ? e.message : "PDF export failed."); }
     finally { setBusy(false); }
   }
