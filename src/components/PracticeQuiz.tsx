@@ -11,6 +11,16 @@ function formatTime(seconds: number) {
 
 export function PracticeQuiz() {
   const [track, setTrack] = useState<Track>("school");
+  const [mode, setMode] = useState<"topic" | "practice">("topic");
+  const [topic, setTopic] = useState("");
+  const [language, setLanguage] = useState("English");
+  const [difficulty, setDifficulty] = useState("medium");
+  const [researchBusy, setResearchBusy] = useState(false);
+  const [researchError, setResearchError] = useState("");
+  const [researchQuiz, setResearchQuiz] = useState<{ question: string; options: string[]; answer: number; explanation: string; sourceTitle: string; sourceUrl: string }[]>([]);
+  const [researchSources, setResearchSources] = useState<{ title: string; url: string; extract: string }[]>([]);
+  const [researchAnswers, setResearchAnswers] = useState<Record<number, number>>({});
+  const [researchSubmitted, setResearchSubmitted] = useState(false);
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -58,6 +68,21 @@ export function PracticeQuiz() {
     }
   }, [submitted, track, score, questions.length, answered, remaining]);
 
+  async function generateTopicQuiz(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    if (topic.trim().length < 3 || researchBusy) return;
+    setResearchBusy(true); setResearchError(""); setResearchQuiz([]); setResearchSources([]); setResearchAnswers({}); setResearchSubmitted(false);
+    try {
+      const response = await fetch("/api/quiz", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ topic: topic.trim(), language, difficulty }) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : `Quiz generation failed (HTTP ${response.status}).`);
+      if (!Array.isArray(data?.questions) || data.questions.length !== 10 || !Array.isArray(data?.sources)) throw new Error("The quiz service returned an incomplete result. Please retry.");
+      setResearchQuiz(data.questions); setResearchSources(data.sources);
+    } catch (error) { setResearchError(error instanceof Error ? error.message : "Could not generate a quiz. Please retry."); }
+    finally { setResearchBusy(false); }
+  }
+  const researchScore = researchQuiz.reduce((sum, q, index) => sum + (researchAnswers[index] === q.answer ? 1 : 0), 0);
+
   function startTest() {
     savedSubmission.current = false;
     setSaveNotice("");
@@ -83,6 +108,34 @@ export function PracticeQuiz() {
     setStarted(false);
     setSubmitted(false);
   }
+
+  if (mode === "topic") return <div className="hmx-panel">
+    <div className="hmx-panel-head"><div><p className="hmx-page-eyebrow">SEARCH · VERIFY · PRACTISE</p><h2>Topic Research Quiz</h2><p className="hmx-planner-subtitle">Enter a topic. Haryomix searches reference content first, then creates a source-linked quiz from the material it found.</p></div><span className="hmx-planner-local">WEB-RESEARCHED</span></div>
+    <div className="hmx-panel-body">
+      <div className="hmx-btn-row" style={{marginBottom:18}}><button type="button" className="hmx-btn primary" onClick={() => setMode("topic")}>Research a topic</button><button type="button" className="hmx-btn" onClick={() => setMode("practice")}>Local practice sets</button></div>
+      <form onSubmit={generateTopicQuiz} className="hmx-result" style={{marginTop:0}}>
+        <div className="hmx-field"><label htmlFor="hmx-quiz-topic">Topic or chapter</label><input id="hmx-quiz-topic" className="hmx-input" value={topic} onChange={e => setTopic(e.target.value)} placeholder="e.g. Indian Constitution: Fundamental Rights" minLength={3} maxLength={180} required disabled={researchBusy}/></div>
+        <div className="hmx-field"><label htmlFor="hmx-quiz-language">Quiz language</label><select id="hmx-quiz-language" className="hmx-select" value={language} onChange={e => setLanguage(e.target.value)} disabled={researchBusy}><option>English</option><option>Hindi</option><option>Hinglish</option></select></div>
+        <div className="hmx-field"><label htmlFor="hmx-quiz-difficulty">Difficulty</label><select id="hmx-quiz-difficulty" className="hmx-select" value={difficulty} onChange={e => setDifficulty(e.target.value)} disabled={researchBusy}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
+        <button type="submit" className="hmx-btn primary" disabled={researchBusy || topic.trim().length < 3}>{researchBusy ? "Searching content and writing quiz…" : "Search content & generate quiz ↗"}</button>
+        {researchBusy && <p role="status" aria-live="polite">Step 1/2: searching reference sources. Step 2/2: building 10 MCQs from the found material.</p>}
+      </form>
+      {researchError && <div className="hmx-note" role="alert" style={{marginTop:16}}>{researchError}</div>}
+      {researchQuiz.length > 0 && <section className="hmx-result" style={{marginTop:18}}>
+        <div className="hmx-planner-list-head"><div><span className="hmx-planner-local">SOURCE-GROUNDED QUIZ</span><h3>{topic}</h3><p>10 MCQs · {language} · {difficulty} difficulty</p></div><strong>{researchSubmitted ? `${researchScore}/${researchQuiz.length}` : `${Object.keys(researchAnswers).length}/${researchQuiz.length} answered`}</strong></div>
+        {!researchSubmitted && <p>Choose one answer for every question, then submit to unlock explanations.</p>}
+        {researchQuiz.map((q,index)=><article key={q.question + index} className="hmx-result" style={{marginTop:14}}>
+          <strong>{index+1}. {q.question}</strong>
+          <div className="hmx-tool-directory" role="group" aria-label={`Question ${index+1} options`} style={{marginTop:10}}>
+            {q.options.map((option,optionIndex)=><button key={optionIndex} type="button" className="hmx-directory-card" disabled={researchSubmitted} aria-pressed={researchAnswers[index]===optionIndex} onClick={()=>setResearchAnswers(prev=>({...prev,[index]:optionIndex}))} style={{borderColor:researchAnswers[index]===optionIndex?"var(--hm-blue, #4f46e5)":undefined,boxShadow:researchAnswers[index]===optionIndex?"0 0 0 1px var(--hm-blue, #4f46e5)":undefined}}><span className="hmx-directory-card-top"><span className="hmx-directory-icon">{String.fromCharCode(65+optionIndex)}</span></span><strong>{option}</strong></button>)}
+          </div>
+          {researchSubmitted && <div className="hmx-note" style={{marginTop:10}}><p><strong>Correct answer:</strong> {q.options[q.answer]}</p><p>{q.explanation}</p><p>Reference: <a href={q.sourceUrl} target="_blank" rel="noreferrer">{q.sourceTitle}</a></p></div>}
+        </article>)}
+        {!researchSubmitted ? <button type="button" className="hmx-btn primary" style={{marginTop:18}} disabled={Object.keys(researchAnswers).length!==researchQuiz.length} onClick={()=>setResearchSubmitted(true)}>Submit answers & review ↗</button> : <><p style={{marginTop:16}}><strong>Score: {researchScore}/{researchQuiz.length} ({Math.round(researchScore/researchQuiz.length*100)}%)</strong></p><button type="button" className="hmx-btn primary" onClick={()=>void generateTopicQuiz()}>Generate another quiz ↻</button></>}
+        <h3 style={{marginTop:24}}>Sources searched</h3><ul>{researchSources.map(source=><li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a><p>{source.extract.slice(0,260)}{source.extract.length>260?"…":""}</p></li>)}</ul>
+      </section>}
+    </div>
+  </div>;
 
   return <div className="hmx-panel">
     <div className="hmx-panel-head">
