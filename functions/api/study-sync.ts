@@ -37,12 +37,10 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (data.nextPageToken) return json({ error: "The folder has more than 1,000 PDFs. Split the library into subfolders before syncing." }, 413);
     const files = (data.files ?? []).filter(f => f.id && f.name && f.mimeType === "application/pdf");
     const now = new Date().toISOString();
+    await env.DB.prepare("UPDATE study_documents SET status='unavailable',synced_at=?").bind(now).run();
     for (const f of files) await env.DB.prepare(`INSERT INTO study_documents (drive_file_id,title,mime_type,file_size,source_modified_at,content_hash,status,synced_at,created_at)
       VALUES (?,?,?,?,?,?, 'ready',?,?) ON CONFLICT(drive_file_id) DO UPDATE SET title=excluded.title,mime_type=excluded.mime_type,file_size=excluded.file_size,source_modified_at=excluded.source_modified_at,content_hash=excluded.content_hash,status='ready',synced_at=excluded.synced_at`)
       .bind(f.id, f.name.slice(0, 240), f.mimeType, Math.max(0, Number(f.size ?? 0)), f.modifiedTime ?? now, f.md5Checksum ?? null, now, now).run();
-    const ids = files.map(f => f.id);
-    if (ids.length) await env.DB.prepare("UPDATE study_documents SET status='unavailable',synced_at=? WHERE drive_file_id NOT IN (" + ids.map(() => "?").join(",") + ")").bind(now, ...ids).run();
-    else await env.DB.prepare("UPDATE study_documents SET status='unavailable',synced_at=?").bind(now).run();
     return json({ ok: true, synced: files.length, message: "Study library sync completed." });
   } catch {
     return json({ error: "Study library sync failed. Check the private server configuration and retry." }, 503);
