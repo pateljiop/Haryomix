@@ -4,6 +4,7 @@ import { onRequestPost as chatPost } from "../functions/api/ai/chat.ts";
 import { onRequestPost as imagePost } from "../functions/api/ai/image.ts";
 import { onRequestPost as pptPost } from "../functions/api/ai/ppt.ts";
 import { onRequestPost as workersAiPost } from "../functions/api/ai.ts";
+import { onRequestPost as researchSearchPost } from "../functions/api/research/search.ts";
 
 function mockDb(count = 1) {
   const calls = [];
@@ -385,4 +386,47 @@ test("legacy Workers AI endpoint returns a safe setup error without a binding", 
   });
   assert.equal(response.status, 503);
   assert.match((await response.json()).error, /not configured/i);
+});
+
+
+test("research search combines Crossref, arXiv, and Internet Archive results", async () => {
+  await withMockFetch(async input => {
+    const url = String(input);
+    if (url.includes("api.crossref.org/works")) {
+      return new Response(JSON.stringify({ message: { items: [{
+        title: ["Open Educational Resources in Higher Education"],
+        DOI: "10.1234/example",
+        publisher: "Example Publisher",
+        published: { "date-parts": [[2026, 2, 3]] }
+      }] } }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("export.arxiv.org/api/query")) {
+      return new Response(`<?xml version="1.0"?><feed><entry><id>https://arxiv.org/abs/2601.12345</id><title>Open Learning Research</title><published>2026-01-20T00:00:00Z</published><summary>Research on open learning.</summary></entry></feed>`, { status: 200 });
+    }
+    if (url.includes("archive.org/advancedsearch.php")) {
+      return new Response(JSON.stringify({ response: { docs: [{ identifier: "open-study-book", title: "Free Study Book", creator: "Example Author", date: "2025" }] } }), { status: 200 });
+    }
+    throw new Error("Unexpected research URL: " + url);
+  }, async () => {
+    const response = await researchSearchPost({
+      request: jsonRequest("https://example.test/api/research/search", { query: "open educational resources" }),
+      env: {},
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.sources.length, 3);
+    assert.deepEqual(body.sources.map(item => item.source), ["Crossref", "arXiv", "Internet Archive"]);
+    assert.match(body.sources[0].url, /^https:\/\/doi\.org\//);
+    assert.match(body.sources[1].url, /^https:\/\/arxiv\.org\/abs\//);
+    assert.match(body.sources[2].url, /^https:\/\/archive\.org\/details\//);
+  });
+});
+
+test("research search validates query and never requires an API key", async () => {
+  const invalid = await researchSearchPost({
+    request: jsonRequest("https://example.test/api/research/search", { query: "  " }),
+    env: {},
+  });
+  assert.equal(invalid.status, 400);
+  assert.match((await invalid.json()).error, /at least 3 characters/i);
 });
