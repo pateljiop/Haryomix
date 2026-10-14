@@ -293,9 +293,9 @@ test("PPT API can parse a mocked Felo presentation task response", async () => {
 });
 
 test("PPT API falls back to xAI Grok when Felo is not configured", async () => {
-  await withMockFetch(async input => {
+  await withMockFetch(async (input, init) => {
     assert.equal(String(input), "https://api.x.ai/v1/chat/completions");
-    const requestBody = JSON.parse(input instanceof Request ? await input.clone().text() : "{}");
+    const requestBody = JSON.parse(String(init?.body || "{}"));
     assert.equal(requestBody.model, "grok-4.7");
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
       title: "Solar Energy",
