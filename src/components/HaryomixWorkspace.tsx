@@ -296,6 +296,25 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
   const studySections=splitStudyOutput(notes);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
+ const [researchBusy,setResearchBusy]=useState(false);
+ const [researchSources,setResearchSources]=useState<Array<{title:string;source:string;url:string;date?:string;description?:string}>>([]);
+ const [researchMessage,setResearchMessage]=useState("");
+ async function searchResearch(queryOverride?:string){
+  const query=(queryOverride||[subject,topic].filter(Boolean).join(" ")).trim();
+  if(query.length<3){setError("Enter a subject or topic before searching research sources.");return [] as Array<{title:string;source:string;url:string;date?:string;description?:string}>}
+  setResearchBusy(true);setResearchMessage("");
+  try{
+   const response=await fetch("/api/research/search",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({query})});
+   const raw=await response.text();
+   let data:{sources?:Array<{title:string;source:string;url:string;date?:string;description?:string}>;message?:string;error?:string};
+   try{data=JSON.parse(raw) as typeof data}catch{throw new Error("Research search returned an unreadable response. Retry shortly.")}
+   if(!response.ok)throw new Error(data.error||"Research search failed.");
+   const results=Array.isArray(data.sources)?data.sources:[];
+   setResearchSources(results);setResearchMessage(data.message||"Research search complete.");
+   return results;
+  }catch(e){setResearchSources([]);setResearchMessage(e instanceof Error?e.message:"Research search is temporarily unavailable.");return [] as Array<{title:string;source:string;url:string;date?:string;description?:string}>}
+  finally{setResearchBusy(false)}
+ }
  async function makeNotes(){
   if(busy||!subject.trim()||!topic.trim()){setError("Enter a subject and the topics you want covered.");return}
   setBusy(true);setError("");setNotes("");
@@ -303,7 +322,10 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
   const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const isCurrentAffairs=/current\\s*affairs|current\\s*events|daily\\s*news/i.test(subject+" "+topic+" "+examType);
   const currentAffairsRules=isCurrentAffairs?`\\n\\nCURRENT-AFFAIRS FRESHNESS REQUIREMENT: Today is ${today} (India time). The user explicitly needs current affairs for 2026. Do not present 2024 or 2025 news as 2026 current affairs. Prioritize events published in 2026 and, when the user says current/latest/recent without a range, focus on the last 30 days ending today. For EVERY news item, include the event date, publication date, a direct source URL, and source/publisher. Prefer official PIB, ministry, RBI, Election Commission, ISRO, Supreme Court, and other primary sources; use reputable news sources for context. Never invent events, dates, statistics or URLs. If live source verification is unavailable, clearly say so and do not fabricate a current-affairs digest; ask for a date range or source material instead.`:"";
+  const availableSources=researchSources.map((item,index)=>`${index+1}. [${item.source}] ${item.title} ${item.date?`(date: ${item.date})`:""}\\nURL: ${item.url}${item.description? `\\nMetadata/description: ${item.description}`:""}`).join("\\n\\n");
   const prompt=`Create STUDY NOTES, NOT A STUDY PLAN OR ROADMAP, in ${language}. Today is ${today} in India (Asia/Kolkata). Course/background: ${course}. Exam purpose: ${examType}. Subject: ${subject}. Topics and scope: ${topic}.${currentAffairsRules}
+
+RESEARCH SOURCE RULES: ${availableSources? "Use the following retrieved source metadata as discovery leads, not unquestionable facts. Cite only links supplied below when relevant, distinguish publication date from event date, and do not claim to have read full text if only metadata is available. Do not invent source details.\\n\\n"+availableSources : "No external research results were retrieved for this request. Do not claim that live research was performed; for time-sensitive facts, clearly state the limitation instead of fabricating citations."}
 
 Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES, and if enabled # OPTIONAL PRACTICE QUIZ. Revision Notes must contain concise exam-ready definitions, key facts, formulas/dates where reliable, comparisons and memory points for EVERY topic. Detailed Notes must teach each topic fully with definitions, background, explanations, steps/causes/effects/classifications, worked examples, applications, common confusions and exam takeaways. Do not output a timetable, roadmap, checklist-only worksheet or prompts asking the student to fill things in. Explain topics, do not just list headings. Adapt to the subject; do not assume engineering. For current affairs, never fabricate recent developments. Keep both note types separate and useful.\n${quizInstruction}`;
   try{
@@ -336,7 +358,9 @@ Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES,
    <div className="hmx-field"><label htmlFor="exam-topic">Topics and coverage (be specific)</label><textarea id="exam-topic" className="hmx-textarea" style={{minHeight:140,fontFamily:"inherit"}} value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Paste syllabus units, chapter names, subtopics, or current-affairs date range and categories."/></div>
    <div className="hmx-field"><label htmlFor="exam-language">Notes language</label><select id="exam-language" className="hmx-select" value={language} onChange={e=>setLanguage(e.target.value)}><option>Simple English</option><option>Hindi</option><option>Hinglish</option><option>English with Hindi explanations</option></select></div>
    <label className="hmx-option" style={{alignItems:"flex-start",margin:"12px 0 18px"}}><input type="checkbox" checked={includeQuiz} onChange={e=>setIncludeQuiz(e.target.checked)}/><span><strong>Include optional quiz (25 MCQs)</strong><br/><span style={{fontSize:13,color:"#b7c6dc"}}>Off by default. Enable only when you want questions, answer key, and explanations.</span></span></label>
-   <div className="hmx-btn-row"><button className="hmx-btn primary" onClick={makeNotes} disabled={busy||!subject.trim()||!topic.trim()}>{busy?"Preparing detailed notes…":"Generate detailed study guide"}</button><button className="hmx-btn" onClick={()=>saveText(notes,`${slug(subject)}-study-guide.md`)} disabled={!notes}>Download notes</button></div>
+   <div className="hmx-btn-row"><button className="hmx-btn" onClick={()=>void searchResearch()} disabled={researchBusy||!subject.trim()||!topic.trim()}>{researchBusy?"Searching free sources…":"Search research & study resources"}</button><button className="hmx-btn primary" onClick={makeNotes} disabled={busy||!subject.trim()||!topic.trim()}>{busy?"Preparing detailed notes…":"Generate detailed study guide"}</button><button className="hmx-btn" onClick={()=>saveText(notes,`${slug(subject)}-study-guide.md`)} disabled={!notes}>Download notes</button></div>
+   {researchMessage&&<div className="hmx-note" role="status" style={{marginTop:12}}>{researchMessage}</div>}
+   {researchSources.length>0&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:18,borderRadius:14,marginTop:14}}><h3 style={{color:"#f3f7ff",fontSize:18,marginTop:0}}>Research & free study resources ({researchSources.length})</h3><p style={{fontSize:12,color:"#b7c6dc"}}>Crossref scholarly metadata · arXiv papers · Internet Archive texts. Results are discovery links, not a guarantee of free full-text access or syllabus match.</p><ul style={{paddingLeft:20,display:"grid",gap:12}}>{researchSources.map((item,index)=><li key={item.url+index}><strong>{item.title}</strong><div style={{fontSize:12,color:"#b7c6dc"}}>{item.source}{item.date? ` · ${item.date}`:""}</div><a href={item.url} target="_blank" rel="noreferrer" style={{color:"#8fc7ff",overflowWrap:"anywhere"}}>{item.url}</a>{item.description&&<p style={{fontSize:13,lineHeight:1.6,color:"#c4d0e4",margin:"5px 0 0"}}>{item.description}</p>}</li>)}</ul></section>}
    {error&&<div className="hmx-note" role="alert" style={{marginTop:16}}>{error}</div>}
    {notes&&<div style={{display:"grid",gap:16,marginTop:18}}>
      {studySections.revision&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>Revision Notes</h3><StudyMarkdown content={studySections.revision}/><button className="hmx-btn" style={{marginTop:14}} onClick={()=>saveText(studySections.revision,`${slug(subject)}-revision-notes.md`)}>Download revision notes</button></section>}
