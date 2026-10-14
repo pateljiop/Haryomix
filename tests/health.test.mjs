@@ -54,8 +54,8 @@ test("health reports a missing rate-limit table", async () => {
   });
   assert.equal(response.status, 503);
   const body = await response.json();
-  assert.equal(body.database.reachable, true);
-  assert.equal(body.database.rateLimitTableReady, false);
+  assert.equal(body.databaseChecks.reachable, true);
+  assert.equal(body.databaseChecks.rateLimitTableReady, false);
   assert.equal(body.checks.chatReady, false);
   assert.equal(body.checks.pptReady, false);
 });
