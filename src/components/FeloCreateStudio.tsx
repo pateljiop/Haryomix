@@ -4,7 +4,7 @@ type PptJob={taskId:string;businessId:string;status:string;liveDocId?:string|nul
 async function api(path:string,body:unknown){
  const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
  const data=await response.json().catch(()=>({}));
- if(!response.ok)throw new Error(data.error||"Request failed.");
+ if(!response.ok)throw new Error(response.status>=500?"The service is temporarily unavailable. Please retry shortly.":"The request could not be completed. Please review your input and retry.");
  return data;
 }
 export function FeloCreateStudio(){
@@ -27,8 +27,8 @@ export function FeloCreateStudio(){
  }
  async function checkStatus(){
   if(!job)return;setBusy(true);
-  try{const data=await api("/api/ai/ppt",{action:"status",taskId:job.taskId,businessId:job.businessId});setJob({...job,status:data.status,businessId:data.businessId||job.businessId});setMessage(data.status==="COMPLETED"?"Presentation ready. Export PPTX dabao.":data.status==="FAILED"||data.status==="ERROR"?(data.error||"Presentation task failed."):`Generation status: ${data.status}`);}
-  catch(e){setMessage(e instanceof Error?e.message:"Could not check status.");}finally{setBusy(false);}
+  try{const data=await api("/api/ai/ppt",{action:"status",taskId:job.taskId,businessId:job.businessId});setJob({...job,status:data.status,businessId:data.businessId||job.businessId});setMessage(data.status==="COMPLETED"?"Presentation ready. Export PPTX dabao.":data.status==="FAILED"||data.status==="ERROR"?"Presentation could not be completed. Please try again.":`Generation status: ${data.status}`);}
+  catch{setMessage("Could not check presentation status. Please retry.");}finally{setBusy(false);}
  }
  async function exportPpt(){
   if(!job)return;setBusy(true);
@@ -44,7 +44,7 @@ export function FeloCreateStudio(){
   if(prompt.trim().length<5){setMessage("Image ka prompt thoda detail me likho.");return;}
   setBusy(true);setMessage("Image generate ho rahi hai…");setImage("");
   try{const data=await api("/api/ai/image",{prompt,size,provider:"auto"});const result=data.image?.url||data.image?.dataUrl||"";if(typeof result!=="string"||!(/^(https:\/\/|data:image\/(png|jpeg|webp|avif);base64,)/i.test(result)))throw new Error("Image service ne valid result nahi diya. Dobara try karo.");setImage(result);setMessage("Image generate ho gayi. Preview se save kar sakte ho.");}
-  catch(e){setMessage(e instanceof Error?e.message:"Image generation failed.");}finally{setBusy(false);}
+  catch{setMessage("Image generation failed. Please check your prompt and retry.");}finally{setBusy(false);}
  }
  function downloadImage(){if(!image)return;const a=document.createElement("a");a.href=image;a.download="haryomix-ai-image.png";document.body.appendChild(a);a.click();a.remove();}
  return <div className="hmx-panel"><div className="hmx-panel-head"><h2>AI Create Studio</h2><span style={{fontSize:11,color:"#68758a"}}>Presentation & image tools</span></div><div className="hmx-panel-body">
