@@ -25,7 +25,7 @@ test("topic quiz validates topic and reports missing database instead of silentl
 test("topic quiz searches reference content before generating and returns source-linked questions", async () => {
   const response = await withFetch(async (url, init = {}) => {
     const target = String(url);
-    if (target.includes("wikipedia.org/w/api.php")) return new Response(JSON.stringify({ query: { pages: { "1": { title: "Photosynthesis", extract: "Photosynthesis is the process by which plants use sunlight to synthesize foods from carbon dioxide and water. It generally involves chlorophyll and releases oxygen." } } } }), { status: 200 });
+    if (target.includes("wikipedia.org/w/api.php")) { const parsed = new URL(target); if (parsed.searchParams.get("list") === "search") return new Response(JSON.stringify({ query: { search: [{ title: "Photosynthesis" }] } }), { status: 200 }); return new Response(JSON.stringify({ query: { pages: { "1": { title: "Photosynthesis", extract: "Photosynthesis is the process by which plants use sunlight to synthesize foods from carbon dioxide and water. It generally involves chlorophyll and releases oxygen." } } } }), { status: 200 }); }
     if (target.includes("api.groq.com")) {
       const body = JSON.parse(init.body);
       assert.match(body.messages[1].content, /Photosynthesis/);
@@ -64,7 +64,7 @@ test("topic quiz falls back to web snippets when Wikipedia has no usable extract
 
 test("topic quiz rejects malformed model output rather than presenting broken questions", async () => {
   const response = await withFetch(async url => {
-    if (String(url).includes("wikipedia.org")) return new Response(JSON.stringify({ query: { pages: { "1": { title: "Photosynthesis", extract: "Photosynthesis is the process by which plants use sunlight to synthesize foods from carbon dioxide and water. It generally involves chlorophyll and releases oxygen." } } } }), { status: 200 });
+    if (String(url).includes("wikipedia.org")) { const parsed = new URL(String(url)); if (parsed.searchParams.get("list") === "search") return new Response(JSON.stringify({ query: { search: [{ title: "Photosynthesis" }] } }), { status: 200 }); return new Response(JSON.stringify({ query: { pages: { "1": { title: "Photosynthesis", extract: "Photosynthesis is the process by which plants use sunlight to synthesize foods from carbon dioxide and water. It generally involves chlorophyll and releases oxygen." } } } }), { status: 200 }); }
     return new Response(JSON.stringify({ choices: [{ message: { content: "{bad json" } }] }), { status: 200 });
   }, () => onRequestPost({ request: request({ topic: "photosynthesis" }), env: { DB: mockDb(), GROQ_API_KEY: "test-key" } }));
   assert.equal(response.status, 502);
