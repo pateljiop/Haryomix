@@ -280,6 +280,7 @@ async function run() {
   console.log("PPT Studio produced a downloadable .pptx artifact using the selected style.");
 
   await navigate("/workspace/notes", "!!document.querySelector('#hmx-library-title') && !!document.querySelector('#hmx-library-search')", "Smart Notes editor and search");
+  await waitFor("!document.querySelector('.hmx-library-layout[aria-busy=true]') && !Array.from(document.querySelectorAll('.hmx-planner-empty strong')).some(el=>(el.textContent||'').includes('Opening your notes'))", "Smart Notes IndexedDB initialization");
   await fill("#hmx-library-title", "Browser smoke note", "Smart Notes title");
   await fill("#hmx-library-content", "A process is a program in execution.", "Smart Notes note content");
   await fill("#hmx-library-tags", "BCA, Operating Systems", "Smart Notes tags");
