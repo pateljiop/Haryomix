@@ -425,7 +425,8 @@ test("research search combines Crossref, arXiv, and Internet Archive results", a
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.sources.length, 4);
-    assert.deepEqual(body.sources.map(item => item.source), ["OpenAlex", "Crossref", "arXiv", "Internet Archive"]);\n    assert.equal(body.sources[0].url, "https://doi.org/10.5555/openalex-test");
+    assert.deepEqual(body.sources.map(item => item.source), ["OpenAlex", "Crossref", "arXiv", "Internet Archive"]);
+    assert.equal(body.sources[0].url, "https://doi.org/10.5555/openalex-test");
     assert.match(body.sources[0].url, /^https:\/\/doi\.org\//);
     assert.match(body.sources[1].url, /^https:\/\/arxiv\.org\/abs\//);
     assert.match(body.sources[2].url, /^https:\/\/archive\.org\/details\//);
