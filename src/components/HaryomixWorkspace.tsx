@@ -222,7 +222,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       <div className="hmx-field"><label htmlFor="ppt-detail">Content density</label><select id="ppt-detail" className="hmx-select" value={detail} onChange={e=>setDetail(e.target.value)}><option>Concise</option><option>Balanced</option><option>Detailed</option></select></div>
       <label className="hmx-option"><input type="checkbox" checked={notes} onChange={e=>setNotes(e.target.checked)}/> Add presenter notes to each content slide</label>
       <div className="hmx-ppt-preview" style={{marginTop:18}}><div className="hmx-ppt-slide" style={{background:"#14243A",color:"#fff",minHeight:230,padding:28,borderRadius:8}}><p style={{color:"#A9C8FF",fontSize:10,fontWeight:800,letterSpacing:".15em"}}>HARYOMIX / PRESENTATION BRIEF</p><h3 style={{color:"#fff",fontSize:27,lineHeight:1.2,marginTop:24}}>{title||"Your presentation title"}</h3><p style={{color:"#D6E1EF",marginTop:18}}>{purpose||"Presentation objective"}</p><div style={{height:3,width:50,background:"#38A7C8",marginTop:24}}/><p style={{color:"#A9C8FF",fontSize:11,marginTop:16}}>{course} · {items.length} content topics</p></div></div>
-      <div className="hmx-btn-row" style={{marginTop:18}}><button className="hmx-btn primary" disabled={busy||!title.trim()||!items.length} onClick={exportPpt}>{busy?"Building presentation…":"Build professional .pptx ↗"}</button></div>{generationStatus&&<div className="hmx-note" role="status" style={{marginTop:14,overflowWrap:"anywhere"}}>{generationStatus}</div>
+      <div className="hmx-btn-row" style={{marginTop:18}}><button className="hmx-btn primary" disabled={busy||!title.trim()||!items.length} onClick={exportPpt}>{busy?"Building presentation…":"Build professional .pptx ↗"}</button></div>{generationStatus&&<div className="hmx-note" role="status" style={{marginTop:14,overflowWrap:"anywhere"}}>{generationStatus}</div>}
     </div>
   </div>
 }
@@ -409,12 +409,10 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
   }catch(e){setResearchSources([]);setResearchMessage(e instanceof Error?e.message:"Research search is temporarily unavailable.");return [] as Array<{title:string;source:string;url:string;date?:string;description?:string}>}
   finally{setResearchBusy(false)}
  }
- async function makeNotes(){  finally{setResearchBusy(false)}
- }
  async function searchExamSyllabus(){
   if(syllabusBusy||examName.trim().length<3){setSyllabusError("Enter the exact exam name, including the conducting body or year if known.");return;}
   setSyllabusBusy(true);setSyllabusError("");setSyllabusResearch(null);
-  try{const response=await fetch("/api/exam/syllabus",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({exam:examName,context:course})});const data=await response.json().catch(()=>({error:"Syllabus search returned an unreadable response."}));if(!response.ok)throw new Error(typeof data.error==="string"?data.error:"Could not research this exam syllabus.");setSyllabusResearch(data);if(Array.isArray(data.syllabus)&&data.syllabus.length){setTopic(data.syllabus.map((item:{section:string;topics:string[]})=>item.section+" — "+item.topics.join(", ")).join("\\n"));if(!subject.trim())setSubject(examName);}setNotice("Syllabus research completed. Review official source links and confidence before generating notes.");}
+  try{const response=await fetch("/api/exam/syllabus",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({exam:examName,context:course})});const data=await response.json().catch(()=>({error:"Syllabus search returned an unreadable response."}));if(!response.ok)throw new Error(typeof data.error==="string"?data.error:"Could not research this exam syllabus.");setSyllabusResearch(data);if(Array.isArray(data.syllabus)&&data.syllabus.length){setTopic(data.syllabus.map((item:{section:string;topics:string[]})=>item.section+" — "+item.topics.join(", ")).join("\n"));if(!subject.trim())setSubject(examName);}setNotice("Syllabus research completed. Review official source links and confidence before generating notes.");}
   catch(error){setSyllabusError(error instanceof Error?error.message:"Syllabus research failed. Retry after checking server configuration.");}
   finally{setSyllabusBusy(false);}
  }
