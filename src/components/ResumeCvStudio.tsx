@@ -10,7 +10,13 @@ const templates:Template[] = [
 {id:"developer",name:"Developer Pro",tag:"FOR TECH",description:"Dark, polished portfolio-inspired look.",className:"t-developer",ats:false},
 {id:"minimal",name:"Minimal Professional",tag:"CLEAN",description:"Quiet typography for a premium first impression.",className:"t-minimal",ats:true},
 {id:"creative",name:"Creative Modern",tag:"CREATIVE",description:"Soft violet accents and a distinctive profile header.",className:"t-creative",ats:false},
-{id:"ats",name:"ATS Friendly",tag:"ATS SAFE",description:"Single-column, text-first format for job portals.",className:"t-ats",ats:true}
+{id:"ats",name:"ATS Friendly",tag:"ATS SAFE",description:"Single-column, text-first format for job portals.",className:"t-ats",ats:true},
+{id:"executive",name:"Executive",tag:"LEADERSHIP",description:"Confident typography and refined section dividers.",className:"t-executive",ats:true},
+{id:"timeline",name:"Career Timeline",tag:"TIMELINE",description:"Chronological education and experience emphasis.",className:"t-timeline",ats:false},
+{id:"compact",name:"Compact One Page",tag:"ONE PAGE",description:"Space-efficient layout for concise fresher resumes.",className:"t-compact",ats:true},
+{id:"elegant",name:"Elegant Serif",tag:"EDITORIAL",description:"Serif-inspired heading style with subtle details.",className:"t-elegant",ats:true},
+{id:"student",name:"Student / Fresher",tag:"STUDENT",description:"Education, skills and projects lead the page.",className:"t-student",ats:true},
+{id:"portfolio",name:"Portfolio Showcase",tag:"PROJECTS FIRST",description:"Prominent project and technical profile styling.",className:"t-portfolio",ats:false}
 ];
 const field:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:10,border:"1px solid #cbd5e1",borderRadius:9,font:"inherit",color:"#17243a",background:"#fff"};
 function Section({title,text}:{title:string;text:string}) { if(!text.trim()) return null; return <section className="r-section"><h3>{title}</h3><div className="r-copy">{text}</div></section>; }
