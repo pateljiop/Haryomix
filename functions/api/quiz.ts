@@ -42,17 +42,21 @@ async function searchWebFallback(topic: string): Promise<Source[]> {
   const response = await fetch(url, { headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0 (compatible; HaryomixTopicQuiz/1.0)" }, signal: AbortSignal.timeout(12_000) });
   if (!response.ok) throw new Error("web_search_unavailable");
   const html = await response.text();
-  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) ?? [];
+  const anchors = [...html.matchAll(/<a\b([^>]*class="[^"]*result__a[^"]*"[^>]*)>([\s\S]*?)<\/a>/gi)];
   const results: Source[] = [];
-  for (const block of blocks) {
-    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
-    if (!anchor) continue;
+  for (let index = 0; index < anchors.length; index++) {
+    const anchor = anchors[index];
+    const hrefMatch = anchor[1].match(/\bhref="([^"]+)"/i);
+    if (!hrefMatch) continue;
+    const start = anchor.index ?? 0;
+    const nextStart = anchors[index + 1]?.index ?? Math.min(html.length, start + 5000);
+    const nearby = html.slice(start, Math.min(nextStart, start + 5000));
+    const snippetMatch = nearby.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|span)>/i);
     try {
-      const parsed = new URL(decodeHtml(anchor[1]), "https://duckduckgo.com");
+      const parsed = new URL(decodeHtml(hrefMatch[1]), "https://duckduckgo.com");
       const destination = parsed.searchParams.has("uddg") ? decodeURIComponent(parsed.searchParams.get("uddg")!) : parsed.href;
       const target = new URL(destination);
       if (!["http:", "https:"].includes(target.protocol) || /(^|\.)duckduckgo\.com$/i.test(target.hostname)) continue;
-      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
       const title = stripHtml(anchor[2]);
       const extract = snippetMatch ? stripHtml(snippetMatch[1]) : "";
       if (title && extract.length >= 50 && !results.some(item => item.url === target.href)) {
