@@ -20,6 +20,21 @@ const tools: { id: LearningTool; title: string; description: string; icon: strin
   { id: "utilities", title: "Student Utilities", description: "Calculate marks, attendance and CGPA, and use practical study utilities.", icon: "⌘", label: "Open utilities" },
 ];
 
+const examResources = [
+  { name: "GATE", authority: "IISc / IITs", syllabus: "https://gate2026.iitg.ac.in/", papers: "https://gate2026.iitg.ac.in/download.html", note: "Engineering, science and selected humanities papers" },
+  { name: "CUET UG", authority: "NTA", syllabus: "https://cuet.nta.nic.in/", papers: "https://cuet.nta.nic.in/", note: "Subject-wise syllabus and notices; previous papers where published" },
+  { name: "CUET PG", authority: "NTA", syllabus: "https://exams.nta.ac.in/CUET-PG/", papers: "https://exams.nta.ac.in/CUET-PG/", note: "Postgraduate entrance subjects and notices" },
+  { name: "UGC NET / JRF", authority: "NTA", syllabus: "https://ugcnet.nta.ac.in/", papers: "https://ugcnet.nta.ac.in/", note: "Paper I and subject-wise Paper II syllabus; JRF eligibility notices" },
+  { name: "NIMCET", authority: "NIT MCA Common Entrance Test", syllabus: "https://nimcet.admissions.nic.in/", papers: "https://nimcet.admissions.nic.in/", note: "MCA entrance syllabus, information brochure and notices" },
+  { name: "JEE Main", authority: "NTA", syllabus: "https://jeemain.nta.nic.in/", papers: "https://jeemain.nta.nic.in/", note: "Engineering entrance syllabus and official notices" },
+  { name: "NEET UG", authority: "NTA", syllabus: "https://neet.nta.nic.in/", papers: "https://neet.nta.nic.in/", note: "Medical entrance syllabus and official notices" },
+  { name: "UPSC", authority: "UPSC", syllabus: "https://upsc.gov.in/examinations", papers: "https://upsc.gov.in/examinations/previous-question-papers", note: "Civil Services and other Union examinations" },
+  { name: "SSC", authority: "Staff Selection Commission", syllabus: "https://ssc.gov.in/for-candidates/syllabus", papers: "https://ssc.gov.in/", note: "CGL, CHSL, MTS, GD and other recruitment exams" },
+  { name: "Railway RRB", authority: "Railway Recruitment Boards", syllabus: "https://www.rrbcdg.gov.in/", papers: "https://www.rrbcdg.gov.in/", note: "NTPC, ALP, Technician, Group D and related notices" },
+  { name: "IBPS Banking", authority: "IBPS", syllabus: "https://www.ibps.in/", papers: "https://www.ibps.in/", note: "PO, Clerk, RRB and Specialist Officer notifications" },
+  { name: "NTA Exam Notices", authority: "National Testing Agency", syllabus: "https://www.nta.ac.in/NoticeBoardArchive", papers: "https://www.nta.ac.in/NoticeBoardArchive", note: "Official notices and exam-specific documents" },
+];
+
 export function ExamCenter({ onNavigate }: { onNavigate: (tool: LearningTool) => void }) {
   const [track, setTrack] = useState<TrackId>("school");
   const [level, setLevel] = useState("Class 9–10");
@@ -58,6 +73,18 @@ export function ExamCenter({ onNavigate }: { onNavigate: (tool: LearningTool) =>
           {selected.options.map(option => <button key={option} type="button" className={level === option ? "hmx-btn primary" : "hmx-btn"} aria-pressed={level === option} onClick={() => setLevel(option)}>{option}</button>)}
         </div>
         <p className="hmx-planner-subtitle" style={{ marginTop: 12 }}>Selected: <strong>{level}</strong>. This selection is saved for your next study session and will prefill the study guide where supported.</p>
+      </div>
+      <div className="hmx-planner-list-head" style={{ marginTop: 26 }}><div><h3>Competitive exam library</h3><p>Official syllabus, notices and previous-paper portals. Some authorities publish papers in notices or archives rather than a dedicated API.</p></div><span className="hmx-planner-local">OFFICIAL SOURCES</span></div>
+      <div className="hmx-tool-directory" aria-label="Competitive exam official resources">
+        {examResources.map((exam) => <article key={exam.name} className="hmx-directory-card">
+          <span className="hmx-directory-card-top"><span className="hmx-directory-icon">▤</span><span className="hmx-directory-number">{exam.authority}</span></span>
+          <strong>{exam.name}</strong>
+          <span className="hmx-directory-description">{exam.note}</span>
+          <div className="hmx-btn-row" style={{ marginTop: 10 }}>
+            <a className="hmx-btn" href={exam.syllabus} target="_blank" rel="noreferrer">Syllabus / notices ↗</a>
+            <a className="hmx-btn primary" href={exam.papers} target="_blank" rel="noreferrer">Papers / archive ↗</a>
+          </div>
+        </article>)}
       </div>
       <div className="hmx-planner-list-head"><div><h3>Study tools</h3><p>Each tool opens in its own focused workspace.</p></div></div>
       <div className="hmx-tool-directory" aria-label="Study tools">
