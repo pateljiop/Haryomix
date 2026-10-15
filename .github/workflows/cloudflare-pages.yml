@@ -159,6 +159,11 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
         run: node scripts/browser-interaction-smoke.mjs "$DEPLOYMENT_URL"
 
+      - name: Verify production security headers
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: node scripts/security-headers-smoke.mjs "$DEPLOYMENT_URL"
+
       - name: Verify deployed API and D1 connection
         shell: bash
         env:
