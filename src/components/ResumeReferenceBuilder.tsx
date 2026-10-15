@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { createWorker } from "tesseract.js";
 
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+
 type Props = { onUseExtractedText?: (text: string) => void };
 type Analysis = { text: string; accent: string; layout: "single" | "two-column"; sections: { title: string; body: string }[] };
 
