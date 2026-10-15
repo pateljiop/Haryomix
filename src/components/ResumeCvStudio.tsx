@@ -18,18 +18,6 @@ const baseTemplates:Template[] = [
 {id:"student",name:"Student / Fresher",tag:"STUDENT",description:"Education, skills and projects lead the page.",className:"t-student",ats:true},
 {id:"portfolio",name:"Portfolio Showcase",tag:"PROJECTS FIRST",description:"Prominent project and technical profile styling.",className:"t-portfolio",ats:false}
 ];
-const templatePalettes = [
- {name:"Ocean",accent:"#2672e8",panel:"#103f7d",text:"#15233b"},
- {name:"Emerald",accent:"#15966a",panel:"#12513f",text:"#17372f"},
- {name:"Violet",accent:"#8b5cf6",panel:"#4c287e",text:"#29203d"},
- {name:"Rose",accent:"#e34d78",panel:"#76223f",text:"#3e1d2a"},
- {name:"Amber",accent:"#b7791f",panel:"#593d13",text:"#382a17"},
- {name:"Monochrome",accent:"#374151",panel:"#111827",text:"#1f2937"},
- {name:"Teal",accent:"#0f9b9a",panel:"#115e59",text:"#153b3a"},
- {name:"Cobalt",accent:"#3156c9",panel:"#1e2e73",text:"#1c2850"},
- {name:"Burgundy",accent:"#9f2348",panel:"#52152b",text:"#3d1b27"},
- {name:"Slate",accent:"#64748b",panel:"#334155",text:"#273449"}
-];
 const sectionOrders = [
  ["summary","education","experience","projects","skills","certifications","achievements","soft","languages"],
  ["education","skills","projects","experience","summary","certifications","languages","achievements","soft"],
