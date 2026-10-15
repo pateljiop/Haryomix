@@ -5,10 +5,9 @@ import { PDFDocument } from "pdf-lib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
 const baseUrl = (process.argv[2] || "https://haryomix.pages.dev").replace(/\/$/, "");
-const standardFontDataUrl = pathToFileURL(resolve("node_modules/pdfjs-dist/standard_fonts") + "/").href;
+const standardFontDataUrl = resolve("node_modules/pdfjs-dist/standard_fonts") + "/";
 const profile = mkdtempSync(join(tmpdir(), "haryomix-browser-e2e-"));
 const chrome = spawn("google-chrome", [
   "--headless=new",
