@@ -271,6 +271,51 @@ function inlineStudyMarkdown(value:string):React.ReactNode{
  const parts=value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
  return parts.map((part,i)=>{if(part.startsWith("**")&&part.endsWith("**"))return <strong key={i}>{part.slice(2,-2)}</strong>;if(part.startsWith("*")&&part.endsWith("*"))return <em key={i}>{part.slice(1,-1)}</em>;if(part.startsWith("`")&&part.endsWith("`"))return <code key={i}>{part.slice(1,-1)}</code>;if(/^https?:\/\//i.test(part))return <a key={i} href={part} target="_blank" rel="noreferrer" style={{color:"#7cb7ff",overflowWrap:"anywhere"}}>{part}</a>;return part;});
 }
+function cleanStudyText(value:string):string{
+ return value
+  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\uFFFD]/g,"")
+  .replace(/[\\uE000-\\uF8FF]/g,"")
+  .replace(/[★☆✦✧✳✴✵✶✷✸✹✺✻✼✽✾✿◆◇■□▪▫●○◉◎※❖❋❊❉❈❇❆❅❄❃❂❁❀]/g,"")
+  .replace(/[ \\t]+([,.;:!?])/g,"$1")
+  .replace(/([!?.,]){3,}/g,"$1$1")
+  .replace(/ {2,}/g," ")
+  .replace(/\\n{3,}/g,"\\n\\n")
+  .trim();
+}
+function escapeStudyHtml(value:string):string{
+ return value.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function studyMarkdownToPrintHtml(markdown:string):string{
+ const lines=cleanStudyText(markdown).split(/\\r?\\n/);let html="";let list:"ul"|"ol"|null=null;let paragraph:string[]=[];
+ const flushParagraph=()=>{if(paragraph.length){html+=`<p>${paragraph.map(escapeStudyHtml).join(" ")}</p>`;paragraph=[];}};
+ const flushList=()=>{if(list){html+=`</${list}>`;list=null;}};
+ for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();continue;}
+ const h=line.match(/^(#{1,4})\\s+(.+)$/);if(h){flushParagraph();flushList();const tag=h[1].length<=2?"h2":h[1].length===3?"h3":"h4";html+=`<${tag}>${escapeStudyHtml(h[2])}</${tag}>`;continue;}
+ const bullet=line.match(/^[-*+]\\s+(.+)$/);const numbered=line.match(/^\\d+[.)]\\s+(.+)$/);
+ if(bullet||numbered){flushParagraph();const next=numbered?"ol":"ul";if(list!==next){flushList();list=next;html+=`<${list}>`;}html+=`<li>${escapeStudyHtml((bullet||numbered)![1])}</li>`;continue;}
+ flushList();paragraph.push(line);
+ }
+ flushParagraph();flushList();return html;
+}
+type StudyPdfOptions={style:"natural"|"neat"|"exam";paper:"ruled"|"plain"|"grid"|"dark";ink:"blue"|"black"|"mixed";size:"A4"|"A5"|"Letter";cover:boolean;lineSpacing:"compact"|"comfortable"};
+function exportStudyPdf(content:string,title:string,options:StudyPdfOptions){
+ const printWindow=window.open("","_blank");
+ if(!printWindow){window.alert("Please allow pop-ups for Haryomix to create your PDF.");return;}
+ const safeTitle=escapeStudyHtml(cleanStudyText(title)||"Study Notes");
+ const font=options.style==="natural"?'"Segoe Print","Bradley Hand","Comic Sans MS",cursive':options.style==="neat"?'"Segoe Print","Comic Sans MS",cursive':'Arial,"Noto Sans",sans-serif';
+ const ink=options.ink==="blue"?"#173f9f":options.ink==="mixed"?"#173f9f":"#20242c";
+ const page=options.size==="Letter"?"letter":options.size.toLowerCase();
+ const background=options.paper==="ruled"?"repeating-linear-gradient(to bottom,#fff 0,#fff 27px,#d9e5f6 28px)":options.paper==="grid"?"linear-gradient(#dce5f3 1px,transparent 1px),linear-gradient(90deg,#dce5f3 1px,transparent 1px)":options.paper==="dark"?"#101827":"#fff";
+ const textColor=options.paper==="dark"?"#e8eefb":ink;
+ const headingColor=options.ink==="mixed"?"#bd303b":options.paper==="dark"?"#9dc5ff":"#2445a6";
+ const cover=options.cover?'<section class="cover"><div class="brand">HARYOMIX STUDYBOOK</div><h1>'+safeTitle+'</h1><p>Organized learning notes</p><div class="cover-rule"></div><small>Revision · Understanding · Recall</small></section>':'';
+
+ printWindow.document.open();
+ printWindow.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeTitle}</title><style>
+ @page{size:${page};margin:18mm 16mm 20mm}*{box-sizing:border-box}body{font-family:${font};color:${textColor};font-size:11pt;line-height:${options.lineSpacing==="compact"?"1.45":"1.8"};margin:0;overflow-wrap:anywhere;background:${background};background-size:28px 28px;padding:0 2mm}h1{font-size:22pt;line-height:1.2;margin:0 0 8mm;border-bottom:2px solid ${headingColor};padding-bottom:4mm;color:${headingColor}}h2{font-size:16pt;margin:8mm 0 3mm;color:${headingColor};break-after:avoid}h3{font-size:13pt;margin:5mm 0 2mm;color:${headingColor};break-after:avoid}h4{font-size:11pt;margin:4mm 0 2mm;break-after:avoid}p{margin:0 0 3.5mm;orphans:3;widows:3}ul,ol{padding-left:7mm;margin:1mm 0 4mm}li{padding-left:1mm;margin:0 0 1.5mm;break-inside:avoid}header{font-size:9pt;color:${headingColor};margin-bottom:7mm}.cover{min-height:240mm;display:flex;flex-direction:column;justify-content:center;page-break-after:always;text-align:center}.cover h1{font-size:30pt;margin:20mm 0;border:0}.cover .brand{letter-spacing:3px;font-size:10pt}.cover-rule{height:3px;background:${headingColor};width:35%;margin:8mm auto}.cover small{margin-top:20mm}footer{margin-top:12mm;border-top:1px solid #d7deea;padding-top:3mm;color:#647087;font-size:8pt;break-inside:avoid}@media screen{body{max-width:800px;margin:24px auto;padding:24px}button{position:fixed;right:20px;top:20px;padding:12px 18px;background:#3155d9;color:white;border:0;border-radius:8px;font-weight:bold}}@media print{button{display:none}body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+ </style></head><body><button onclick="window.print()">Print / Save as PDF</button>${cover}<header>HARYOMIX · STUDY NOTES</header><h1>${safeTitle}</h1>${studyMarkdownToPrintHtml(content)}<footer>Prepared with Haryomix. Verify syllabus-specific and time-sensitive facts against official sources.</footer><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),350));</script></body></html>`);
+ printWindow.document.close();
+}
 function splitStudyOutput(content:string):{revision:string;detailed:string;quiz:string}{
  const revision=content.match(/(?:^|\n)#{1,3}\s*REVISION NOTES[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s*(?:DETAILED NOTES|OPTIONAL PRACTICE QUIZ)|$)/i);
  const detailed=content.match(/(?:^|\n)#{1,3}\s*DETAILED NOTES[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s*OPTIONAL PRACTICE QUIZ|$)/i);
@@ -315,6 +360,12 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
  const [topic,setTopic]=useState(()=>readExamContext()?.track==="competitive" ? "India and world current affairs, economy, science and technology, important days, awards, sports, government schemes" : "");
  const [language,setLanguage]=useState("Simple English");
  const [includeQuiz,setIncludeQuiz]=useState(false);
+ const [pdfStyle,setPdfStyle]=useState<StudyPdfOptions["style"]>("neat");
+ const [pdfPaper,setPdfPaper]=useState<StudyPdfOptions["paper"]>("ruled");
+ const [pdfInk,setPdfInk]=useState<StudyPdfOptions["ink"]>("mixed");
+ const [pdfSize,setPdfSize]=useState<StudyPdfOptions["size"]>("A4");
+ const [pdfCover,setPdfCover]=useState(true);
+ const [pdfSpacing,setPdfSpacing]=useState<StudyPdfOptions["lineSpacing"]>("comfortable");
  const [notes,setNotes]=useState("");
   const studySections=splitStudyOutput(notes);
  const [busy,setBusy]=useState(false);
@@ -351,7 +402,23 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
 
 RESEARCH SOURCE RULES: ${availableSources? "Use the following retrieved source metadata as discovery leads, not unquestionable facts. Cite only links supplied below when relevant, distinguish publication date from event date, and do not claim to have read full text if only metadata is available. Do not invent source details.\\n\\n"+availableSources : "No external research results were retrieved for this request. Do not claim that live research was performed; for time-sensitive facts, clearly state the limitation instead of fabricating citations."}
 
-Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES, and if enabled # OPTIONAL PRACTICE QUIZ. Revision Notes must contain concise exam-ready definitions, key facts, formulas/dates where reliable, comparisons and memory points for EVERY topic. Detailed Notes must teach each topic fully with definitions, background, explanations, steps/causes/effects/classifications, worked examples, applications, common confusions and exam takeaways. Do not output a timetable, roadmap, checklist-only worksheet or prompts asking the student to fill things in. Explain topics, do not just list headings. Adapt to the subject; do not assume engineering. For current affairs, never fabricate recent developments. Keep both note types separate and useful.\n${quizInstruction}`;
+READABILITY AND SYSTEMATIC FORMAT (MANDATORY):
+Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES, and if enabled # OPTIONAL PRACTICE QUIZ. Use valid Markdown only.
+For EACH topic, follow a consistent hierarchy:
+## [Topic name]
+### 1. Meaning / definition
+### 2. Explanation in simple language
+### 3. Key points / types / steps (choose what fits the subject)
+### 4. Example or solved example
+### 5. Important exam points
+### 6. Common confusion / mistake
+### 7. Quick recap
+Do not force irrelevant sections: adapt to the topic and omit a subsection only when it genuinely does not apply. Do not repeat the same explanation in every subsection.
+READABILITY RULES: Use short paragraphs (usually 2–4 sentences, never a giant wall of text); use bullets for lists and numbered steps for processes; bold key terms on first use; put formulas/equations on separate lines and define every symbol; use simple comparison tables only when comparing 2+ concepts; include units in numerical examples; explain every example step-by-step; expand abbreviations on first use. Leave a blank line between paragraphs, headings, lists, formulas and examples. Avoid excessive all-caps, decorative symbols, long comma-separated sentences and repeated filler.
+REVISION NOTES: Start with a 3–5 line topic overview, then give topic-wise key definitions, formulas/facts, differences and memory cues. Finish with “Last-minute revision” containing 5–10 high-value points.
+DETAILED NOTES: Teach each topic from basics to exam-level depth in syllabus order. Explain what it is, how/why it works, and when relevant its causes/effects, types, steps, advantages/limitations and applications. Include at least one accurate worked example for topics where an example makes sense. For programming/math/science, format code/formulas cleanly; for humanities, commerce and languages, use subject-appropriate examples instead of forced equations.
+SOURCES AND ACCURACY: Clearly distinguish verified source facts from explanation/examples. Cite only retrieved URLs supplied above, near the relevant claim, and never invent citations. If source results are only metadata, do not pretend the full document was read. If the official syllabus is not verified, mark the affected topics “Syllabus match needs verification.” Do not invent facts, past questions, dates or statistics.
+Do not output a timetable, roadmap, checklist-only worksheet or prompts asking the student to fill things in. Explain topics, do not just list headings. Adapt to the subject; do not assume engineering. For current affairs, never fabricate recent developments. Keep revision and detailed notes separate, useful, and easy to scan.\n${quizInstruction}`;
   try{
    const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"study",prompt,provider:"auto"})});
    const raw=await response.text();
@@ -367,8 +434,8 @@ Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES,
     throw new Error(data.error?.toLowerCase().includes("rate")?"Study service is busy right now. Please retry shortly.":response.status>=500?"Study service is temporarily unavailable. Please retry shortly.":"Study guide generation failed. Please retry.");
    }
    if(!data.answer)throw new Error("The AI returned an empty study guide.");
-   setNotes(data.answer);setNotice(includeQuiz?"Detailed study guide and 25-question optional quiz generated. Review time-sensitive facts and syllabus alignment.":"Detailed study guide generated. Quiz was skipped as requested.");
-  }catch(e){const reason=e instanceof Error?e.message:"Could not generate the study guide. Please retry.";setNotes(createOfflineStudyGuide({course,examType,subject,topics:topic,language,includeQuiz}));setError(reason+" An offline worksheet is ready below; it is not AI-generated factual content.");setNotice("Offline study worksheet created. Retry online generation later.");}
+   setNotes(cleanStudyText(data.answer));setNotice(includeQuiz?"Detailed study guide and 25-question optional quiz generated. Review time-sensitive facts and syllabus alignment.":"Detailed study guide generated. Quiz was skipped as requested.");
+  }catch(e){const reason=e instanceof Error?e.message:"Could not generate the study guide. Please retry.";setNotes(cleanStudyText(createOfflineStudyGuide({course,examType,subject,topics:topic,language,includeQuiz})));setError(reason+" An offline worksheet is ready below; it is not AI-generated factual content.");setNotice("Offline study worksheet created. Retry online generation later.");}
   finally{setBusy(false)}
  }
  return <div className="hmx-panel">
@@ -391,7 +458,7 @@ Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES,
      {studySections.revision&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>Revision Notes</h3><StudyMarkdown content={studySections.revision}/><button className="hmx-btn" style={{marginTop:14}} onClick={()=>saveText(studySections.revision,`${slug(subject)}-revision-notes.md`)}>Download revision notes</button></section>}
      <section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>Detailed Notes</h3><StudyMarkdown content={studySections.detailed}/><button className="hmx-btn" style={{marginTop:14}} onClick={()=>saveText(studySections.detailed,`${slug(subject)}-detailed-notes.md`)}>Download detailed notes</button></section>
      {includeQuiz&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>25-MCQ Practice Quiz</h3><StudyMarkdown content={studySections.quiz||"The service did not return a separate quiz section. Retry generation; no MCQs will be falsely reported as generated."}/></section>}
-     <div className="hmx-btn-row"><button className="hmx-btn" onClick={()=>navigator.clipboard.writeText(notes).then(()=>setNotice("All generated notes copied.")).catch(()=>setError("Clipboard access was blocked by your browser."))}>Copy all notes</button><button className="hmx-btn" onClick={()=>saveText(notes,`${slug(subject)}-notes.md`)}>Download all notes</button></div>
+     <section className="hmx-result" style={{marginTop:16,padding:16,border:"1px solid #35557d",borderRadius:14,background:"#0c1728"}}><h3 style={{marginTop:0}}>Handwritten PDF Studio</h3><p style={{fontSize:13,lineHeight:1.65,color:"#c4d0e4"}}>Create notebook-style notes, exam-copy pages, clean printouts or a dark digital studybook. Choose the style before exporting.</p><div className="hmx-utility-answer-grid"><div className="hmx-field"><label>Writing style</label><select className="hmx-select" value={pdfStyle} onChange={e=>setPdfStyle(e.target.value as StudyPdfOptions["style"])}><option value="natural">Natural handwriting</option><option value="neat">Neat handwritten</option><option value="exam">Exam-copy / clean type</option></select></div><div className="hmx-field"><label>Paper</label><select className="hmx-select" value={pdfPaper} onChange={e=>setPdfPaper(e.target.value as StudyPdfOptions["paper"])}><option value="ruled">Ruled notebook</option><option value="plain">Plain white</option><option value="grid">Graph paper</option><option value="dark">Dark studybook</option></select></div><div className="hmx-field"><label>Pen / headings</label><select className="hmx-select" value={pdfInk} onChange={e=>setPdfInk(e.target.value as StudyPdfOptions["ink"])}><option value="blue">Blue pen</option><option value="black">Black pen</option><option value="mixed">Blue writing + red headings</option></select></div><div className="hmx-field"><label>Page size</label><select className="hmx-select" value={pdfSize} onChange={e=>setPdfSize(e.target.value as StudyPdfOptions["size"])}><option value="A4">A4 (standard)</option><option value="A5">A5 (compact)</option><option value="Letter">Letter</option></select></div><div className="hmx-field"><label>Line spacing</label><select className="hmx-select" value={pdfSpacing} onChange={e=>setPdfSpacing(e.target.value as StudyPdfOptions["lineSpacing"])}><option value="comfortable">Comfortable</option><option value="compact">Compact / save pages</option></select></div></div><label className="hmx-option"><input type="checkbox" checked={pdfCover} onChange={e=>setPdfCover(e.target.checked)}/> Add premium cover page</label><div className="hmx-btn-row"><button className="hmx-btn primary" onClick={()=>exportStudyPdf(notes,subject+" - Study Notes",{style:pdfStyle,paper:pdfPaper,ink:pdfInk,size:pdfSize,cover:pdfCover,lineSpacing:pdfSpacing})} disabled={!notes}>Export styled PDF ↗</button><button className="hmx-btn" onClick={()=>navigator.clipboard.writeText(cleanStudyText(notes)).then(()=>setNotice("All generated notes copied.")).catch(()=>setError("Clipboard access was blocked by your browser."))}>Copy all notes</button><button className="hmx-btn" onClick={()=>saveText(cleanStudyText(notes),`${slug(subject)}-notes.md`)}>Download all notes (.md)</button></div></section>
     </div>}
    <p style={{fontSize:11,color:"#7a8292",lineHeight:1.6,marginTop:18}}>AI keys are configured separately on the server. Current affairs are time-sensitive: verify dates and developments against reliable, up-to-date sources before an exam.</p>
   </div>
