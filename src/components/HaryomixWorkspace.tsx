@@ -271,6 +271,42 @@ function inlineStudyMarkdown(value:string):React.ReactNode{
  const parts=value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
  return parts.map((part,i)=>{if(part.startsWith("**")&&part.endsWith("**"))return <strong key={i}>{part.slice(2,-2)}</strong>;if(part.startsWith("*")&&part.endsWith("*"))return <em key={i}>{part.slice(1,-1)}</em>;if(part.startsWith("`")&&part.endsWith("`"))return <code key={i}>{part.slice(1,-1)}</code>;if(/^https?:\/\//i.test(part))return <a key={i} href={part} target="_blank" rel="noreferrer" style={{color:"#7cb7ff",overflowWrap:"anywhere"}}>{part}</a>;return part;});
 }
+function cleanStudyText(value:string):string{
+ return value
+  .replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\uFFFD]/g,"")
+  .replace(/[\\uE000-\\uF8FF]/g,"")
+  .replace(/[★☆✦✧✳✴✵✶✷✸✹✺✻✼✽✾✿◆◇■□▪▫●○◉◎※❖❋❊❉❈❇❆❅❄❃❂❁❀]/g,"")
+  .replace(/[ \\t]+([,.;:!?])/g,"$1")
+  .replace(/([!?.,]){3,}/g,"$1$1")
+  .replace(/ {2,}/g," ")
+  .replace(/\\n{3,}/g,"\\n\\n")
+  .trim();
+}
+function escapeStudyHtml(value:string):string{
+ return value.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function studyMarkdownToPrintHtml(markdown:string):string{
+ const lines=cleanStudyText(markdown).split(/\\r?\\n/);let html="";let list:"ul"|"ol"|null=null;let paragraph:string[]=[];
+ const flushParagraph=()=>{if(paragraph.length){html+=`<p>${paragraph.map(escapeStudyHtml).join(" ")}</p>`;paragraph=[];}};
+ const flushList=()=>{if(list){html+=`</${list}>`;list=null;}};
+ for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();continue;}
+ const h=line.match(/^(#{1,4})\\s+(.+)$/);if(h){flushParagraph();flushList();const tag=h[1].length<=2?"h2":h[1].length===3?"h3":"h4";html+=`<${tag}>${escapeStudyHtml(h[2])}</${tag}>`;continue;}
+ const bullet=line.match(/^[-*+]\\s+(.+)$/);const numbered=line.match(/^\\d+[.)]\\s+(.+)$/);
+ if(bullet||numbered){flushParagraph();const next=numbered?"ol":"ul";if(list!==next){flushList();list=next;html+=`<${list}>`;}html+=`<li>${escapeStudyHtml((bullet||numbered)![1])}</li>`;continue;}
+ flushList();paragraph.push(line);
+ }
+ flushParagraph();flushList();return html;
+}
+function exportStudyPdf(content:string,title:string){
+ const printWindow=window.open("","_blank","noopener,noreferrer");
+ if(!printWindow){window.alert("Please allow pop-ups for Haryomix to create your PDF.");return;}
+ const safeTitle=escapeStudyHtml(cleanStudyText(title)||"Study Notes");
+ printWindow.document.open();
+ printWindow.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeTitle}</title><style>
+ @page{size:A4;margin:18mm 16mm 20mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans",sans-serif;color:#172033;font-size:11pt;line-height:1.65;margin:0;overflow-wrap:anywhere}h1{font-size:22pt;line-height:1.2;margin:0 0 8mm;border-bottom:2px solid #3155d9;padding-bottom:4mm}h2{font-size:16pt;margin:8mm 0 3mm;color:#2445a6;break-after:avoid}h3{font-size:13pt;margin:5mm 0 2mm;color:#263957;break-after:avoid}h4{font-size:11pt;margin:4mm 0 2mm;break-after:avoid}p{margin:0 0 3.5mm;orphans:3;widows:3}ul,ol{padding-left:7mm;margin:1mm 0 4mm}li{padding-left:1mm;margin:0 0 1.5mm;break-inside:avoid}header{font-size:9pt;color:#647087;margin-bottom:7mm}footer{margin-top:12mm;border-top:1px solid #d7deea;padding-top:3mm;color:#647087;font-size:8pt}@media screen{body{max-width:800px;margin:24px auto;padding:24px}button{position:fixed;right:20px;top:20px;padding:12px 18px;background:#3155d9;color:white;border:0;border-radius:8px;font-weight:bold}@media print{button{display:none}}
+ </style></head><body><button onclick="window.print()">Print / Save as PDF</button><header>HARYOMIX · STUDY NOTES</header><h1>${safeTitle}</h1>${studyMarkdownToPrintHtml(content)}<footer>Prepared with Haryomix. Verify syllabus-specific and time-sensitive facts against official sources.</footer><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),350));</script></body></html>`);
+ printWindow.document.close();
+}
 function splitStudyOutput(content:string):{revision:string;detailed:string;quiz:string}{
  const revision=content.match(/(?:^|\n)#{1,3}\s*REVISION NOTES[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s*(?:DETAILED NOTES|OPTIONAL PRACTICE QUIZ)|$)/i);
  const detailed=content.match(/(?:^|\n)#{1,3}\s*DETAILED NOTES[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s*OPTIONAL PRACTICE QUIZ|$)/i);
@@ -383,8 +419,8 @@ Do not output a timetable, roadmap, checklist-only worksheet or prompts asking t
     throw new Error(data.error?.toLowerCase().includes("rate")?"Study service is busy right now. Please retry shortly.":response.status>=500?"Study service is temporarily unavailable. Please retry shortly.":"Study guide generation failed. Please retry.");
    }
    if(!data.answer)throw new Error("The AI returned an empty study guide.");
-   setNotes(data.answer);setNotice(includeQuiz?"Detailed study guide and 25-question optional quiz generated. Review time-sensitive facts and syllabus alignment.":"Detailed study guide generated. Quiz was skipped as requested.");
-  }catch(e){const reason=e instanceof Error?e.message:"Could not generate the study guide. Please retry.";setNotes(createOfflineStudyGuide({course,examType,subject,topics:topic,language,includeQuiz}));setError(reason+" An offline worksheet is ready below; it is not AI-generated factual content.");setNotice("Offline study worksheet created. Retry online generation later.");}
+   setNotes(cleanStudyText(data.answer));setNotice(includeQuiz?"Detailed study guide and 25-question optional quiz generated. Review time-sensitive facts and syllabus alignment.":"Detailed study guide generated. Quiz was skipped as requested.");
+  }catch(e){const reason=e instanceof Error?e.message:"Could not generate the study guide. Please retry.";setNotes(cleanStudyText(createOfflineStudyGuide({course,examType,subject,topics:topic,language,includeQuiz})));setError(reason+" An offline worksheet is ready below; it is not AI-generated factual content.");setNotice("Offline study worksheet created. Retry online generation later.");}
   finally{setBusy(false)}
  }
  return <div className="hmx-panel">
@@ -407,7 +443,7 @@ Do not output a timetable, roadmap, checklist-only worksheet or prompts asking t
      {studySections.revision&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>Revision Notes</h3><StudyMarkdown content={studySections.revision}/><button className="hmx-btn" style={{marginTop:14}} onClick={()=>saveText(studySections.revision,`${slug(subject)}-revision-notes.md`)}>Download revision notes</button></section>}
      <section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>Detailed Notes</h3><StudyMarkdown content={studySections.detailed}/><button className="hmx-btn" style={{marginTop:14}} onClick={()=>saveText(studySections.detailed,`${slug(subject)}-detailed-notes.md`)}>Download detailed notes</button></section>
      {includeQuiz&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:20,borderRadius:14}}><h3 style={{color:"#f3f7ff",fontSize:20,marginTop:0}}>25-MCQ Practice Quiz</h3><StudyMarkdown content={studySections.quiz||"The service did not return a separate quiz section. Retry generation; no MCQs will be falsely reported as generated."}/></section>}
-     <div className="hmx-btn-row"><button className="hmx-btn" onClick={()=>navigator.clipboard.writeText(notes).then(()=>setNotice("All generated notes copied.")).catch(()=>setError("Clipboard access was blocked by your browser."))}>Copy all notes</button><button className="hmx-btn" onClick={()=>saveText(notes,`${slug(subject)}-notes.md`)}>Download all notes</button></div>
+     <div className="hmx-btn-row"><button className="hmx-btn primary" onClick={()=>exportStudyPdf(notes,subject+" - Study Notes")} disabled={!notes}>Download proper PDF ↗</button><button className="hmx-btn" onClick={()=>navigator.clipboard.writeText(cleanStudyText(notes))}.then(()=>setNotice("All generated notes copied.")).catch(()=>setError("Clipboard access was blocked by your browser."))}>Copy all notes</button><button className="hmx-btn" onClick={()=>saveText(cleanStudyText(notes),`${slug(subject)}-notes.md`)}>Download all notes (.md)</button></div>
     </div>}
    <p style={{fontSize:11,color:"#7a8292",lineHeight:1.6,marginTop:18}}>AI keys are configured separately on the server. Current affairs are time-sensitive: verify dates and developments against reliable, up-to-date sources before an exam.</p>
   </div>
