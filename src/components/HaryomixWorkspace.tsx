@@ -351,7 +351,23 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
 
 RESEARCH SOURCE RULES: ${availableSources? "Use the following retrieved source metadata as discovery leads, not unquestionable facts. Cite only links supplied below when relevant, distinguish publication date from event date, and do not claim to have read full text if only metadata is available. Do not invent source details.\\n\\n"+availableSources : "No external research results were retrieved for this request. Do not claim that live research was performed; for time-sensitive facts, clearly state the limitation instead of fabricating citations."}
 
-Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES, and if enabled # OPTIONAL PRACTICE QUIZ. Revision Notes must contain concise exam-ready definitions, key facts, formulas/dates where reliable, comparisons and memory points for EVERY topic. Detailed Notes must teach each topic fully with definitions, background, explanations, steps/causes/effects/classifications, worked examples, applications, common confusions and exam takeaways. Do not output a timetable, roadmap, checklist-only worksheet or prompts asking the student to fill things in. Explain topics, do not just list headings. Adapt to the subject; do not assume engineering. For current affairs, never fabricate recent developments. Keep both note types separate and useful.\n${quizInstruction}`;
+READABILITY AND SYSTEMATIC FORMAT (MANDATORY):
+Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES, and if enabled # OPTIONAL PRACTICE QUIZ. Use valid Markdown only.
+For EACH topic, follow a consistent hierarchy:
+## [Topic name]
+### 1. Meaning / definition
+### 2. Explanation in simple language
+### 3. Key points / types / steps (choose what fits the subject)
+### 4. Example or solved example
+### 5. Important exam points
+### 6. Common confusion / mistake
+### 7. Quick recap
+Do not force irrelevant sections: adapt to the topic and omit a subsection only when it genuinely does not apply. Do not repeat the same explanation in every subsection.
+READABILITY RULES: Use short paragraphs (usually 2–4 sentences, never a giant wall of text); use bullets for lists and numbered steps for processes; bold key terms on first use; put formulas/equations on separate lines and define every symbol; use simple comparison tables only when comparing 2+ concepts; include units in numerical examples; explain every example step-by-step; expand abbreviations on first use. Leave a blank line between paragraphs, headings, lists, formulas and examples. Avoid excessive all-caps, decorative symbols, long comma-separated sentences and repeated filler.
+REVISION NOTES: Start with a 3–5 line topic overview, then give topic-wise key definitions, formulas/facts, differences and memory cues. Finish with “Last-minute revision” containing 5–10 high-value points.
+DETAILED NOTES: Teach each topic from basics to exam-level depth in syllabus order. Explain what it is, how/why it works, and when relevant its causes/effects, types, steps, advantages/limitations and applications. Include at least one accurate worked example for topics where an example makes sense. For programming/math/science, format code/formulas cleanly; for humanities, commerce and languages, use subject-appropriate examples instead of forced equations.
+SOURCES AND ACCURACY: Clearly distinguish verified source facts from explanation/examples. Cite only retrieved URLs supplied above, near the relevant claim, and never invent citations. If source results are only metadata, do not pretend the full document was read. If the official syllabus is not verified, mark the affected topics “Syllabus match needs verification.” Do not invent facts, past questions, dates or statistics.
+Do not output a timetable, roadmap, checklist-only worksheet or prompts asking the student to fill things in. Explain topics, do not just list headings. Adapt to the subject; do not assume engineering. For current affairs, never fabricate recent developments. Keep revision and detailed notes separate, useful, and easy to scan.\n${quizInstruction}`;
   try{
    const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"study",prompt,provider:"auto"})});
    const raw=await response.text();
