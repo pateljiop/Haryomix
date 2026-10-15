@@ -282,7 +282,7 @@ async function run() {
   await fill("#hmx-library-title", "Browser smoke note", "Smart Notes title");
   await fill("#hmx-library-content", "A process is a program in execution.", "Smart Notes note content");
   await fill("#hmx-library-tags", "BCA, Operating Systems", "Smart Notes tags");
-  await clickText("button", "Save note +", "save Smart Notes note");
+  await clickText(".hmx-study-library button", "Save note +", "save Smart Notes note");
   await waitFor("Array.from(document.querySelectorAll('.hmx-library-item-open strong')).some(item=>item.textContent==='Browser smoke note')", "Smart Notes saved note appears in the persisted library");
   await fill("#hmx-library-search", "Browser smoke note", "search Smart Notes");
   await waitFor("document.querySelectorAll('.hmx-library-list li').length===1", "Smart Notes search filters results");
