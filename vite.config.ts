@@ -25,6 +25,8 @@ export default defineConfig({
           if (id.includes("/tesseract.js/") || id.includes("/tesseract-core/")) return "ocr";
           if (id.includes("/pptxgenjs/")) return "pptx";
           if (id.includes("/pdf-lib/")) return "pdf-lib";
+          if (id.includes("/jszip/")) return "zip";
+          if (id.includes("/react-dom/") || id.includes("/react/") || id.includes("/scheduler/")) return "react-vendor";
         },
       },
     },
