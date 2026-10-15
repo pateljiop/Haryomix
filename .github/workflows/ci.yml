@@ -19,6 +19,7 @@ jobs:
       - run: npm test
       - run: node --check scripts/browser-interaction-smoke.mjs
       - run: node --check scripts/live-ai-smoke.mjs
+      - run: node --check scripts/security-headers-smoke.mjs
       - run: npm run build
       - name: Start production preview for browser verification
         run: |
