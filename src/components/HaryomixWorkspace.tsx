@@ -113,7 +113,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
         const data=await response.json().catch(()=>({}));
         if(response.ok&&typeof data.answer==="string"){
           try{
-            const parsed=JSON.parse(data.answer.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\\s*\`\`\`$/,""));
+            const parsed=JSON.parse(data.answer.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,""));
             if(Array.isArray(parsed?.slides)&&parsed.slides.length===items.length&&parsed.slides.every((slide:any)=>typeof slide.title==="string"&&slide.title.trim()&&Array.isArray(slide.bullets)&&slide.bullets.length>=3&&slide.bullets.every((bullet:any)=>typeof bullet==="string"&&bullet.trim())))generatedSlides=parsed.slides;
           }catch{/* Invalid AI output falls back to the offline template. */}
         }
