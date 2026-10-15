@@ -13,7 +13,7 @@ function decodeHtml(value: string): string {
   return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ");
 }
 function stripHtml(value: string): string {
-  return decodeHtml(value.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim());
+  return decodeHtml(value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
 }
 
 async function searchWikipedia(topic: string): Promise<Source[]> {
@@ -28,20 +28,20 @@ async function searchWikipedia(topic: string): Promise<Source[]> {
 async function searchWebFallback(topic: string): Promise<Source[]> {
   const url = new URL("https://html.duckduckgo.com/html/");
   url.searchParams.set("q", topic + " explanation facts");
-  const response = await fetch(url, { headers: { "Accept": "text/html", "User-Agent": "Mozilla/5.0 (compatible; HaryomixTopicQuiz/1.0)" }, signal: AbortSignal.timeout(12_000) });
+  const response = await fetch(url, { headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0 (compatible; HaryomixTopicQuiz/1.0)" }, signal: AbortSignal.timeout(12_000) });
   if (!response.ok) throw new Error("web_search_unavailable");
   const html = await response.text();
-  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\\s\\S]*?<\\/div>\\s*<\\/div>/gi) ?? [];
+  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) ?? [];
   const results: Source[] = [];
   for (const block of blocks) {
-    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>/i);
+    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!anchor) continue;
     try {
       const parsed = new URL(decodeHtml(anchor[1]), "https://duckduckgo.com");
       const destination = parsed.searchParams.has("uddg") ? decodeURIComponent(parsed.searchParams.get("uddg")!) : parsed.href;
       const target = new URL(destination);
-      if (!["http:", "https:"].includes(target.protocol) || /(^|\\.)duckduckgo\\.com$/i.test(target.hostname)) continue;
-      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\\s\\S]*?)<\\/[^>]+>/i);
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\.)duckduckgo\.com$/i.test(target.hostname)) continue;
+      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
       const title = stripHtml(anchor[2]);
       const extract = snippetMatch ? stripHtml(snippetMatch[1]) : "";
       if (title && extract.length >= 50 && !results.some(item => item.url === target.href)) {
