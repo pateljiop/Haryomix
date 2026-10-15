@@ -60,7 +60,7 @@ async function fileToImage(file: File): Promise<string> {
   const canvas = document.createElement("canvas"); canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Your browser could not prepare the PDF preview.");
-  await page.render({ canvasContext: ctx, canvas, viewport }).promise;
+  await page.render({ canvasContext: ctx, viewport }).promise;
   return canvas.toDataURL("image/png");
 }
 
