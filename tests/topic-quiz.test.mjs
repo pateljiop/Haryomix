@@ -42,7 +42,7 @@ test("topic quiz searches reference content before generating and returns source
 });
 
 test("topic quiz falls back to web snippets when Wikipedia has no usable extracts", async () => {
-  const searchHtml = \`<div class="result results_links results_links_deep web-result"><div class="links_main links_deep result__body"><h2 class="result__title"><a rel="nofollow" class="result__a" href="https://example.org/plant-biology">Plant Biology Guide</a></h2><a class="result__snippet">Photosynthesis converts light energy into chemical energy in plants and algae, using carbon dioxide and water to produce sugars and release oxygen.</a></div></div>\`;
+  const searchHtml = '<div class="result results_links results_links_deep web-result"><div class="links_main links_deep result__body"><h2 class="result__title"><a rel="nofollow" class="result__a" href="https://example.org/plant-biology">Plant Biology Guide</a></h2><a class="result__snippet">Photosynthesis converts light energy into chemical energy in plants and algae, using carbon dioxide and water to produce sugars and release oxygen.</a></div></div>';
   const response = await withFetch(async (url, init = {}) => {
     const target = String(url);
     if (target.includes("wikipedia.org/w/api.php")) return new Response(JSON.stringify({ query: {} }), { status: 200 });
@@ -51,7 +51,7 @@ test("topic quiz falls back to web snippets when Wikipedia has no usable extract
       const body = JSON.parse(init.body);
       assert.match(body.messages[1].content, /Plant Biology Guide/);
       assert.match(body.messages[1].content, /chemical energy/);
-      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ questions: Array.from({ length: 10 }, (_, i) => ({ question: \`Question about plant biology number \${i + 1}?\`, options: ["Photosynthesis", "Rock formation", "Metal corrosion", "Planetary motion"], answer: 0, explanation: "The supplied source describes photosynthesis in plants.", sourceTitle: "Plant Biology Guide" })) }) } }] }), { status: 200 });
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ questions: Array.from({ length: 10 }, (_, i) => ({ question: "Question about plant biology number " + (i + 1) + "?", options: ["Photosynthesis", "Rock formation", "Metal corrosion", "Planetary motion"], answer: 0, explanation: "The supplied source describes photosynthesis in plants.", sourceTitle: "Plant Biology Guide" })) }) } }] }), { status: 200 });
     }
     throw new Error("Unexpected URL " + target);
   }, () => onRequestPost({ request: request({ topic: "photosynthesis", language: "English", difficulty: "easy" }), env: { DB: mockDb(), GROQ_API_KEY: "test-key" } }));
