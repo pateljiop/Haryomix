@@ -204,6 +204,12 @@ jobs:
           check_invalid_request /api/ai/image '{"prompt":"x"}' image
           check_invalid_request /api/ai/ppt '{"action":"create","query":"short"}' ppt
 
+      - name: Verify live AI quiz, Exam Copilot and PPT generation
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+        run: node scripts/live-ai-smoke.mjs
+
       - name: Verify community POST and persistent GET
         shell: bash
         env:
