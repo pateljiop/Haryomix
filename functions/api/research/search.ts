@@ -1,11 +1,11 @@
 interface ResearchItem {
   title: string;
-  source: "OpenAlex" | "Crossref" | "arXiv" | "Internet Archive" | "Web search (Grok)";
+  source: "OpenAlex" | "Crossref" | "arXiv" | "Internet Archive" | "Web search (Gemini)";
   url: string;
   date?: string;
   description?: string;
 }
-interface Env { OPENALEX_API_KEY?: string; XAI_API_KEY?: string; GROK_API_KEY?: string }
+interface Env { OPENALEX_API_KEY?: string; GEMINI_API_KEY?: string }
 const headers = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "public, max-age=300, s-maxage=900",
@@ -65,36 +65,33 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     safeJson(openAlexUrl), safeJson(crossrefUrl), safeText(arxivUrl), safeJson(archiveUrl),
   ]);
   const webItems: ResearchItem[] = [];
-  const grokKey = env.XAI_API_KEY || env.GROK_API_KEY;
-  if (grokKey) {
+  if (env.GEMINI_API_KEY) {
     try {
-      const response = await fetch("https://api.x.ai/v1/responses", {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
         method: "POST",
-        headers: { Authorization: `Bearer ${grokKey}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
         body: JSON.stringify({
-          model: "grok-4.7",
-          input: [{ role: "user", content: `Search the live web for: ${query}. Prioritize official sources and recent publication dates. Return a concise research summary with factual claims supported by web citations. Do not invent URLs or dates.` }],
-          tools: [{ type: "web_search" }],
-          max_output_tokens: 1800,
-          store: false,
+          contents: [{ role: "user", parts: [{ text: `Search the web for this study/exam query: "${query}". Prefer official Indian exam authorities, government sources, and current pages. Keep factual claims grounded and never invent URLs or publication dates.` }] }],
+          tools: [{ google_search: {} }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 1800 },
         }),
         signal: AbortSignal.timeout(25000),
       });
       if (response.ok) {
         const data: any = await response.json();
-        for (const output of data.output ?? []) {
-          for (const part of output.content ?? []) {
-            for (const citation of part.annotations ?? []) {
-              const url = clean(citation.url, 500);
-              const title = clean(citation.title, 240) || url;
-              if (title && /^https?:\/\//i.test(url)) {
-                webItems.push({ title, source: "Web search (Grok)", url, description: clean(part.text, 300) });
-              }
-            }
+        const candidate = data.candidates?.[0];
+        const grounding = candidate?.groundingMetadata;
+        const summary = (candidate?.content?.parts ?? []).map((part: any) => clean(part.text, 1800)).filter(Boolean).join("\n");
+        for (const chunk of grounding?.groundingChunks ?? []) {
+          const page = chunk.web;
+          const url = clean(page?.uri, 500);
+          const title = clean(page?.title, 240) || url;
+          if (title && /^https?:\/\//i.test(url)) {
+            webItems.push({ title, source: "Web search (Gemini)", url, description: summary.slice(0, 300) });
           }
         }
       }
-    } catch { /* continue with metadata sources if live web search is unavailable */ }
+    } catch { /* continue with scholarly sources if Gemini search is unavailable */ }
   }
   const items: ResearchItem[] = [...webItems];
   for (const work of openAlex?.results ?? []) {
@@ -138,7 +135,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   return reply({
     query,
     sources: deduped,
-    searched: { grokWebSearch: webItems.length > 0, grokKeyConfigured: Boolean(grokKey), openAlex: Boolean(openAlex), openAlexKeyConfigured: Boolean(env.OPENALEX_API_KEY), crossref: Boolean(crossref), arxiv: Boolean(arxivXml), internetArchive: Boolean(archive) },
+    searched: { geminiWebSearch: webItems.length > 0, geminiKeyConfigured: Boolean(env.GEMINI_API_KEY), openAlex: Boolean(openAlex), openAlexKeyConfigured: Boolean(env.OPENALEX_API_KEY), crossref: Boolean(crossref), arxiv: Boolean(arxivXml), internetArchive: Boolean(archive) },
     message: deduped.length
       ? "Results are metadata and discovery links. Availability, peer review, full-text access and syllabus relevance must be checked at the original source."
       : "The research providers did not return results right now. Try a shorter or more specific query.",
