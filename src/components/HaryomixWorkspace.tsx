@@ -100,11 +100,25 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
   const [detail,setDetail]=useState("Balanced");
   const [notes,setNotes]=useState(true);
   const [busy,setBusy]=useState(false);
+  const [generationStatus,setGenerationStatus]=useState("");
   const items=useMemo(()=>points.split("\n").map(s=>s.trim()).filter(Boolean).slice(0,24),[points]);
   async function exportPpt(){
     if(!title.trim()||!items.length)return;
     setBusy(true);
+    setGenerationStatus("Checking whether AI slide content is available…");
     try {
+      let generatedSlides: Array<{title:string;bullets:string[];speakerNotes?:string}> | null = null;
+      try {
+        const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"ppt",prompt:JSON.stringify({title,course,audience,purpose,style:tone,contentDensity:detail,language:"Follow the user's language",requiredSlides:items.map((topic,index)=>({index:index+1,topic})),instructions:"Create substantive, topic-specific slide content. Return ONLY valid JSON with this exact shape: {\\"slides\\":[{\\"title\\":string,\\"bullets\\":string[],\\"speakerNotes\\":string}]}. Return exactly one slide per requiredSlides entry, in the same order. Each slide needs 3-5 concrete informative bullets, not generic placeholders. Use accurate facts; do not invent statistics or citations."})})});
+        const data=await response.json().catch(()=>({}));
+        if(response.ok&&typeof data.answer==="string"){
+          try{
+            const parsed=JSON.parse(data.answer.trim().replace(/^\`\`\`(?:json)?\\s*/i,"").replace(/\\s*\`\`\`$/,""));
+            if(Array.isArray(parsed?.slides)&&parsed.slides.length===items.length&&parsed.slides.every((slide:any)=>typeof slide.title==="string"&&slide.title.trim()&&Array.isArray(slide.bullets)&&slide.bullets.length>=3&&slide.bullets.every((bullet:any)=>typeof bullet==="string"&&bullet.trim())))generatedSlides=parsed.slides;
+          }catch{/* Invalid AI output falls back to the offline template. */}
+        }
+      }catch{/* Local export must still work when AI is not configured. */}
+      setGenerationStatus(generatedSlides?"AI slide content ready. Exporting editable PowerPoint…":"AI is unavailable here; exporting with the built-in slide template.");
       const pptxgen=(await import("pptxgenjs")).default;
       const pptx=new pptxgen();
       pptx.layout="LAYOUT_WIDE";
@@ -153,8 +167,10 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
         footer(agenda,slideNo++);
       }
       items.forEach((item,i)=>{
-        const sl=base(String(i+1).padStart(2,"0")+" / "+item);
-        sl.addText(item,{x:.62,y:.9,w:11.8,h:.68,fontFace:"Aptos Display",fontSize:25,bold:true,color:C.ink,fit:"shrink",margin:0});
+        const aiSlide=generatedSlides?.[i];
+        const slideTitle=aiSlide?.title?.trim()||item;
+        const sl=base(String(i+1).padStart(2,"0")+" / "+slideTitle);
+        sl.addText(slideTitle,{x:.62,y:.9,w:11.8,h:.68,fontFace:"Aptos Display",fontSize:25,bold:true,color:C.ink,fit:"shrink",margin:0});
         sl.addShape(pptx.ShapeType.line,{x:.65,y:1.72,w:11.95,h:0,line:{color:C.line,width:1}});
         const isOpening=/executive|summary|problem|why it matters|key takeaways|conclusion|recommend/i.test(item);
         const bullets=isOpening
@@ -164,7 +180,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
             : detail==="Concise"
               ? ["Main point: state the conclusion first.","Evidence or example: show why it matters.","Implication: connect the point to the overall objective."]
               : ["Core idea: explain the concept in plain, accurate language.","Evidence or example: make the idea concrete and understandable.","Practical implication: explain when this matters and what follows."];
-        const cards=bullets.slice(0,detail==="Detailed"?4:3);
+        const cards=(aiSlide?.bullets?.length?aiSlide.bullets:bullets).slice(0,detail==="Detailed"?4:3);
         cards.forEach((b,j)=>{
           const y=2.05+j*(detail==="Detailed"?.94:1.13);
           sl.addShape(pptx.ShapeType.roundRect,{x:.7,y,w:11.85,h:detail==="Detailed"?.76:.91,rectRadius:.08,fill:{color:C.white},line:{color:C.line,width:.8}});
@@ -175,7 +191,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
         sl.addText("AUDIENCE  /  "+clean(audience),{x:.72,y:6.15,w:8.5,h:.24,fontSize:8,color:C.muted,charSpacing:.4,margin:0});
         footer(sl,slideNo++);
         if(notes){
-          sl.addNotes(`Presenter guidance: ${item}.\n\nOpen with the central message, define any necessary terms, and connect the point to the presentation objective. Use one relevant real-world example and cite reliable sources for any factual or numerical claim you add. Do not present placeholder statements as verified research.\n\nAudience: ${audience}. Purpose: ${purpose}`);
+          sl.addNotes(`Presenter guidance: ${aiSlide?.speakerNotes||slideTitle}.\n\nAudience: ${audience}. Purpose: ${purpose}`);
         }
       });
       const final=base("Closing / Decision");
@@ -188,7 +204,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       final.addText("Created by Hariom Builds · "+clean(course),{x:.75,y:6.55,w:9,h:.25,fontSize:9,color:"A9C8FF",margin:0});
       footer(final,slideNo);
       await pptx.writeFile({fileName:slug(title)+".pptx"});
-      setNotice(`Expert-style PowerPoint exported: ${slideNo} slides, consistent layout, agenda, takeaway slide${notes?", and speaker notes":""}. The outline is professionally structured but factual claims and sources still need your review.`);
+      setNotice(`PowerPoint exported successfully: ${slideNo} slides, agenda, takeaway slide${notes?", and speaker notes":""}. ${generatedSlides?"Topic-specific AI content was used.":"Built-in offline slide content was used because AI was unavailable."} Review factual claims and sources before submission.`);
     } catch(e) {
       setNotice("PowerPoint export failed: "+(e instanceof Error?e.message:"unknown error"));
     } finally {setBusy(false);}
@@ -206,7 +222,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       <div className="hmx-field"><label htmlFor="ppt-detail">Content density</label><select id="ppt-detail" className="hmx-select" value={detail} onChange={e=>setDetail(e.target.value)}><option>Concise</option><option>Balanced</option><option>Detailed</option></select></div>
       <label className="hmx-option"><input type="checkbox" checked={notes} onChange={e=>setNotes(e.target.checked)}/> Add presenter notes to each content slide</label>
       <div className="hmx-ppt-preview" style={{marginTop:18}}><div className="hmx-ppt-slide" style={{background:"#14243A",color:"#fff",minHeight:230,padding:28,borderRadius:8}}><p style={{color:"#A9C8FF",fontSize:10,fontWeight:800,letterSpacing:".15em"}}>HARYOMIX / PRESENTATION BRIEF</p><h3 style={{color:"#fff",fontSize:27,lineHeight:1.2,marginTop:24}}>{title||"Your presentation title"}</h3><p style={{color:"#D6E1EF",marginTop:18}}>{purpose||"Presentation objective"}</p><div style={{height:3,width:50,background:"#38A7C8",marginTop:24}}/><p style={{color:"#A9C8FF",fontSize:11,marginTop:16}}>{course} · {items.length} content topics</p></div></div>
-      <div className="hmx-btn-row" style={{marginTop:18}}><button className="hmx-btn primary" disabled={busy||!title.trim()||!items.length} onClick={exportPpt}>{busy?"Building presentation…":"Build professional .pptx ↗"}</button></div>
+      <div className="hmx-btn-row" style={{marginTop:18}}><button className="hmx-btn primary" disabled={busy||!title.trim()||!items.length} onClick={exportPpt}>{busy?"Building presentation…":"Build professional .pptx ↗"}</button></div>{generationStatus&&<div className="hmx-note" role="status" style={{marginTop:14,overflowWrap:"anywhere"}}>{generationStatus}</div>
     </div>
   </div>
 }
