@@ -9,13 +9,64 @@ type Source = { title: string; url: string; extract: string };
 type QuizItem = { question: string; options: string[]; answer: number; explanation: string; sourceTitle: string };
 function clean(value: unknown, max: number) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 
-async function searchTopic(topic: string): Promise<Source[]> {
+function decodeHtml(value: string): string {
+  return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ");
+}
+function stripHtml(value: string): string {
+  return decodeHtml(value.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim());
+}
+
+async function searchWikipedia(topic: string): Promise<Source[]> {
   const url = new URL("https://en.wikipedia.org/w/api.php");
   url.search = new URLSearchParams({ action: "query", generator: "search", gsrsearch: topic, gsrnamespace: "0", gsrlimit: "5", prop: "extracts", exintro: "1", explaintext: "1", exsentences: "8", exchars: "2600", format: "json", origin: "*" }).toString();
   const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) throw new Error("search_unavailable");
+  if (!response.ok) throw new Error("wikipedia_search_unavailable");
   const data = await response.json() as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
   return Object.values(data.query?.pages ?? {}).map(page => ({ title: page.title ?? "", url: "https://en.wikipedia.org/wiki/" + encodeURIComponent((page.title ?? "").replace(/ /g, "_")), extract: (page.extract ?? "").slice(0, 2600) })).filter(page => page.title && page.extract.length > 80).slice(0, 5);
+}
+
+async function searchWebFallback(topic: string): Promise<Source[]> {
+  const url = new URL("https://html.duckduckgo.com/html/");
+  url.searchParams.set("q", topic + " explanation facts");
+  const response = await fetch(url, { headers: { "Accept": "text/html", "User-Agent": "Mozilla/5.0 (compatible; HaryomixTopicQuiz/1.0)" }, signal: AbortSignal.timeout(12_000) });
+  if (!response.ok) throw new Error("web_search_unavailable");
+  const html = await response.text();
+  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\\s\\S]*?<\\/div>\\s*<\\/div>/gi) ?? [];
+  const results: Source[] = [];
+  for (const block of blocks) {
+    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>/i);
+    if (!anchor) continue;
+    try {
+      const parsed = new URL(decodeHtml(anchor[1]), "https://duckduckgo.com");
+      const destination = parsed.searchParams.has("uddg") ? decodeURIComponent(parsed.searchParams.get("uddg")!) : parsed.href;
+      const target = new URL(destination);
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\\.)duckduckgo\\.com$/i.test(target.hostname)) continue;
+      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\\s\\S]*?)<\\/[^>]+>/i);
+      const title = stripHtml(anchor[2]);
+      const extract = snippetMatch ? stripHtml(snippetMatch[1]) : "";
+      if (title && extract.length >= 50 && !results.some(item => item.url === target.href)) {
+        results.push({ title, url: target.href, extract: extract.slice(0, 1600) });
+      }
+    } catch { /* Ignore malformed or non-web search results. */ }
+    if (results.length >= 5) break;
+  }
+  return results;
+}
+
+async function searchTopic(topic: string): Promise<Source[]> {
+  try {
+    const wikipedia = await searchWikipedia(topic);
+    if (wikipedia.length) return wikipedia;
+  } catch {
+    // A blocked or throttled Wikipedia endpoint must not disable the whole quiz feature.
+  }
+  try {
+    const fallback = await searchWebFallback(topic);
+    if (fallback.length) return fallback;
+  } catch {
+    // The caller returns a clear no-sources error instead of fabricating questions.
+  }
+  return [];
 }
 async function ask(provider: "groq" | "gemini", key: string, topic: string, language: string, difficulty: string, sources: Source[]): Promise<string> {
   const system = `You are a careful academic quiz writer. Use ONLY the supplied source extracts; do not add remembered facts. Return valid JSON only, no Markdown. Create exactly 10 multiple-choice questions in the requested language. Questions must be distinct, specific, factually supported by the source extracts, and appropriate to the requested difficulty. Each question must have four plausible distinct options, exactly one correct option indexed 0-3, and a short explanation that is supported by the sources. Include sourceTitle matching one supplied title. If the sources do not support a claim, do not ask it. Schema: {"questions":[{"question":"...","options":["...","...","...","..."],"answer":0,"explanation":"...","sourceTitle":"..."}]}`;
