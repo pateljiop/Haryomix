@@ -428,8 +428,9 @@ test("research search combines Crossref, arXiv, and Internet Archive results", a
     assert.deepEqual(body.sources.map(item => item.source), ["OpenAlex", "Crossref", "arXiv", "Internet Archive"]);
     assert.equal(body.sources[0].url, "https://doi.org/10.5555/openalex-test");
     assert.match(body.sources[0].url, /^https:\/\/doi\.org\//);
-    assert.match(body.sources[1].url, /^https:\/\/arxiv\.org\/abs\//);
-    assert.match(body.sources[2].url, /^https:\/\/archive\.org\/details\//);
+    assert.match(body.sources[1].url, /^https:\/\/doi\.org\//);
+    assert.match(body.sources[2].url, /^https:\/\/arxiv\.org\/abs\//);
+    assert.match(body.sources[3].url, /^https:\/\/archive\.org\/details\//);
   });
 });
 
@@ -444,9 +445,9 @@ test("research search validates query and never requires an API key", async () =
 
 
 test("research search keeps OpenAlex API key server-side and supports keyed requests", async () => {
-  let requestedUrl = "";
+  const requestedUrls = [];
   await withMockFetch(async input => {
-    requestedUrl = String(input);
+    requestedUrls.push(String(input));
     return new Response(JSON.stringify({ results: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
   }, async () => {
     const response = await researchSearchPost({
