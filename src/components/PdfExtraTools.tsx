@@ -20,7 +20,7 @@ function downloadBlob(blob: Blob, name: string) {
 async function openPdf(file: File): Promise<PDFDocumentProxy> {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-  return pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  return pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), standardFontDataUrl: `${import.meta.env.BASE_URL}standard_fonts/` }).promise;
 }
 
 async function extractText(file: File, range: string): Promise<TextPage[]> {
