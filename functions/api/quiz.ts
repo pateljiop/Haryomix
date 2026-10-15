@@ -17,12 +17,23 @@ function stripHtml(value: string): string {
 }
 
 async function searchWikipedia(topic: string): Promise<Source[]> {
-  const url = new URL("https://en.wikipedia.org/w/api.php");
-  url.search = new URLSearchParams({ action: "query", generator: "search", gsrsearch: topic, gsrnamespace: "0", gsrlimit: "5", prop: "extracts", exintro: "1", explaintext: "1", exsentences: "8", exchars: "2600", format: "json", origin: "*" }).toString();
-  const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) throw new Error("wikipedia_search_unavailable");
-  const data = await response.json() as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
-  return Object.values(data.query?.pages ?? {}).map(page => ({ title: page.title ?? "", url: "https://en.wikipedia.org/wiki/" + encodeURIComponent((page.title ?? "").replace(/ /g, "_")), extract: (page.extract ?? "").slice(0, 2600) })).filter(page => page.title && page.extract.length > 80).slice(0, 5);
+  const searchUrl = new URL("https://en.wikipedia.org/w/api.php");
+  searchUrl.search = new URLSearchParams({ action: "query", list: "search", srsearch: topic, srnamespace: "0", srlimit: "5", format: "json", utf8: "1" }).toString();
+  const searchResponse = await fetch(searchUrl, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
+  if (!searchResponse.ok) throw new Error("wikipedia_search_unavailable");
+  const searchData = await searchResponse.json() as { query?: { search?: Array<{ title?: string }> } };
+  const titles = (searchData.query?.search ?? []).map(item => item.title ?? "").filter(Boolean).slice(0, 5);
+  if (!titles.length) return [];
+
+  const extractUrl = new URL("https://en.wikipedia.org/w/api.php");
+  extractUrl.search = new URLSearchParams({ action: "query", prop: "extracts", exintro: "1", explaintext: "1", exsentences: "8", exchars: "2600", titles: titles.join("|"), redirects: "1", format: "json" }).toString();
+  const extractResponse = await fetch(extractUrl, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
+  if (!extractResponse.ok) throw new Error("wikipedia_extract_unavailable");
+  const extractData = await extractResponse.json() as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
+  return Object.values(extractData.query?.pages ?? {})
+    .map(page => ({ title: page.title ?? "", url: "https://en.wikipedia.org/wiki/" + encodeURIComponent((page.title ?? "").replace(/ /g, "_")), extract: (page.extract ?? "").slice(0, 2600) }))
+    .filter(page => page.title && page.extract.length > 80)
+    .slice(0, 5);
 }
 
 async function searchWebFallback(topic: string): Promise<Source[]> {
@@ -31,17 +42,21 @@ async function searchWebFallback(topic: string): Promise<Source[]> {
   const response = await fetch(url, { headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0 (compatible; HaryomixTopicQuiz/1.0)" }, signal: AbortSignal.timeout(12_000) });
   if (!response.ok) throw new Error("web_search_unavailable");
   const html = await response.text();
-  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) ?? [];
+  const anchors = [...html.matchAll(/<a\b([^>]*class="[^"]*result__a[^"]*"[^>]*)>([\s\S]*?)<\/a>/gi)];
   const results: Source[] = [];
-  for (const block of blocks) {
-    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
-    if (!anchor) continue;
+  for (let index = 0; index < anchors.length; index++) {
+    const anchor = anchors[index];
+    const hrefMatch = anchor[1].match(/\bhref="([^"]+)"/i);
+    if (!hrefMatch) continue;
+    const start = anchor.index ?? 0;
+    const nextStart = anchors[index + 1]?.index ?? Math.min(html.length, start + 5000);
+    const nearby = html.slice(start, Math.min(nextStart, start + 5000));
+    const snippetMatch = nearby.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|span)>/i);
     try {
-      const parsed = new URL(decodeHtml(anchor[1]), "https://duckduckgo.com");
+      const parsed = new URL(decodeHtml(hrefMatch[1]), "https://duckduckgo.com");
       const destination = parsed.searchParams.has("uddg") ? decodeURIComponent(parsed.searchParams.get("uddg")!) : parsed.href;
       const target = new URL(destination);
       if (!["http:", "https:"].includes(target.protocol) || /(^|\.)duckduckgo\.com$/i.test(target.hostname)) continue;
-      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
       const title = stripHtml(anchor[2]);
       const extract = snippetMatch ? stripHtml(snippetMatch[1]) : "";
       if (title && extract.length >= 50 && !results.some(item => item.url === target.href)) {
