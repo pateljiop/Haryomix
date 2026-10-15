@@ -454,7 +454,7 @@ test("research search keeps OpenAlex API key server-side and supports keyed requ
       env: { OPENALEX_API_KEY: "test-openalex-secret" },
     });
     assert.equal(response.status, 200);
-    assert.match(requestedUrl, /api_key=test-openalex-secret/);
+    assert.ok(requestedUrls.some(url => url.includes("api.openalex.org/works") && url.includes("api_key=test-openalex-secret")));
     const body = await response.json();
     assert.equal(body.searched.openAlexKeyConfigured, true);
     assert.equal(JSON.stringify(body).includes("test-openalex-secret"), false);
