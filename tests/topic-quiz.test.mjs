@@ -41,6 +41,27 @@ test("topic quiz searches reference content before generating and returns source
   assert.match(data.questions[0].sourceUrl, /wikipedia.org/);
 });
 
+test("topic quiz falls back to web snippets when Wikipedia has no usable extracts", async () => {
+  const searchHtml = \`<div class="result results_links results_links_deep web-result"><div class="links_main links_deep result__body"><h2 class="result__title"><a rel="nofollow" class="result__a" href="https://example.org/plant-biology">Plant Biology Guide</a></h2><a class="result__snippet">Photosynthesis converts light energy into chemical energy in plants and algae, using carbon dioxide and water to produce sugars and release oxygen.</a></div></div>\`;
+  const response = await withFetch(async (url, init = {}) => {
+    const target = String(url);
+    if (target.includes("wikipedia.org/w/api.php")) return new Response(JSON.stringify({ query: {} }), { status: 200 });
+    if (target.includes("html.duckduckgo.com/html/")) return new Response(searchHtml, { status: 200 });
+    if (target.includes("api.groq.com")) {
+      const body = JSON.parse(init.body);
+      assert.match(body.messages[1].content, /Plant Biology Guide/);
+      assert.match(body.messages[1].content, /chemical energy/);
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ questions: Array.from({ length: 10 }, (_, i) => ({ question: \`Question about plant biology number \${i + 1}?\`, options: ["Photosynthesis", "Rock formation", "Metal corrosion", "Planetary motion"], answer: 0, explanation: "The supplied source describes photosynthesis in plants.", sourceTitle: "Plant Biology Guide" })) }) } }] }), { status: 200 });
+    }
+    throw new Error("Unexpected URL " + target);
+  }, () => onRequestPost({ request: request({ topic: "photosynthesis", language: "English", difficulty: "easy" }), env: { DB: mockDb(), GROQ_API_KEY: "test-key" } }));
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.questions.length, 10);
+  assert.equal(data.sources[0].title, "Plant Biology Guide");
+  assert.equal(data.questions[0].sourceUrl, "https://example.org/plant-biology");
+});
+
 test("topic quiz rejects malformed model output rather than presenting broken questions", async () => {
   const response = await withFetch(async url => {
     if (String(url).includes("wikipedia.org")) return new Response(JSON.stringify({ query: { pages: { "1": { title: "Photosynthesis", extract: "Photosynthesis is the process by which plants use sunlight to synthesize foods from carbon dioxide and water. It generally involves chlorophyll and releases oxygen." } } } }), { status: 200 });
