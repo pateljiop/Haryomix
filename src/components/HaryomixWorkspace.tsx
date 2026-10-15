@@ -286,16 +286,19 @@ function escapeStudyHtml(value:string):string{
  return value.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 function studyMarkdownToPrintHtml(markdown:string):string{
- const lines=cleanStudyText(markdown).split(/\\r?\\n/);let html="";let list:"ul"|"ol"|null=null;let paragraph:string[]=[];
- const flushParagraph=()=>{if(paragraph.length){html+=`<p>${paragraph.map(escapeStudyHtml).join(" ")}</p>`;paragraph=[];}};
- const flushList=()=>{if(list){html+=`</${list}>`;list=null;}};
- for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();continue;}
- const h=line.match(/^(#{1,4})\\s+(.+)$/);if(h){flushParagraph();flushList();const tag=h[1].length<=2?"h2":h[1].length===3?"h3":"h4";html+=`<${tag}>${escapeStudyHtml(h[2])}</${tag}>`;continue;}
- const bullet=line.match(/^[-*+]\\s+(.+)$/);const numbered=line.match(/^\\d+[.)]\\s+(.+)$/);
- if(bullet||numbered){flushParagraph();const next=numbered?"ol":"ul";if(list!==next){flushList();list=next;html+=`<${list}>`;}html+=`<li>${escapeStudyHtml((bullet||numbered)![1])}</li>`;continue;}
+ const lines=cleanStudyText(markdown).split(/\r?\n/);let html="";let list:"ul"|"ol"|null=null;let paragraph:string[]=[];let table:string[]=[];
+ const inline=(value:string)=>escapeStudyHtml(value).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*(.+?)\*/g,"<em>$1</em>").replace(/`([^`]+)`/g,"<code>$1</code>");
+ const flushParagraph=()=>{if(paragraph.length){html+="<p>"+paragraph.map(inline).join(" ")+"</p>";paragraph=[];}};
+ const flushList=()=>{if(list){html+="</"+list+">";list=null;}};
+ const flushTable=()=>{if(table.length){const rows=table.filter(row=>!/^\s*\|?\s*:?-{2,}/.test(row));html+="<table><tbody>"+rows.map((row,i)=>"<tr>"+row.trim().replace(/^\||\|$/g,"").split("|").map(cell=>"<"+(i===0?"th":"td")+">"+inline(cell.trim())+"</"+(i===0?"th":"td")+">").join("")+"</tr>").join("")+"</tbody></table>";table=[];}};
+ for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();flushTable();continue;}
+ if(line.includes("|")&&line.split("|").length>=3){flushParagraph();flushList();table.push(line);continue;}else flushTable();
+ const h=line.match(/^(#{1,4})\s+(.+)$/);if(h){flushParagraph();flushList();const tag=h[1].length<=2?"h2":h[1].length===3?"h3":"h4";html+="<"+tag+">"+inline(h[2])+"</"+tag+">";continue;}
+ const bullet=line.match(/^[-*+]\s+(.+)$/);const numbered=line.match(/^\d+[.)]\s+(.+)$/);
+ if(bullet||numbered){flushParagraph();const next=numbered?"ol":"ul";if(list!==next){flushList();list=next;html+="<"+list+">";}html+="<li>"+inline((bullet||numbered)[1])+"</li>";continue;}
  flushList();paragraph.push(line);
  }
- flushParagraph();flushList();return html;
+ flushParagraph();flushList();flushTable();return html;
 }
 type StudyPdfOptions={style:"natural"|"neat"|"exam";paper:"ruled"|"plain"|"grid"|"dark";ink:"blue"|"black"|"mixed";size:"A4"|"A5"|"Letter";cover:boolean;lineSpacing:"compact"|"comfortable"};
 function exportStudyPdf(content:string,title:string,options:StudyPdfOptions){
