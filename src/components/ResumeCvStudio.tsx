@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import JSZip from "jszip";
 
 type Data = { name:string; role:string; email:string; phone:string; location:string; linkedin:string; github:string; summary:string; education:string; experience:string; projects:string; skills:string; soft:string; languages:string; certifications:string; achievements:string };
