@@ -17,12 +17,23 @@ function stripHtml(value: string): string {
 }
 
 async function searchWikipedia(topic: string): Promise<Source[]> {
-  const url = new URL("https://en.wikipedia.org/w/api.php");
-  url.search = new URLSearchParams({ action: "query", generator: "search", gsrsearch: topic, gsrnamespace: "0", gsrlimit: "5", prop: "extracts", exintro: "1", explaintext: "1", exsentences: "8", exchars: "2600", format: "json", origin: "*" }).toString();
-  const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) throw new Error("wikipedia_search_unavailable");
-  const data = await response.json() as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
-  return Object.values(data.query?.pages ?? {}).map(page => ({ title: page.title ?? "", url: "https://en.wikipedia.org/wiki/" + encodeURIComponent((page.title ?? "").replace(/ /g, "_")), extract: (page.extract ?? "").slice(0, 2600) })).filter(page => page.title && page.extract.length > 80).slice(0, 5);
+  const searchUrl = new URL("https://en.wikipedia.org/w/api.php");
+  searchUrl.search = new URLSearchParams({ action: "query", list: "search", srsearch: topic, srnamespace: "0", srlimit: "5", format: "json", utf8: "1" }).toString();
+  const searchResponse = await fetch(searchUrl, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
+  if (!searchResponse.ok) throw new Error("wikipedia_search_unavailable");
+  const searchData = await searchResponse.json() as { query?: { search?: Array<{ title?: string }> } };
+  const titles = (searchData.query?.search ?? []).map(item => item.title ?? "").filter(Boolean).slice(0, 5);
+  if (!titles.length) return [];
+
+  const extractUrl = new URL("https://en.wikipedia.org/w/api.php");
+  extractUrl.search = new URLSearchParams({ action: "query", prop: "extracts", exintro: "1", explaintext: "1", exsentences: "8", exchars: "2600", titles: titles.join("|"), redirects: "1", format: "json" }).toString();
+  const extractResponse = await fetch(extractUrl, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
+  if (!extractResponse.ok) throw new Error("wikipedia_extract_unavailable");
+  const extractData = await extractResponse.json() as { query?: { pages?: Record<string, { title?: string; extract?: string }> } };
+  return Object.values(extractData.query?.pages ?? {})
+    .map(page => ({ title: page.title ?? "", url: "https://en.wikipedia.org/wiki/" + encodeURIComponent((page.title ?? "").replace(/ /g, "_")), extract: (page.extract ?? "").slice(0, 2600) }))
+    .filter(page => page.title && page.extract.length > 80)
+    .slice(0, 5);
 }
 
 async function searchWebFallback(topic: string): Promise<Source[]> {
