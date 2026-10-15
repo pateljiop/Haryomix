@@ -295,7 +295,7 @@ function studyMarkdownToPrintHtml(markdown:string):string{
  if(line.includes("|")&&line.split("|").length>=3){flushParagraph();flushList();table.push(line);continue;}else flushTable();
  const h=line.match(/^(#{1,4})\s+(.+)$/);if(h){flushParagraph();flushList();const tag=h[1].length<=2?"h2":h[1].length===3?"h3":"h4";html+="<"+tag+">"+inline(h[2])+"</"+tag+">";continue;}
  const bullet=line.match(/^[-*+]\s+(.+)$/);const numbered=line.match(/^\d+[.)]\s+(.+)$/);
- if(bullet||numbered){flushParagraph();const next=numbered?"ol":"ul";if(list!==next){flushList();list=next;html+="<"+list+">";}html+="<li>"+inline((bullet||numbered)[1])+"</li>";continue;}
+ if(bullet||numbered){flushParagraph();const next=numbered?"ol":"ul";if(list!==next){flushList();list=next;html+="<"+list+">";}html+="<li>"+inline((bullet||numbered)![1])+"</li>";continue;}
  flushList();paragraph.push(line);
  }
  flushParagraph();flushList();flushTable();return html;
