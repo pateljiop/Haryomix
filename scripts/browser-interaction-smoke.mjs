@@ -4,9 +4,11 @@ import { deflateSync } from "node:zlib";
 import { PDFDocument } from "pdf-lib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const baseUrl = (process.argv[2] || "https://haryomix.pages.dev").replace(/\/$/, "");
+const standardFontDataUrl = pathToFileURL(resolve("node_modules/pdfjs-dist/standard_fonts") + "/").href;
 const profile = mkdtempSync(join(tmpdir(), "haryomix-browser-e2e-"));
 const chrome = spawn("google-chrome", [
   "--headless=new",
@@ -518,7 +520,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Watermark added')", "PDF watermark completes");
   const watermarkPath = await waitForDownload("haryomix-watermarked.pdf");
   const watermarked = await PDFDocument.load(readFileSync(watermarkPath));
-  const watermarkPdfJs = await getDocument({ data: new Uint8Array(readFileSync(watermarkPath)) }).promise;
+  const watermarkPdfJs = await getDocument({ data: new Uint8Array(readFileSync(watermarkPath)), standardFontDataUrl }).promise;
   const watermarkText = (await Promise.all(
     Array.from({ length: watermarkPdfJs.numPages }, async (_, index) => {
       const page = await watermarkPdfJs.getPage(index + 1);
@@ -583,7 +585,7 @@ async function run() {
   await waitFor("document.querySelector('.hmx-workspace-main > .hmx-note[role=status]')?.textContent.includes('Page numbers added')", "page numbering completes");
   const numberedPath = await waitForDownload("haryomix-page-numbers.pdf");
   const numbered = await PDFDocument.load(readFileSync(numberedPath));
-  const numberedPdfJs = await getDocument({ data: new Uint8Array(readFileSync(numberedPath)) }).promise;
+  const numberedPdfJs = await getDocument({ data: new Uint8Array(readFileSync(numberedPath)), standardFontDataUrl }).promise;
   const numberedText = (await Promise.all(Array.from({ length: numberedPdfJs.numPages }, async (_, index) => {
     const page = await numberedPdfJs.getPage(index + 1);
     const textContent = await page.getTextContent();
