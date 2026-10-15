@@ -305,7 +305,9 @@ async function run() {
   await waitFor("document.querySelectorAll('.id-arranger-thumb').length===2 && Array.from(document.querySelectorAll('.id-arranger-upload-hint')).some(el=>(el.textContent||'').includes('haryomix-sample-front.png'))", "ID Arranger loads both clearly labelled demo images");
   console.log("ID Arranger Try Sample loads safe demo artwork for both sides.");
 
-  await navigate("/workspace/practice-quiz", "!!document.querySelector('#hmx-quiz-track') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Start practice test'))", "Practice Quiz setup");
+  await navigate("/workspace/practice-quiz", "!!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Local practice sets'))", "Practice Quiz topic-research setup");
+  await clickText("button", "Local practice sets", "switch to local practice sets");
+  await waitFor("!!document.querySelector('#hmx-quiz-track') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Start practice test'))", "local Practice Quiz setup");
   await chooseValue("#hmx-quiz-track", "competitive", "competitive quiz track");
   await clickText("button", "Start practice test", "start timed practice test");
   await waitFor("Array.from(document.querySelectorAll('.hmx-result h3')).some(el=>(el.textContent||'').includes('Find the next number'))", "first competitive quiz question");

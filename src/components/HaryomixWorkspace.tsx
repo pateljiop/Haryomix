@@ -100,11 +100,25 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
   const [detail,setDetail]=useState("Balanced");
   const [notes,setNotes]=useState(true);
   const [busy,setBusy]=useState(false);
+  const [generationStatus,setGenerationStatus]=useState("");
   const items=useMemo(()=>points.split("\n").map(s=>s.trim()).filter(Boolean).slice(0,24),[points]);
   async function exportPpt(){
     if(!title.trim()||!items.length)return;
     setBusy(true);
+    setGenerationStatus("Checking whether AI slide content is available…");
     try {
+      let generatedSlides: Array<{title:string;bullets:string[];speakerNotes?:string}> | null = null;
+      try {
+        const response=await fetch("/api/ai/chat",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({task:"ppt",prompt:JSON.stringify({title,course,audience,purpose,style:tone,contentDensity:detail,language:"Follow the user's language",requiredSlides:items.map((topic,index)=>({index:index+1,topic})),instructions:"Create substantive, topic-specific slide content. Return ONLY valid JSON with this exact shape: {\"slides\":[{\"title\":string,\"bullets\":string[],\"speakerNotes\":string}]}. Return exactly one slide per requiredSlides entry, in the same order. Each slide needs 3-5 concrete informative bullets, not generic placeholders. Use accurate facts; do not invent statistics or citations."})})});
+        const data=await response.json().catch(()=>({}));
+        if(response.ok&&typeof data.answer==="string"){
+          try{
+            const parsed=JSON.parse(data.answer.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,""));
+            if(Array.isArray(parsed?.slides)&&parsed.slides.length===items.length&&parsed.slides.every((slide:any)=>typeof slide.title==="string"&&slide.title.trim()&&Array.isArray(slide.bullets)&&slide.bullets.length>=3&&slide.bullets.every((bullet:any)=>typeof bullet==="string"&&bullet.trim())))generatedSlides=parsed.slides;
+          }catch{/* Invalid AI output falls back to the offline template. */}
+        }
+      }catch{/* Local export must still work when AI is not configured. */}
+      setGenerationStatus(generatedSlides?"AI slide content ready. Exporting editable PowerPoint…":"AI is unavailable here; exporting with the built-in slide template.");
       const pptxgen=(await import("pptxgenjs")).default;
       const pptx=new pptxgen();
       pptx.layout="LAYOUT_WIDE";
@@ -153,8 +167,10 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
         footer(agenda,slideNo++);
       }
       items.forEach((item,i)=>{
-        const sl=base(String(i+1).padStart(2,"0")+" / "+item);
-        sl.addText(item,{x:.62,y:.9,w:11.8,h:.68,fontFace:"Aptos Display",fontSize:25,bold:true,color:C.ink,fit:"shrink",margin:0});
+        const aiSlide=generatedSlides?.[i];
+        const slideTitle=aiSlide?.title?.trim()||item;
+        const sl=base(String(i+1).padStart(2,"0")+" / "+slideTitle);
+        sl.addText(slideTitle,{x:.62,y:.9,w:11.8,h:.68,fontFace:"Aptos Display",fontSize:25,bold:true,color:C.ink,fit:"shrink",margin:0});
         sl.addShape(pptx.ShapeType.line,{x:.65,y:1.72,w:11.95,h:0,line:{color:C.line,width:1}});
         const isOpening=/executive|summary|problem|why it matters|key takeaways|conclusion|recommend/i.test(item);
         const bullets=isOpening
@@ -164,7 +180,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
             : detail==="Concise"
               ? ["Main point: state the conclusion first.","Evidence or example: show why it matters.","Implication: connect the point to the overall objective."]
               : ["Core idea: explain the concept in plain, accurate language.","Evidence or example: make the idea concrete and understandable.","Practical implication: explain when this matters and what follows."];
-        const cards=bullets.slice(0,detail==="Detailed"?4:3);
+        const cards=(aiSlide?.bullets?.length?aiSlide.bullets:bullets).slice(0,detail==="Detailed"?4:3);
         cards.forEach((b,j)=>{
           const y=2.05+j*(detail==="Detailed"?.94:1.13);
           sl.addShape(pptx.ShapeType.roundRect,{x:.7,y,w:11.85,h:detail==="Detailed"?.76:.91,rectRadius:.08,fill:{color:C.white},line:{color:C.line,width:.8}});
@@ -175,7 +191,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
         sl.addText("AUDIENCE  /  "+clean(audience),{x:.72,y:6.15,w:8.5,h:.24,fontSize:8,color:C.muted,charSpacing:.4,margin:0});
         footer(sl,slideNo++);
         if(notes){
-          sl.addNotes(`Presenter guidance: ${item}.\n\nOpen with the central message, define any necessary terms, and connect the point to the presentation objective. Use one relevant real-world example and cite reliable sources for any factual or numerical claim you add. Do not present placeholder statements as verified research.\n\nAudience: ${audience}. Purpose: ${purpose}`);
+          sl.addNotes(`Presenter guidance: ${aiSlide?.speakerNotes||slideTitle}.\n\nAudience: ${audience}. Purpose: ${purpose}`);
         }
       });
       const final=base("Closing / Decision");
@@ -188,7 +204,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       final.addText("Created by Hariom Builds · "+clean(course),{x:.75,y:6.55,w:9,h:.25,fontSize:9,color:"A9C8FF",margin:0});
       footer(final,slideNo);
       await pptx.writeFile({fileName:slug(title)+".pptx"});
-      setNotice(`Expert-style PowerPoint exported: ${slideNo} slides, consistent layout, agenda, takeaway slide${notes?", and speaker notes":""}. The outline is professionally structured but factual claims and sources still need your review.`);
+      setNotice(`PowerPoint exported successfully: ${slideNo} slides, agenda, takeaway slide${notes?", and speaker notes":""}. ${generatedSlides?"Topic-specific AI content was used.":"Built-in offline slide content was used because AI was unavailable."} Review factual claims and sources before submission.`);
     } catch(e) {
       setNotice("PowerPoint export failed: "+(e instanceof Error?e.message:"unknown error"));
     } finally {setBusy(false);}
@@ -206,7 +222,7 @@ function PptTool({setNotice}:{setNotice:(s:string)=>void}) {
       <div className="hmx-field"><label htmlFor="ppt-detail">Content density</label><select id="ppt-detail" className="hmx-select" value={detail} onChange={e=>setDetail(e.target.value)}><option>Concise</option><option>Balanced</option><option>Detailed</option></select></div>
       <label className="hmx-option"><input type="checkbox" checked={notes} onChange={e=>setNotes(e.target.checked)}/> Add presenter notes to each content slide</label>
       <div className="hmx-ppt-preview" style={{marginTop:18}}><div className="hmx-ppt-slide" style={{background:"#14243A",color:"#fff",minHeight:230,padding:28,borderRadius:8}}><p style={{color:"#A9C8FF",fontSize:10,fontWeight:800,letterSpacing:".15em"}}>HARYOMIX / PRESENTATION BRIEF</p><h3 style={{color:"#fff",fontSize:27,lineHeight:1.2,marginTop:24}}>{title||"Your presentation title"}</h3><p style={{color:"#D6E1EF",marginTop:18}}>{purpose||"Presentation objective"}</p><div style={{height:3,width:50,background:"#38A7C8",marginTop:24}}/><p style={{color:"#A9C8FF",fontSize:11,marginTop:16}}>{course} · {items.length} content topics</p></div></div>
-      <div className="hmx-btn-row" style={{marginTop:18}}><button className="hmx-btn primary" disabled={busy||!title.trim()||!items.length} onClick={exportPpt}>{busy?"Building presentation…":"Build professional .pptx ↗"}</button></div>
+      <div className="hmx-btn-row" style={{marginTop:18}}><button className="hmx-btn primary" disabled={busy||!title.trim()||!items.length} onClick={exportPpt}>{busy?"Building presentation…":"Build professional .pptx ↗"}</button></div>{generationStatus&&<div className="hmx-note" role="status" style={{marginTop:14,overflowWrap:"anywhere"}}>{generationStatus}</div>}
     </div>
   </div>
 }
@@ -358,6 +374,7 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
  ];
  const [selectedExam,setSelectedExam]=useState(()=>readExamContext()?.track==="competitive" ? "Railway RRB (NTPC / ALP / Group D)" : "Other / university exam");
  const [course,setCourse]=useState(()=>{const context=readExamContext();return context ? context.level : "Any course / open learning"});
+ const [examName,setExamName]=useState(""); const [syllabusResearch,setSyllabusResearch]=useState<{summary:string;syllabus:Array<{section:string;topics:string[]}>;examPattern:string;confidence:string;limitations:string;results:Array<{title:string;url:string;snippet:string;official:boolean}>;officialSourceCount:number;researchedAt:string}|null>(null); const [syllabusBusy,setSyllabusBusy]=useState(false); const [syllabusError,setSyllabusError]=useState("");
  const [examType,setExamType]=useState(()=>{const context=readExamContext();return context?.track==="school" ? "School / board exam" : context?.track==="graduation" ? "College / university exam" : context?.track==="competitive" ? "Competitive / one-day exam" : "Competitive / one-day exam"});
  const [subject,setSubject]=useState(()=>readExamContext()?.track==="competitive" ? "Current Affairs" : "");
  const [topic,setTopic]=useState(()=>readExamContext()?.track==="competitive" ? "India and world current affairs, economy, science and technology, important days, awards, sports, government schemes" : "");
@@ -392,8 +409,15 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
   }catch(e){setResearchSources([]);setResearchMessage(e instanceof Error?e.message:"Research search is temporarily unavailable.");return [] as Array<{title:string;source:string;url:string;date?:string;description?:string}>}
   finally{setResearchBusy(false)}
  }
+ async function searchExamSyllabus(){
+  if(syllabusBusy||examName.trim().length<3){setSyllabusError("Enter the exact exam name, including the conducting body or year if known.");return;}
+  setSyllabusBusy(true);setSyllabusError("");setSyllabusResearch(null);
+  try{const response=await fetch("/api/exam/syllabus",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({exam:examName,context:course})});const data=await response.json().catch(()=>({error:"Syllabus search returned an unreadable response."}));if(!response.ok)throw new Error(typeof data.error==="string"?data.error:"Could not research this exam syllabus.");setSyllabusResearch(data);if(Array.isArray(data.syllabus)&&data.syllabus.length){setTopic(data.syllabus.map((item:{section:string;topics:string[]})=>item.section+" — "+item.topics.join(", ")).join("\n"));if(!subject.trim())setSubject(examName);}setNotice("Syllabus research completed. Review official source links and confidence before generating notes.");}
+  catch(error){setSyllabusError(error instanceof Error?error.message:"Syllabus research failed. Retry after checking server configuration.");}
+  finally{setSyllabusBusy(false);}
+ }
  async function makeNotes(){
-  if(busy||!subject.trim()||!topic.trim()){setError("Enter a subject and the topics you want covered.");return}
+  if(busy||(!subject.trim()&&!examName.trim())||(!topic.trim()&&!syllabusResearch)){setError("Enter an exam name and search its syllabus, or enter a subject and topics.");return}
   setBusy(true);setError("");setNotes("");
   const sourceResults=researchSources.length?researchSources:await searchResearch();
   const quizInstruction=includeQuiz?"\n\n# OPTIONAL PRACTICE QUIZ\nGenerate EXACTLY 25 numbered MCQs, each with four options A-D. Cover the supplied topics, vary difficulty, avoid duplicates, then provide a separate answer key with one-sentence explanations. Do not omit this section.":"\n\nDo NOT include a quiz or practice questions; the learner has left quiz disabled.";
@@ -401,7 +425,11 @@ function ExamTool({setNotice}:{setNotice:(s:string)=>void}){
   const isCurrentAffairs=/current\s*affairs|current\s*events|daily\s*news/i.test(subject+" "+topic+" "+examType);
   const currentAffairsRules=isCurrentAffairs?`\n\nCURRENT-AFFAIRS FRESHNESS REQUIREMENT: Today is ${today} (India time). The user explicitly needs current affairs for 2026. Do not present 2024 or 2025 news as 2026 current affairs. Prioritize events published in 2026 and, when the user says current/latest/recent without a range, focus on the last 30 days ending today. For EVERY news item, include the event date, publication date, a direct source URL, and source/publisher. Prefer official PIB, ministry, RBI, Election Commission, ISRO, Supreme Court, and other primary sources; use reputable news sources for context. Never invent events, dates, statistics or URLs. If live source verification is unavailable, clearly say so and do not fabricate a current-affairs digest; ask for a date range or source material instead.`:"";
   const availableSources=sourceResults.map((item,index)=>`${index+1}. [${item.source}] ${item.title} ${item.date?`(date: ${item.date})`:""}\nURL: ${item.url}${item.description? `\nMetadata/description: ${item.description}`:""}`).join("\n\n");
-  const prompt=`Create STUDY NOTES, NOT A STUDY PLAN OR ROADMAP, in ${language}. Today is ${today} in India (Asia/Kolkata). Course/background: ${course}. Selected exact exam: ${selectedExam}. Exam purpose: ${examType}. Subject: ${subject}. Topics and scope: ${topic}.${currentAffairsRules}\n\nEXAM-COPILOT REQUIREMENTS: When an exact exam is selected, prioritize the latest official exam authority syllabus and exam pattern. If retrieved research sources do not verify the official syllabus, say which details need verification; do not invent syllabus units. Organize revision notes and detailed notes against the syllabus, paper/section and topic. Include official previous-year-paper/archive URLs when supplied by the source links above or the selected exam resource portal; never fabricate direct PDF URLs. If official PYQs are unavailable in retrieved results, state that and create clearly labelled PYQ-pattern practice (not actual past questions).
+  const researchedScope=syllabusResearch ? "Verified research summary: "+syllabusResearch.summary+"\nSyllabus sections: "+syllabusResearch.syllabus.map(section=>section.section+": "+section.topics.join(", ")).join("; ")+"\nExam pattern: "+syllabusResearch.examPattern+"\nResearch confidence: "+syllabusResearch.confidence+"\nLimitations: "+syllabusResearch.limitations : "";
+  const syllabusEvidence=syllabusResearch ? syllabusResearch.results.map(item=>(item.official?"OFFICIAL":"NON-OFFICIAL")+" SOURCE: "+item.title+" — "+item.url+" — "+item.snippet).join("\n") : "No exact-exam syllabus research was supplied. Do not claim official syllabus verification.";
+  const actualSubject=subject.trim()||examName.trim()||selectedExam;
+  const actualTopic=syllabusResearch ? researchedScope+"\nLearner-selected topics: "+topic.trim() : topic.trim()||researchedScope;
+  const prompt=`Create STUDY NOTES, NOT A STUDY PLAN OR ROADMAP, in ${language}. Today is ${today} in India (Asia/Kolkata). Course/background: ${course}. Selected exact exam: ${selectedExam}. Exact exam name: ${examName||selectedExam}. Exam purpose: ${examType}. Subject: ${actualSubject}. Topics and scope: ${actualTopic}.${currentAffairsRules}\n\nOFFICIAL SYLLABUS RESEARCH: ${syllabusEvidence}. Use only the supplied evidence; never invent syllabus units, exam pattern, dates, eligibility or marks. If the official syllabus is not verified, say so clearly.\n\n\nEXAM-COPILOT REQUIREMENTS: When an exact exam is selected, prioritize the latest official exam authority syllabus and exam pattern. If retrieved research sources do not verify the official syllabus, say which details need verification; do not invent syllabus units. Organize revision notes and detailed notes against the syllabus, paper/section and topic. Include official previous-year-paper/archive URLs when supplied by the source links above or the selected exam resource portal; never fabricate direct PDF URLs. If official PYQs are unavailable in retrieved results, state that and create clearly labelled PYQ-pattern practice (not actual past questions).
 
 RESEARCH SOURCE RULES: ${availableSources? "Use the following retrieved source metadata as discovery leads, not unquestionable facts. Cite only links supplied below when relevant, distinguish publication date from event date, and do not claim to have read full text if only metadata is available. Do not invent source details.\\n\\n"+availableSources : "No external research results were retrieved for this request. Do not claim that live research was performed; for time-sensitive facts, clearly state the limitation instead of fabricating citations."}
 
@@ -444,6 +472,12 @@ Do not output a timetable, roadmap, checklist-only worksheet or prompts asking t
  return <div className="hmx-panel">
   <div className="hmx-panel-head"><h2>Study & Exam Copilot</h2><span style={{fontSize:11,color:"#7a8292"}}>All subjects · any exam</span></div>
   <div className="hmx-panel-body">
+   <div className="hmx-note" style={{marginBottom:14}}>Exact-exam mode searches live web results and prioritizes official Indian exam-board or government sources. The result is evidence-based research, not a guarantee that every syllabus item was verified.</div>
+   <div className="hmx-field"><label htmlFor="exam-name">Exact exam name (India)</label><input id="exam-name" className="hmx-input" value={examName} onChange={e=>setExamName(e.target.value)} placeholder="e.g. RRB ALP 2026, SSC CGL, FATE exam, BCA 5th semester"/></div>
+   <div className="hmx-btn-row" style={{marginBottom:14}}><button className="hmx-btn primary" type="button" disabled={syllabusBusy||examName.trim().length<3} onClick={()=>void searchExamSyllabus()}>{syllabusBusy?"Searching official sources…":"Find exam syllabus ↗"}</button><span style={{alignSelf:"center",fontSize:12,color:"#8796b2"}}>Live search · official sources prioritized</span></div>
+   {syllabusError&&<div className="hmx-note" role="alert" style={{marginBottom:14}}>{syllabusError}</div>}
+   {syllabusResearch&&<section className="hmx-result" style={{background:"#101c30",border:"1px solid #35557d",color:"#eaf2ff",padding:18,borderRadius:14,marginBottom:18}}><h3 style={{color:"#f3f7ff",marginTop:0}}>Syllabus research: {examName}</h3><p>{syllabusResearch.summary}</p><p><strong>Exam pattern:</strong> {syllabusResearch.examPattern}</p><p><strong>Confidence:</strong> {syllabusResearch.confidence} · <strong>Official sources found:</strong> {syllabusResearch.officialSourceCount}</p><p>{syllabusResearch.limitations}</p><ul>{syllabusResearch.results.map(item=><li key={item.url}><a href={item.url} target="_blank" rel="noreferrer" style={{color:"#7dd3fc"}}>{item.official?"Official source: ":"Source: "}{item.title}</a><p style={{fontSize:12,color:"#a9bad2"}}>{item.snippet}</p></li>)}</ul></section>}
+   
    <div className="hmx-stat-row"><div className="hmx-stat"><strong>Any subject</strong><span>School, college, university</span></div><div className="hmx-stat"><strong>One-day exams</strong><span>Competitive & recruitment</span></div><div className="hmx-stat"><strong>Optional quiz</strong><span>25 MCQs when enabled</span></div></div>
    <p style={{fontSize:14,lineHeight:1.75,color:"#c4d0e4"}}>Create detailed notes that explain the concepts—not just larger text or a list of headings. Use this for science, maths, commerce, arts, humanities, languages, computer science, general knowledge, current affairs, and other subjects.</p>
    <div className="hmx-field"><label htmlFor="exam-catalog">Select your exact exam</label><select id="exam-catalog" className="hmx-select" value={selectedExam} onChange={e=>{setSelectedExam(e.target.value);setCourse(e.target.value);setExamType("Competitive / one-day exam");setSubject(e.target.value);setTopic("Find the latest official syllabus for "+e.target.value+"; list every paper/section, subject, unit and subtopic. Then create complete exam-aligned revision notes and detailed topic notes. Include previous-year question paper links and analyse recurring PYQ patterns only when verifiable. Clearly mark anything not officially verified.");setResearchSources([]);setResearchMessage("");}}>{examCatalog.map(exam=><option key={exam.name} value={exam.name}>{exam.name}</option>)}</select><div className="hmx-btn-row" style={{marginTop:9}}><a className="hmx-btn" href={examCatalog.find(e=>e.name===selectedExam)?.url||"https://www.nta.ac.in/"} target="_blank" rel="noreferrer">Official syllabus / notices ↗</a><a className="hmx-btn" href={examCatalog.find(e=>e.name===selectedExam)?.papers||"https://www.nta.ac.in/NoticeBoardArchive"} target="_blank" rel="noreferrer">Previous-year papers ↗</a><button type="button" className="hmx-btn" onClick={()=>{setCourse(selectedExam);setExamType("Competitive / one-day exam");setSubject(selectedExam);setTopic("Find and explain the latest official syllabus for "+selectedExam+" including every paper, subject, unit and subtopic. Build syllabus-wise revision notes and detailed notes. Include verified previous-year paper links and explain recurring question patterns only if sources support them; label unverified material clearly.");setResearchSources([]);setResearchMessage("");}}>Load exam syllabus + notes task</button></div><p className="hmx-planner-subtitle">Official links open in a new tab. Use the Copilot to generate syllabus-wise notes and PYQ-pattern practice; it must label unverified details instead of inventing them.</p></div>
