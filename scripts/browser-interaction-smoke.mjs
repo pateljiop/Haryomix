@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 const baseUrl = (process.argv[2] || "https://haryomix.pages.dev").replace(/\/$/, "");
 const standardFontDataUrl = resolve("node_modules/pdfjs-dist/standard_fonts") + "/";
 const profile = mkdtempSync(join(tmpdir(), "haryomix-browser-e2e-"));
-const chrome = spawn("google-chrome", [
+const chrome = spawn(process.env.CHROME_BIN || "google-chrome", [
   "--headless=new",
   "--no-sandbox",
   "--disable-gpu",
