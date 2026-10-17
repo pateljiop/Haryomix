@@ -93,3 +93,8 @@
 @media(prefers-reduced-motion:reduce) {
   .hmx-product-scene { transition:none; transform:none!important; }
 }
+
+/* The product preview uses its own interface, not the old decorative crystal. */
+.hmx-product-scene:before,.hmx-product-scene:after { display:none !important; content:none !important; }
+.hmx-product-scene { position:relative; z-index:2; }
+.hmx-hero-workspace>.hmx-webgl-field { z-index:0; opacity:.28; }
