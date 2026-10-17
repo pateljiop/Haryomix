@@ -1,4 +1,5 @@
 import { useState, type PointerEvent } from "react";
+import { WebGLParticleField } from "./WebGLParticleField";
 
 const modules = [
   { icon: "▤", name: "PDF Studio", note: "Pages, order, exports" },
@@ -20,6 +21,7 @@ export function HeroWorkspace() {
   const reset = () => setTilt({ x: 0, y: 0 });
 
   return <div className="hmx-hero-art hmx-hero-workspace" aria-label="Preview of the Haryomix student workspace">
+    <WebGLParticleField />
     <div className="hmx-3d-scene hmx-product-scene" onPointerMove={move} onPointerLeave={reset}
       style={{ "--scene-rx": `${tilt.x}deg`, "--scene-ry": `${tilt.y}deg` } as React.CSSProperties}>
       <div className="hmx-product-window">
