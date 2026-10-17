@@ -31,5 +31,10 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:4173/ > /dev/null
+      - name: Set up Chrome for browser verification
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
       - name: Verify browser interactions and PDF artifacts against this build
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: node scripts/browser-interaction-smoke.mjs http://127.0.0.1:4173
