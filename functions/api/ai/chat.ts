@@ -160,7 +160,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   };
   const available = preferredOrder.filter(provider => configured[provider]);
   if (!available.length) return reply({
-    error: "AI provider is not configured. Configure an existing provider or set AGENT_ROUTER_API_KEY + AGENT_ROUTER_MODEL and/or WHATSTOKEN_API_KEY + WHATSTOKEN_MODEL as encrypted Cloudflare Pages secrets.",
+    error: "AI provider is not configured. Configure an existing provider or set AGENT_ROUTER_API_KEY and/or WHATSTOKEN_API_KEY as encrypted Cloudflare Pages secrets. Model IDs are discovered automatically; optional *_MODEL variables can override them.",
     code: "ai_not_configured",
   }, 503);
 
