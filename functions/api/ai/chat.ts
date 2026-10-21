@@ -3,6 +3,10 @@ interface Env {
   GEMINI_API_KEY?: string;
   FELO_API_KEY?: string;
   FELO_MODEL?: string;
+  AGENT_ROUTER_API_KEY?: string;
+  AGENT_ROUTER_MODEL?: string;
+  WHATSTOKEN_API_KEY?: string;
+  WHATSTOKEN_MODEL?: string;
   DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = Record<string, unknown>>(): Promise<T | null>; run(): Promise<unknown> } } };
 }
 
@@ -16,7 +20,7 @@ function reply(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-type Provider = "groq" | "gemini" | "felo";
+type Provider = "groq" | "gemini" | "felo" | "agentrouter" | "whatstoken";
 function providerStatusReason(status: number): string {
   if (status === 401 || status === 403) return "credentials_rejected";
   if (status === 400 || status === 422) return "invalid_request_or_model";
@@ -32,12 +36,12 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-async function askGroq(key: string, system: string, prompt: string): Promise<string> {
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+async function askOpenAICompatible(baseUrl: string, key: string, model: string, system: string, prompt: string): Promise<string> {
+  const response = await fetch(baseUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "openai/gpt-oss-120b",
+      model,
       temperature: 0.2,
       max_tokens: 6000,
       messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
@@ -49,6 +53,10 @@ async function askGroq(key: string, system: string, prompt: string): Promise<str
   const answer = data.choices?.[0]?.message?.content?.trim();
   if (!answer) throw new Error("empty_response");
   return answer;
+}
+
+async function askGroq(key: string, system: string, prompt: string): Promise<string> {
+  return askOpenAICompatible("https://api.groq.com/openai/v1/chat/completions", key, "openai/gpt-oss-120b", system, prompt);
 }
 
 async function askGemini(key: string, system: string, prompt: string): Promise<string> {
@@ -70,22 +78,7 @@ async function askGemini(key: string, system: string, prompt: string): Promise<s
 }
 
 async function askFelo(key: string, model: string, system: string, prompt: string): Promise<string> {
-  const response = await fetch("https://openapi.felo.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: 6000,
-      messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
-    }),
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (!response.ok) throw new Error(providerStatusReason(response.status));
-  const data = await response.json() as { choices?: { message?: { content?: string | null } }[] };
-  const answer = data.choices?.[0]?.message?.content?.trim();
-  if (!answer) throw new Error("empty_response");
-  return answer;
+  return askOpenAICompatible("https://openapi.felo.ai/api/v1/chat/completions", key, model, system, prompt);
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
@@ -106,7 +99,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   const body = input as Record<string, unknown>;
   const task = text(body.task, 30);
   const prompt = text(body.prompt, MAX_PROMPT_CHARS);
-  const preferred = body.provider === "gemini" ? "gemini" : body.provider === "groq" ? "groq" : body.provider === "felo" ? "felo" : "auto";
+  const requestedProvider = ["gemini", "groq", "felo", "agentrouter", "whatstoken"].includes(String(body.provider)) ? body.provider as Provider : "auto";
   if (!["code", "study", "ppt", "general"].includes(task)) return reply({ error: "Choose a supported task." }, 400);
   if (prompt.length < 3) return reply({ error: "Add a question or some content first." }, 400);
 
@@ -135,20 +128,24 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
   } catch {
     return reply({ error: "AI request protection is temporarily unavailable." }, 503);
   }
-  const order: Provider[] = preferred === "gemini"
-    ? ["gemini", "groq", "felo"]
-    : preferred === "felo"
-      ? ["felo", "groq", "gemini"]
-      : preferred === "groq"
-        ? ["groq", "gemini", "felo"]
-        : ["groq", "gemini", "felo"];
-  const available = order.filter(p =>
-    p === "groq" ? Boolean(env.GROQ_API_KEY)
-      : p === "gemini" ? Boolean(env.GEMINI_API_KEY)
-        : Boolean(env.FELO_API_KEY)
-  );
+
+  const preferredOrder: Provider[] = requestedProvider === "gemini" ? ["gemini", "groq", "felo", "agentrouter", "whatstoken"]
+    : requestedProvider === "felo" ? ["felo", "groq", "gemini", "agentrouter", "whatstoken"]
+    : requestedProvider === "agentrouter" ? ["agentrouter", "whatstoken", "groq", "gemini", "felo"]
+    : requestedProvider === "whatstoken" ? ["whatstoken", "agentrouter", "groq", "gemini", "felo"]
+    : requestedProvider === "groq" ? ["groq", "gemini", "felo", "agentrouter", "whatstoken"]
+    : ["groq", "gemini", "felo", "agentrouter", "whatstoken"];
+
+  const configured: Record<Provider, boolean> = {
+    groq: Boolean(env.GROQ_API_KEY),
+    gemini: Boolean(env.GEMINI_API_KEY),
+    felo: Boolean(env.FELO_API_KEY),
+    agentrouter: Boolean(env.AGENT_ROUTER_API_KEY && env.AGENT_ROUTER_MODEL),
+    whatstoken: Boolean(env.WHATSTOKEN_API_KEY && env.WHATSTOKEN_MODEL),
+  };
+  const available = preferredOrder.filter(provider => configured[provider]);
   if (!available.length) return reply({
-    error: "AI provider is not configured yet. Add GROQ_API_KEY, GEMINI_API_KEY, and/or FELO_API_KEY as encrypted Cloudflare Pages secrets, then redeploy.",
+    error: "AI provider is not configured. Configure an existing provider or set AGENT_ROUTER_API_KEY + AGENT_ROUTER_MODEL and/or WHATSTOKEN_API_KEY + WHATSTOKEN_MODEL as encrypted Cloudflare Pages secrets.",
     code: "ai_not_configured",
   }, 503);
 
@@ -159,8 +156,12 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         ? await askGroq(env.GROQ_API_KEY!, system, prompt)
         : provider === "gemini"
           ? await askGemini(env.GEMINI_API_KEY!, system, prompt)
-          : await askFelo(env.FELO_API_KEY!, env.FELO_MODEL || "claude-sonnet-4-6", system, prompt);
-      return reply({ answer, provider, fallbackUsed: provider !== order[0] });
+          : provider === "felo"
+            ? await askFelo(env.FELO_API_KEY!, env.FELO_MODEL || "claude-sonnet-4-6", system, prompt)
+            : provider === "agentrouter"
+              ? await askOpenAICompatible("https://agentrouter.org/v1/chat/completions", env.AGENT_ROUTER_API_KEY!, env.AGENT_ROUTER_MODEL!, system, prompt)
+              : await askOpenAICompatible("https://www.whatstoken.ai/v1/chat/completions", env.WHATSTOKEN_API_KEY!, env.WHATSTOKEN_MODEL!, system, prompt);
+      return reply({ answer, provider, fallbackUsed: provider !== preferredOrder[0] });
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       const reason = message === "rate_limit" ? "rate_limited"
@@ -168,12 +169,11 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
         : message === "invalid_request_or_model" ? "invalid_request_or_model"
         : message === "model_or_endpoint_not_found" ? "model_or_endpoint_not_found"
         : message === "provider_request_failed" ? "request_rejected"
-        : message === "provider_unavailable" || message === "upstream_unavailable" ? "upstream_unavailable"
+        : message === "upstream_unavailable" ? "upstream_unavailable"
         : message === "empty_response" ? "empty_response"
         : error instanceof SyntaxError ? "invalid_upstream_response"
         : "provider_error";
       failures.push({ provider, reason });
-      // Return only safe provider names and failure categories, never raw upstream text or credentials.
     }
   }
   const allRateLimited = failures.length > 0 && failures.every(failure => failure.reason === "rate_limited");
