@@ -34,8 +34,8 @@ export async function onRequestGet({ env }: { env: Env }): Promise<Response> {
     groq: Boolean(env.GROQ_API_KEY),
     gemini: Boolean(env.GEMINI_API_KEY),
     felo: Boolean(env.FELO_API_KEY),
-    agentrouter: Boolean(env.AGENT_ROUTER_API_KEY && env.AGENT_ROUTER_MODEL),
-    whatstoken: Boolean(env.WHATSTOKEN_API_KEY && env.WHATSTOKEN_MODEL),
+    agentrouter: Boolean(env.AGENT_ROUTER_API_KEY),
+    whatstoken: Boolean(env.WHATSTOKEN_API_KEY),
   };
   const anyChatProviderConfigured = Object.values(aiProviders).some(Boolean);
   const databaseReady = databaseConfigured && databaseReachable && rateLimitTableReady;
