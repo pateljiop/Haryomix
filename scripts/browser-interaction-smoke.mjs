@@ -238,6 +238,7 @@ async function run() {
   const dedicatedRoutes = [
     ["/workspace", "Your workspace"],
     ["/workspace/code-doctor", "Code Doctor"],
+    ["/workspace/algorithms-lab", "Algorithms Lab"],
     ["/workspace/ppt-studio", "PPT Studio"],
     ["/workspace/pdf-studio", "PDF Studio"],
     ["/workspace/image-studio", "Image Studio"],
@@ -252,15 +253,16 @@ async function run() {
     ["/workspace/focus-timer", "Focus Timer"],
     ["/workspace/student-utilities", "Student Utilities"],
     ["/workspace/notes", "Smart Notes"],
+    ["/workspace/algorithms-lab", "Algorithms Lab"],
   ];
   for (const [route, title] of dedicatedRoutes) {
     await navigate(route, "document.querySelector('.hmx-workspace-head h1')?.textContent === " + JSON.stringify(title) + " && !document.querySelector('.hmx-sidebar')", title + " dedicated page");
   }
-  console.log("All 15 tool pages plus the workspace directory render independently without the old sidebar.");
+  console.log("All tool pages plus the workspace directory render independently without the old sidebar.");
 
-  await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
+  await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!document.querySelector('#hmx-problem-description') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
-  await waitFor("document.querySelector('.hmx-result h3')?.textContent.includes('Local review findings')", "local Code Doctor findings");
+  await waitFor("Array.from(document.querySelectorAll('.hmx-result h3')).some(el=>el.textContent.includes('Local review findings'))", "local Code Doctor findings");
   await waitFor("Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('colon')) && Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('Unclosed bracket'))", "Code Doctor catches default syntax errors");
   await fill("#hmx-code", "def add(a, b):\n    return a + b\n\nprint(add(2, 3))", "valid Python sample");
   await clickText("button", "Inspect locally", "inspect valid Python");
