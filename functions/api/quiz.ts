@@ -68,6 +68,24 @@ async function searchWebFallback(topic: string): Promise<Source[]> {
   return results;
 }
 
+async function searchOpenAlex(topic: string): Promise<Source[]> {
+  const url = new URL("https://api.openalex.org/works");
+  url.search = new URLSearchParams({ search: topic, "per-page": "5", select: "id,display_name,doi,publication_year,abstract_inverted_index" }).toString();
+  const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (source-backed quiz)" }, signal: AbortSignal.timeout(12_000) });
+  if (!response.ok) throw new Error("openalex_search_unavailable");
+  const data = await response.json() as { results?: Array<{ id?: string; display_name?: string; doi?: string | null; publication_year?: number | null; abstract_inverted_index?: Record<string, number[]> | null }> };
+  return (data.results ?? []).map(work => {
+    const words: Array<[number, string]> = [];
+    for (const [word, positions] of Object.entries(work.abstract_inverted_index ?? {})) for (const position of positions) if (Number.isInteger(position) && position >= 0) words.push([position, word]);
+    words.sort((a, b) => a[0] - b[0]);
+    let extract = words.slice(0, 260).map(item => item[1]).join(" ");
+    if (work.publication_year) extract = "Publication year: " + work.publication_year + ". " + extract;
+    const doi = (work.doi ?? "").replace(/^https?:\/\/doi\.org\//i, "");
+    const sourceUrl = /^10\.\d{4,9}\//.test(doi) ? "https://doi.org/" + doi : work.id ?? "";
+    return { title: (work.display_name ?? "").trim(), url: sourceUrl, extract };
+  }).filter(source => source.title.length > 5 && /^https:\/\//i.test(source.url) && source.extract.length > 80).slice(0, 5);
+}
+
 async function searchTopic(topic: string): Promise<Source[]> {
   try {
     const wikipedia = await searchWikipedia(topic);
@@ -76,8 +94,14 @@ async function searchTopic(topic: string): Promise<Source[]> {
     // A blocked or throttled Wikipedia endpoint must not disable the whole quiz feature.
   }
   try {
-    const fallback = await searchWebFallback(topic);
-    if (fallback.length) return fallback;
+    const web = await searchWebFallback(topic);
+    if (web.length) return web;
+  } catch {
+    // Continue to the scholarly index if HTML search is blocked.
+  }
+  try {
+    const scholarly = await searchOpenAlex(topic);
+    if (scholarly.length) return scholarly;
   } catch {
     // The caller returns a clear no-sources error instead of fabricating questions.
   }
