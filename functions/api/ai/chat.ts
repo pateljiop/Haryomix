@@ -174,7 +174,7 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           : provider === "felo"
             ? await askFelo(env.FELO_API_KEY!, env.FELO_MODEL || "claude-sonnet-4-6", system, prompt)
             : provider === "agentrouter"
-              ? (await askOpenAICompatible("https://co.agentrouter.org/v1/chat/completions", env.AGENT_ROUTER_API_KEY!, env.AGENT_ROUTER_MODEL, "https://co.agentrouter.org/v1/models", system, prompt)).answer
+              ? (await askOpenAICompatible("https://agentrouter.org/v1/chat/completions", env.AGENT_ROUTER_API_KEY!, env.AGENT_ROUTER_MODEL, "https://agentrouter.org/v1/models", system, prompt)).answer
               : (await askOpenAICompatible("https://www.whatstoken.ai/v1/chat/completions", env.WHATSTOKEN_API_KEY!, env.WHATSTOKEN_MODEL, "https://www.whatstoken.ai/v1/models", system, prompt)).answer;
       return reply({ answer, provider, fallbackUsed: provider !== preferredOrder[0] });
     } catch (error) {
