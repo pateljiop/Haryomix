@@ -36,12 +36,27 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-async function askOpenAICompatible(baseUrl: string, key: string, model: string, system: string, prompt: string): Promise<string> {
+async function discoverModel(baseUrl: string, key: string): Promise<string> {
+  const response = await fetch(baseUrl, {
+    headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!response.ok) throw new Error(providerStatusReason(response.status));
+  const data = await response.json() as { data?: Array<{ id?: unknown }> };
+  const ids = (data.data ?? []).map(item => typeof item.id === "string" ? item.id.trim() : "").filter(Boolean);
+  if (!ids.length) throw new Error("no_models_available");
+  // Prefer common low-cost text models when present; otherwise use the provider's first listed model.
+  const preferred = ids.find(id => /mini|flash|haiku|small|fast|free/i.test(id));
+  return preferred ?? ids[0];
+}
+
+async function askOpenAICompatible(baseUrl: string, key: string, model: string | undefined, modelsUrl: string, system: string, prompt: string): Promise<{ answer: string; model: string }> {
+  const selectedModel = model?.trim() || await discoverModel(modelsUrl, key);
   const response = await fetch(baseUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model,
+      model: selectedModel,
       temperature: 0.2,
       max_tokens: 6000,
       messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
@@ -52,11 +67,11 @@ async function askOpenAICompatible(baseUrl: string, key: string, model: string, 
   const data = await response.json() as { choices?: { message?: { content?: string | null } }[] };
   const answer = data.choices?.[0]?.message?.content?.trim();
   if (!answer) throw new Error("empty_response");
-  return answer;
+  return { answer, model: selectedModel };
 }
 
 async function askGroq(key: string, system: string, prompt: string): Promise<string> {
-  return askOpenAICompatible("https://api.groq.com/openai/v1/chat/completions", key, "openai/gpt-oss-120b", system, prompt);
+  return (await askOpenAICompatible("https://api.groq.com/openai/v1/chat/completions", key, "openai/gpt-oss-120b", "https://api.groq.com/openai/v1/models", system, prompt)).answer;
 }
 
 async function askGemini(key: string, system: string, prompt: string): Promise<string> {
@@ -78,7 +93,7 @@ async function askGemini(key: string, system: string, prompt: string): Promise<s
 }
 
 async function askFelo(key: string, model: string, system: string, prompt: string): Promise<string> {
-  return askOpenAICompatible("https://openapi.felo.ai/api/v1/chat/completions", key, model, system, prompt);
+  return (await askOpenAICompatible("https://openapi.felo.ai/api/v1/chat/completions", key, model, "https://openapi.felo.ai/api/v1/models", system, prompt)).answer;
 }
 
 export async function onRequestPost({ request, env }: { request: Request; env: Env }): Promise<Response> {
@@ -140,8 +155,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     groq: Boolean(env.GROQ_API_KEY),
     gemini: Boolean(env.GEMINI_API_KEY),
     felo: Boolean(env.FELO_API_KEY),
-    agentrouter: Boolean(env.AGENT_ROUTER_API_KEY && env.AGENT_ROUTER_MODEL),
-    whatstoken: Boolean(env.WHATSTOKEN_API_KEY && env.WHATSTOKEN_MODEL),
+    agentrouter: Boolean(env.AGENT_ROUTER_API_KEY),
+    whatstoken: Boolean(env.WHATSTOKEN_API_KEY),
   };
   const available = preferredOrder.filter(provider => configured[provider]);
   if (!available.length) return reply({
@@ -159,8 +174,8 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
           : provider === "felo"
             ? await askFelo(env.FELO_API_KEY!, env.FELO_MODEL || "claude-sonnet-4-6", system, prompt)
             : provider === "agentrouter"
-              ? await askOpenAICompatible("https://agentrouter.org/v1/chat/completions", env.AGENT_ROUTER_API_KEY!, env.AGENT_ROUTER_MODEL!, system, prompt)
-              : await askOpenAICompatible("https://www.whatstoken.ai/v1/chat/completions", env.WHATSTOKEN_API_KEY!, env.WHATSTOKEN_MODEL!, system, prompt);
+              ? (await askOpenAICompatible("https://co.agentrouter.org/v1/chat/completions", env.AGENT_ROUTER_API_KEY!, env.AGENT_ROUTER_MODEL, "https://co.agentrouter.org/v1/models", system, prompt)).answer
+              : (await askOpenAICompatible("https://www.whatstoken.ai/v1/chat/completions", env.WHATSTOKEN_API_KEY!, env.WHATSTOKEN_MODEL, "https://www.whatstoken.ai/v1/models", system, prompt)).answer;
       return reply({ answer, provider, fallbackUsed: provider !== preferredOrder[0] });
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
