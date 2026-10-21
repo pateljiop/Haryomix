@@ -3,6 +3,10 @@ interface Env {
   GROQ_API_KEY?: string;
   GEMINI_API_KEY?: string;
   FELO_API_KEY?: string;
+  AGENT_ROUTER_API_KEY?: string;
+  AGENT_ROUTER_MODEL?: string;
+  WHATSTOKEN_API_KEY?: string;
+  WHATSTOKEN_MODEL?: string;
 }
 
 export async function onRequestGet({ env }: { env: Env }): Promise<Response> {
@@ -25,20 +29,21 @@ export async function onRequestGet({ env }: { env: Env }): Promise<Response> {
     }
   }
 
-  // Report only whether secrets exist. Never return secret values or provider error bodies.
+  // Report only whether secrets/configuration exist. Never return secret values.
   const aiProviders = {
     groq: Boolean(env.GROQ_API_KEY),
     gemini: Boolean(env.GEMINI_API_KEY),
     felo: Boolean(env.FELO_API_KEY),
+    agentrouter: Boolean(env.AGENT_ROUTER_API_KEY && env.AGENT_ROUTER_MODEL),
+    whatstoken: Boolean(env.WHATSTOKEN_API_KEY && env.WHATSTOKEN_MODEL),
   };
-  const anyChatProviderConfigured = aiProviders.groq || aiProviders.gemini || aiProviders.felo;
+  const anyChatProviderConfigured = Object.values(aiProviders).some(Boolean);
   const databaseReady = databaseConfigured && databaseReachable && rateLimitTableReady;
   const status = databaseReady && anyChatProviderConfigured ? "ok" : "needs-setup";
 
   return Response.json({
     service: "haryomix-api",
     status,
-    // Keep the original string field for existing health consumers.
     database: databaseConfigured ? (databaseReachable ? "connected" : "unavailable") : "not-configured",
     databaseChecks: {
       configured: databaseConfigured,
