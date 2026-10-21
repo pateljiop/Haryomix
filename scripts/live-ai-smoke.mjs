@@ -43,6 +43,23 @@ async function run() {
   assert.ok(typeof notes.answer === "string" && notes.answer.trim().length >= 30, "live study AI must return a non-empty explanation");
   console.log("PASS: live Exam Copilot study generation (" + (notes.provider || "provider selected") + ")");
 
+  const codeDoctor = await postJson("/api/ai/chat", {
+    task: "code",
+    provider: "auto",
+    prompt: "Write a short JavaScript function that reverses a string, with one example call and expected output.",
+  });
+  assert.ok(typeof codeDoctor.answer === "string" && codeDoctor.answer.trim().length >= 30, "Code Doctor must return a useful code answer");
+  console.log("PASS: live Code Doctor generation (" + (codeDoctor.provider || "provider selected") + ")");
+
+  for (const provider of ["agentrouter", "whatstoken"]) {
+    const response = await postJson("/api/ai/chat", {
+      task: "study",
+      provider,
+      prompt: "Reply in one sentence: what is photosynthesis?",
+    });
+    assert.ok(typeof response.answer === "string" && response.answer.trim().length >= 20, provider + " route must return a useful answer");
+    console.log("PASS: requested " + provider + " route returned an answer via " + (response.provider || "provider selected") + (response.fallbackUsed ? " (fallback used)" : ""));
+  }
   const ppt = await postJson("/api/ai/ppt", {
     action: "create",
     query: "Create a short educational presentation about photosynthesis for first-year college learners. Use simple English, accurate concepts and a clear conclusion.",
