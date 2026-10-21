@@ -238,6 +238,7 @@ async function run() {
   const dedicatedRoutes = [
     ["/workspace", "Your workspace"],
     ["/workspace/code-doctor", "Code Doctor"],
+    ["/workspace/algorithms-lab", "Algorithms Lab"],
     ["/workspace/ppt-studio", "PPT Studio"],
     ["/workspace/pdf-studio", "PDF Studio"],
     ["/workspace/image-studio", "Image Studio"],
@@ -259,7 +260,7 @@ async function run() {
   }
   console.log("All tool pages plus the workspace directory render independently without the old sidebar.");
 
-  await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
+  await navigate("/workspace/code-doctor", "!!document.querySelector('#hmx-code') && !!document.querySelector('#hmx-problem-description') && !!Array.from(document.querySelectorAll('button')).find(button=>(button.textContent||'').includes('Ask AI to explain'))", "Code Doctor review controls");
   await clickText("button", "Inspect locally", "run local Code Doctor checks");
   await waitFor("Array.from(document.querySelectorAll('.hmx-result h3')).some(el=>el.textContent.includes('Local review findings'))", "local Code Doctor findings");
   await waitFor("Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('colon')) && Array.from(document.querySelectorAll('.hmx-result li')).some(el=>el.textContent.includes('Unclosed bracket'))", "Code Doctor catches default syntax errors");
