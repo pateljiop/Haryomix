@@ -4,14 +4,15 @@ import { CommunityFeed } from "./components/CommunityFeed";
 import { ModerationDashboard } from "./components/ModerationDashboard";
 import { HeroWorkspace } from "./components/HeroWorkspace";
 
-type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "examcenter" | "quiz" | "progress" | "questionbank" | "ai" | "create" | "notes" | "flashcards" | "focus" | "utilities" | "calculator" | "converter" | "idarranger";
-const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", examcenter: "/workspace/exam-center", quiz: "/workspace/practice-quiz", progress: "/workspace/progress-tracker", questionbank: "/workspace/question-bank", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", notes: "/workspace/notes", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter", idarranger: "/workspace/id-arranger" };
+type ToolId = "index" | "code" | "ppt" | "pdf" | "image" | "exam" | "examcenter" | "quiz" | "progress" | "questionbank" | "ai" | "create" | "notes" | "flashcards" | "focus" | "utilities" | "calculator" | "converter" | "idarranger" | "algorithms";
+const toolRoutes: Record<ToolId, string> = { index: "/workspace", code: "/workspace/code-doctor", ppt: "/workspace/ppt-studio", pdf: "/workspace/pdf-studio", image: "/workspace/image-studio", exam: "/workspace/exam-copilot", examcenter: "/workspace/exam-center", quiz: "/workspace/practice-quiz", progress: "/workspace/progress-tracker", questionbank: "/workspace/question-bank", ai: "/workspace/haryomix-ai", create: "/workspace/ai-create-studio", notes: "/workspace/notes", flashcards: "/workspace/flashcards", focus: "/workspace/focus-timer", utilities: "/workspace/student-utilities", calculator: "/workspace/scientific-calculator", converter: "/workspace/unit-converter", idarranger: "/workspace/id-arranger", algorithms: "/workspace/algorithms-lab" };
 function toolFromPath(path: string): ToolId | null { const normalizedPath = path.replace(/\/+$/, "") || "/"; if (normalizedPath === "/workspace/study-planner") return "examcenter"; if (normalizedPath === "/workspace/study-library") return "notes"; const entry = (Object.entries(toolRoutes) as [ToolId, string][]).find(([, route]) => route === normalizedPath); return entry?.[0] ?? null; }
 const tools: { id: ToolId; n: string; title: string; desc: string }[] = [
-  { id: "code", n: "01", title: "Code Doctor", desc: "Trace common errors and get a focused debugging checklist." },
-  { id: "ppt", n: "02", title: "PPT Studio", desc: "Turn a topic into structured, editable PowerPoint slides." },
-  { id: "pdf", n: "03", title: "PDF Studio", desc: "Merge, split, rotate and reorder without rebuilding text." },
-  { id: "image", n: "04", title: "Image Studio", desc: "Crop, resize, rotate, adjust and export in your browser." },
+  { id: "code", n: "01", title: "Code Doctor", desc: "Describe a coding problem or paste code and get a suggested fix." },
+  { id: "algorithms", n: "02", title: "Algorithms Lab", desc: "Generate algorithm implementations with complexity notes, examples and test cases." },
+  { id: "ppt", n: "03", title: "PPT Studio", desc: "Turn a topic into structured, editable PowerPoint slides." },
+  { id: "pdf", n: "04", title: "PDF Studio", desc: "Merge, split, rotate and reorder without rebuilding text." },
+  { id: "image", n: "05", title: "Image Studio", desc: "Crop, resize, rotate, adjust and export in your browser." },
   { id: "examcenter", n: "05", title: "Exam Center", desc: "Choose Class 6–12, graduation or competitive-exam preparation and open focused study tools." },
   { id: "ai", n: "06", title: "Haryomix AI", desc: "Get help with coding, study and writing in one assistant." },
   { id: "create", n: "07", title: "AI Create Studio", desc: "Create presentation decks and images with the built-in creative tools." },
