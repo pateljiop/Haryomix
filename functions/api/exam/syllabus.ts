@@ -97,6 +97,29 @@ async function searchDuckDuckGo(query: string): Promise<Result[]> {
   }
   return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
 }
+async function searchBing(query: string): Promise<Result[]> {
+  const url = new URL("https://www.bing.com/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("count", "10");
+  const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36", Accept: "text/html" }, signal: AbortSignal.timeout(12_000) });
+  if (!response.ok) throw new Error("bing_search_unavailable");
+  const html = await response.text();
+  const results: Result[] = [];
+  const blocks = html.match(/<li class="b_algo"[\\s\\S]*?<\\/li>/gi) ?? [];
+  for (const block of blocks) {
+    const match = block.match(/<h2[^>]*>[\\s\\S]*?<a[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>[\\s\\S]*?<\\/h2>/i);
+    if (!match) continue;
+    try {
+      const target = new URL(decodeHtml(match[1]));
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\\.)bing\\.com$/.test(target.hostname)) continue;
+      const snippetMatch = block.match(/<p[^>]*>([\\s\\S]*?)<\\/p>/i);
+      const title = stripHtml(match[2]);
+      if (title && !results.some(item => item.url === target.href)) results.push({ title, url: target.href, snippet: snippetMatch ? stripHtml(snippetMatch[1]) : "", official: isOfficial(target.href) });
+    } catch { /* Ignore malformed result cards. */ }
+    if (results.length >= 8) break;
+  }
+  return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+}
 async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> {
   const normalized = exam.replace(/"/g, " ").trim();
   const queries = [
@@ -108,9 +131,20 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
   const found: Result[] = [];
   // Google's official JSON API is optional and quota-limited; without configured credentials,
   // use DuckDuckGo's free HTML endpoint rather than brittle Google-result-page scraping.
-  const search = env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX
-    ? (query: string) => searchGoogle(query, env)
-    : (query: string) => searchDuckDuckGo(query);
+  const search = async (query: string): Promise<Result[]> => {
+    if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) return searchGoogle(query, env);
+    const failures: string[] = [];
+    for (const provider of [searchDuckDuckGo, searchBing]) {
+      try {
+        const results = await provider(query);
+        if (results.length) return results;
+      } catch (error) {
+        failures.push(error instanceof Error ? error.message : "search_failed");
+      }
+    }
+    if (failures.length === 2) throw new Error("search_providers_unavailable");
+    return [];
+  };
   for (const query of queries) {
     try {
       const results = await search(query);
