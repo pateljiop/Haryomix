@@ -24,17 +24,6 @@ async function postJson(path, payload) {
 async function run() {
   console.log("Live AI smoke target:", baseUrl);
 
-  const syllabus = await postJson("/api/exam/syllabus", {
-    exam: "SSC CGL",
-    context: "India",
-  });
-  assert.equal(syllabus.searchedLiveWeb, true, "syllabus endpoint must perform live web search");
-  assert.ok(Array.isArray(syllabus.results) && syllabus.results.length > 0, "syllabus search must return source links");
-  assert.ok(["high", "medium", "low"].includes(syllabus.confidence), "syllabus result needs a confidence label");
-  assert.equal(typeof syllabus.summary, "string", "syllabus response needs a summary");
-  assert.equal(typeof syllabus.limitations, "string", "syllabus response needs limitations");
-  console.log("PASS: live exam syllabus search + source links + confidence/limitations");
-
   const notes = await postJson("/api/ai/chat", {
     task: "study",
     provider: "auto",
@@ -80,6 +69,17 @@ async function run() {
     assert.ok(typeof status.status === "string" && status.status.length > 0, "Felo PPT task status must be readable");
     console.log("PASS: live Felo PPT task accepted and status endpoint responded (" + status.status + ")");
   }
+  const syllabus = await postJson("/api/exam/syllabus", {
+    exam: "SSC CGL",
+    context: "India",
+  });
+  assert.equal(syllabus.searchedLiveWeb, true, "syllabus endpoint must perform live web search");
+  assert.ok(Array.isArray(syllabus.results) && syllabus.results.length > 0, "syllabus search must return source links");
+  assert.ok(["high", "medium", "low"].includes(syllabus.confidence), "syllabus result needs a confidence label");
+  assert.equal(typeof syllabus.summary, "string", "syllabus response needs a summary");
+  assert.equal(typeof syllabus.limitations, "string", "syllabus response needs limitations");
+  console.log("PASS: live exam syllabus search + source links + confidence/limitations");
+
   const quiz = await postJson("/api/quiz", {
     topic: "Photosynthesis and chlorophyll",
     language: "English",
