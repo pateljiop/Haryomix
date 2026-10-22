@@ -105,14 +105,14 @@ async function searchBing(query: string): Promise<Result[]> {
   if (!response.ok) throw new Error("bing_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const blocks = html.match(/<li class="b_algo"[\\s\\S]*?<\\/li>/gi) ?? [];
+  const blocks = html.match(/<li class="b_algo"[\s\S]*?<\/li>/gi) ?? [];
   for (const block of blocks) {
-    const match = block.match(/<h2[^>]*>[\\s\\S]*?<a[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>[\\s\\S]*?<\\/h2>/i);
+    const match = block.match(/<h2[^>]*>[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h2>/i);
     if (!match) continue;
     try {
       const target = new URL(decodeHtml(match[1]));
-      if (!["http:", "https:"].includes(target.protocol) || /(^|\\.)bing\\.com$/.test(target.hostname)) continue;
-      const snippetMatch = block.match(/<p[^>]*>([\\s\\S]*?)<\\/p>/i);
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\.)bing\.com$/.test(target.hostname)) continue;
+      const snippetMatch = block.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
       const title = stripHtml(match[2]);
       if (title && !results.some(item => item.url === target.href)) results.push({ title, url: target.href, snippet: snippetMatch ? stripHtml(snippetMatch[1]) : "", official: isOfficial(target.href) });
     } catch { /* Ignore malformed result cards. */ }
