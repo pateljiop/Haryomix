@@ -76,19 +76,19 @@ async function searchDuckDuckGo(query: string): Promise<Result[]> {
   if (!response.ok) throw new Error("secondary_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const anchors = html.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="[^"]+"[^>]*>[\\s\\S]*?<\\/a>/gi) ?? [];
+  const anchors = html.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="[^"]+"[^>]*>[\s\S]*?<\/a>/gi) ?? [];
   for (const anchorHtml of anchors) {
-    const anchor = anchorHtml.match(/<a[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>/i);
+    const anchor = anchorHtml.match(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!anchor) continue;
     let href = decodeHtml(anchor[1]);
     try {
       const parsed = new URL(href, "https://duckduckgo.com");
       if (parsed.searchParams.has("uddg")) href = decodeURIComponent(parsed.searchParams.get("uddg")!);
       const target = new URL(href);
-      if (!["http:", "https:"].includes(target.protocol) || /duckduckgo\\.com$/.test(target.hostname)) continue;
+      if (!["http:", "https:"].includes(target.protocol) || /duckduckgo\.com$/.test(target.hostname)) continue;
       const position = html.indexOf(anchorHtml);
       const nearby = html.slice(position, position + 1800);
-      const snippetMatch = nearby.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\\s\\S]*?)<\\/[^>]+>/i);
+      const snippetMatch = nearby.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
       const title = stripHtml(anchor[2]);
       const snippet = snippetMatch ? stripHtml(snippetMatch[1]) : "";
       if (title && !results.some(item => item.url === target.href)) results.push({ title, url: target.href, snippet, official: isOfficial(target.href) });
