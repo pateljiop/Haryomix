@@ -312,20 +312,27 @@ function createOfflineStudyGuide(input:{course:string;examType:string;subject:st
  return lines.join("\n");
 }
 function StudyMarkdown({content}:{content:string}){
- const lines=content.replace(/\r/g,"").split("\n");
+ const lines=content.replace(/\\r/g,"").split("\\n");
  const nodes:React.ReactNode[]=[];
- let list:string[]=[];let listType:"ul"|"ol"="ul";let table:string[]=[];let paragraph:string[]=[];
- const flushParagraph=()=>{if(paragraph.length){nodes.push(<p key={nodes.length} style={{margin:"0 0 12px",lineHeight:1.8}}>{inlineStudyMarkdown(paragraph.join(" "))}</p>);paragraph=[];}};
- const flushList=()=>{if(list.length){const Tag=listType==="ol"?"ol":"ul";nodes.push(<Tag key={nodes.length} style={{paddingLeft:24,margin:"0 0 14px",lineHeight:1.8}}>{list.map((item,i)=><li key={i} style={{marginBottom:5}}>{inlineStudyMarkdown(item)}</li>)}</Tag>);list=[];}};
- const flushTable=()=>{if(table.length){const rows=table.filter(row=>!/^\s*\|?\s*:?-{2,}/.test(row));nodes.push(<div key={nodes.length} style={{overflowX:"auto",margin:"12px 0 18px"}}><table style={{borderCollapse:"collapse",width:"100%",fontSize:13}}><tbody>{rows.map((row,i)=><tr key={i}>{row.trim().replace(/^\||\|$/g,"").split("|").map((cell,j)=><td key={j} style={{padding:"9px 10px",border:"1px solid #354763",verticalAlign:"top",fontWeight:i===0?700:400,background:i===0?"#192943":"transparent"}}>{inlineStudyMarkdown(cell.trim())}</td>)}</tr>)}</tbody></table></div>);table=[];}};
- for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();flushTable();continue;}
- if(line.includes("|")&&line.split("|").length>=3){flushParagraph();flushList();table.push(line);continue;}else flushTable();
- const heading=line.match(/^(#{1,4})\s+(.+)$/);if(heading){flushParagraph();flushList();const level=heading[1].length;const size=level===1?20:level===2?17:level===3?15:14;nodes.push(<h4 key={nodes.length} style={{fontSize:size,lineHeight:1.4,margin:"18px 0 8px",color:"#f3f7ff"}}>{inlineStudyMarkdown(heading[2])}</h4>);continue;}
- const bullet=line.match(/^[-*+]\s+(.+)$/);const numbered=line.match(/^\d+[.)]\s+(.+)$/);if(bullet||numbered){flushParagraph();const nextType=numbered?"ol":"ul";if(list.length&&listType!==nextType)flushList();listType=nextType;list.push((bullet||numbered)![1]);continue;}
- flushList();paragraph.push(line);
+ let list:string[]=[];let listType:"ul"|"ol"="ul";let table:string[]=[];let paragraph:string[]=[];let code:string[]=[];let math:string[]=[];let mode:"code"|"math"|null=null;
+ const flushParagraph=()=>{if(paragraph.length){nodes.push(<p key={nodes.length} style={{margin:"0 0 14px",lineHeight:1.85,overflowWrap:"anywhere"}}>{inlineStudyMarkdown(paragraph.join(" "))}</p>);paragraph=[];}};
+ const flushList=()=>{if(list.length){const Tag=listType==="ol"?"ol":"ul";nodes.push(<Tag key={nodes.length} style={{paddingLeft:24,margin:"0 0 16px",lineHeight:1.8}}>{list.map((item,i)=><li key={i} style={{marginBottom:7,paddingLeft:3}}>{inlineStudyMarkdown(item)}</li>)}</Tag>);list=[];}};
+ const flushTable=()=>{if(table.length){const rows=table.filter(row=>!/^[|\\s]*:?-{2,}/.test(row));nodes.push(<div key={nodes.length} style={{overflowX:"auto",maxWidth:"100%",margin:"14px 0 20px",border:"1px solid #354763",borderRadius:8}}><table style={{borderCollapse:"collapse",width:"100%",minWidth:360,fontSize:14,lineHeight:1.6}}><tbody>{rows.map((row,i)=><tr key={i}>{row.trim().replace(/^\\||\\|$/g,"").split("|").map((cell,j)=><td key={j} style={{padding:"10px 12px",borderBottom:"1px solid #354763",borderRight:"1px solid #354763",verticalAlign:"top",fontWeight:i===0?700:400,background:i===0?"#192943":"transparent",minWidth:72}}>{inlineStudyMarkdown(cell.trim())}</td>)}</tr>)}</tbody></table></div>);table=[];}};
+ const flushCode=()=>{if(code.length){nodes.push(<pre key={nodes.length} style={{whiteSpace:"pre",overflowX:"auto",maxWidth:"100%",padding:16,borderRadius:10,background:"#08111f",border:"1px solid #344760",fontSize:14,lineHeight:1.7,fontFamily:"ui-monospace,SFMono-Regular,Consolas,monospace",color:"#e8f0ff",tabSize:4}}><code>{code.join("\\n")}</code></pre>);code=[];}};
+ const flushMath=()=>{if(math.length){nodes.push(<div key={nodes.length} role="math" aria-label="Mathematical expression" style={{overflowX:"auto",maxWidth:"100%",whiteSpace:"pre-wrap",fontFamily:"Cambria Math,STIX Two Math,Times New Roman,serif",fontSize:18,lineHeight:1.8,textAlign:"center",padding:"12px 14px",margin:"12px 0 18px",borderLeft:"3px solid #7cb7ff",borderRadius:"6px",background:"#0b1525",color:"#f1f5ff"}}>{math.join("\\n").replace(/^\\s*(?:\\\\\\[|\\$\\$)\\s*/,"").replace(/\\s*(?:\\\\\\]|\\$\\$)\\s*$/,"")}</div>);math=[];}};
+ for(const raw of lines){const line=raw.trim();
+  if(mode==="code"){if(/^\\s*```/.test(raw)){flushCode();mode=null;}else code.push(raw);continue;}
+  if(mode==="math"){if(/\\\\\\]|\\$\\$/.test(line)){if(line!=="\\\\]"&&line!=="$$")math.push(raw);flushMath();mode=null;}else math.push(raw);continue;}
+  if(/^\\s*```/.test(raw)){flushParagraph();flushList();flushTable();flushMath();mode="code";continue;}
+  if(line==="$$"||line==="\\\\["||line==="\\\\begin{aligned}"||line==="\\\\begin{bmatrix}"||line==="\\\\begin{pmatrix}"){flushParagraph();flushList();flushTable();mode="math";math.push(line);continue;}
+  if(!line){flushParagraph();flushList();flushTable();flushMath();continue;}
+  if(line.includes("|")&&line.split("|").length>=3){flushParagraph();flushList();table.push(line);continue;}else flushTable();
+  const heading=line.match(/^(#{1,4})\\s+(.+)$/);if(heading){flushParagraph();flushList();flushMath();const level=heading[1].length;const size=level===1?22:level===2?19:level===3?16:14;nodes.push(<h4 key={nodes.length} style={{fontSize:size,lineHeight:1.4,margin:"22px 0 10px",color:"#f3f7ff",overflowWrap:"anywhere"}}>{inlineStudyMarkdown(heading[2])}</h4>);continue;}
+  const bullet=line.match(/^[-*+]\\s+(.+)$/);const numbered=line.match(/^\\d+[.)]\\s+(.+)$/);if(bullet||numbered){flushParagraph();const nextType=numbered?"ol":"ul";if(list.length&&listType!==nextType)flushList();listType=nextType;list.push((bullet||numbered)![1]);continue;}
+  flushList();paragraph.push(line);
  }
- flushParagraph();flushList();flushTable();
- return <div>{nodes}</div>;
+ flushParagraph();flushList();flushTable();flushCode();flushMath();
+ return <div style={{minWidth:0,overflowWrap:"anywhere"}}>{nodes}</div>;
 }
 function inlineStudyMarkdown(value:string):React.ReactNode{
  const parts=value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
