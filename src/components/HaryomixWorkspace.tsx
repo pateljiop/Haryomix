@@ -314,22 +314,22 @@ function createOfflineStudyGuide(input:{course:string;examType:string;subject:st
 function StudyMarkdown({content}:{content:string}){
  const lines=content.replace(/\r/g,"").split("\n");
  const nodes:React.ReactNode[]=[];
- let list:string[]=[];let listType:"ul"|"ol"="ul";let table:string[]=[];let paragraph:string[]=[];
+ let list:string[]=[];let listType:"ul"|"ol"="ul";let table:string[]=[];let paragraph:string[]=[];let mathBlock:string[]=[];let inMathBlock=false;
  const flushParagraph=()=>{if(paragraph.length){nodes.push(<p key={nodes.length} style={{margin:"0 0 12px",lineHeight:1.8}}>{inlineStudyMarkdown(paragraph.join(" "))}</p>);paragraph=[];}};
  const flushList=()=>{if(list.length){const Tag=listType==="ol"?"ol":"ul";nodes.push(<Tag key={nodes.length} style={{paddingLeft:24,margin:"0 0 14px",lineHeight:1.8}}>{list.map((item,i)=><li key={i} style={{marginBottom:5}}>{inlineStudyMarkdown(item)}</li>)}</Tag>);list=[];}};
  const flushTable=()=>{if(table.length){const rows=table.filter(row=>!/^\s*\|?\s*:?-{2,}/.test(row));nodes.push(<div key={nodes.length} style={{overflowX:"auto",margin:"12px 0 18px"}}><table style={{borderCollapse:"collapse",width:"100%",fontSize:13}}><tbody>{rows.map((row,i)=><tr key={i}>{row.trim().replace(/^\||\|$/g,"").split("|").map((cell,j)=><td key={j} style={{padding:"9px 10px",border:"1px solid #354763",verticalAlign:"top",fontWeight:i===0?700:400,background:i===0?"#192943":"transparent"}}>{inlineStudyMarkdown(cell.trim())}</td>)}</tr>)}</tbody></table></div>);table=[];}};
- for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();flushTable();continue;}
+ for(const raw of lines){const line=raw.trim();if(line==="$$"||line==="\\["||line==="\\]"){if(inMathBlock){nodes.push(<div key={nodes.length} role="math" aria-label="Mathematical expression" style={{overflowX:"auto",whiteSpace:"pre",fontFamily:"ui-monospace,SFMono-Regular,Consolas,monospace",fontSize:15,lineHeight:1.9,padding:"14px 16px",margin:"12px 0 18px",border:"1px solid #3b5273",borderRadius:10,background:"#0b1422",color:"#e8f1ff"}}>{mathBlock.join("\n")}</div>);mathBlock=[];inMathBlock=false;}else{flushParagraph();flushList();flushTable();inMathBlock=true;}continue;}if(inMathBlock){mathBlock.push(raw);continue;}if(!line){flushParagraph();flushList();flushTable();continue;}
  if(line.includes("|")&&line.split("|").length>=3){flushParagraph();flushList();table.push(line);continue;}else flushTable();
  const heading=line.match(/^(#{1,4})\s+(.+)$/);if(heading){flushParagraph();flushList();const level=heading[1].length;const size=level===1?20:level===2?17:level===3?15:14;nodes.push(<h4 key={nodes.length} style={{fontSize:size,lineHeight:1.4,margin:"18px 0 8px",color:"#f3f7ff"}}>{inlineStudyMarkdown(heading[2])}</h4>);continue;}
  const bullet=line.match(/^[-*+]\s+(.+)$/);const numbered=line.match(/^\d+[.)]\s+(.+)$/);if(bullet||numbered){flushParagraph();const nextType=numbered?"ol":"ul";if(list.length&&listType!==nextType)flushList();listType=nextType;list.push((bullet||numbered)![1]);continue;}
  flushList();paragraph.push(line);
  }
- flushParagraph();flushList();flushTable();
- return <div>{nodes}</div>;
+ if(mathBlock.length)nodes.push(<div key={nodes.length} role="math" aria-label="Mathematical expression" style={{overflowX:"auto",whiteSpace:"pre",fontFamily:"ui-monospace,SFMono-Regular,Consolas,monospace",fontSize:15,lineHeight:1.9,padding:"14px 16px",margin:"12px 0 18px",border:"1px solid #3b5273",borderRadius:10,background:"#0b1422",color:"#e8f1ff"}}>{mathBlock.join("\n")}</div>);flushParagraph();flushList();flushTable();
+ return <div style={{minWidth:0,overflowWrap:"anywhere"}}>{nodes}</div>;
 }
 function inlineStudyMarkdown(value:string):React.ReactNode{
- const parts=value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
- return parts.map((part,i)=>{if(part.startsWith("**")&&part.endsWith("**"))return <strong key={i}>{part.slice(2,-2)}</strong>;if(part.startsWith("*")&&part.endsWith("*"))return <em key={i}>{part.slice(1,-1)}</em>;if(part.startsWith("`")&&part.endsWith("`"))return <code key={i}>{part.slice(1,-1)}</code>;if(/^https?:\/\//i.test(part))return <a key={i} href={part} target="_blank" rel="noreferrer" style={{color:"#7cb7ff",overflowWrap:"anywhere"}}>{part}</a>;return part;});
+ const parts=value.split(/(\$\$[^$]+\$\$|\$[^$\n]+\$|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
+ return parts.map((part,i)=>{if(part.startsWith("$$")&&part.endsWith("$$"))return <code key={i} style={{fontFamily:"ui-monospace,SFMono-Regular,Consolas,monospace",padding:"2px 5px",borderRadius:4,background:"#0b1422",color:"#dbeafe",overflowWrap:"anywhere"}}>{part.slice(2,-2)}</code>;if(part.startsWith("$")&&part.endsWith("$"))return <code key={i} style={{fontFamily:"ui-monospace,SFMono-Regular,Consolas,monospace",padding:"2px 5px",borderRadius:4,background:"#0b1422",color:"#dbeafe",overflowWrap:"anywhere"}}>{part.slice(1,-1)}</code>;if(part.startsWith("**")&&part.endsWith("**"))return <strong key={i}>{part.slice(2,-2)}</strong>;if(part.startsWith("*")&&part.endsWith("*"))return <em key={i}>{part.slice(1,-1)}</em>;if(part.startsWith("`")&&part.endsWith("`"))return <code key={i}>{part.slice(1,-1)}</code>;if(/^https?:\/\//i.test(part))return <a key={i} href={part} target="_blank" rel="noreferrer" style={{color:"#7cb7ff",overflowWrap:"anywhere"}}>{part}</a>;return part;});
 }
 function cleanStudyText(value:string):string{
  return value
