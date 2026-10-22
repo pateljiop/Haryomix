@@ -156,7 +156,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
   const search = async (query: string): Promise<Result[]> => {
     if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) return searchGoogle(query, env);
     const failures: string[] = [];
-    for (const provider of [searchDuckDuckGo, searchBing, searchBrave]) {
+    for (const provider of [searchDuckDuckGo, searchBing, searchBrave, (q: string) => searchGoogle(q, env)]) {
       try {
         const results = await provider(query);
         if (results.length) return results;
@@ -164,7 +164,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
         failures.push(error instanceof Error ? error.message : "search_failed");
       }
     }
-    if (failures.length === 3) throw new Error("search_providers_unavailable");
+    if (failures.length === 4) throw new Error("search_providers_unavailable");
     return [];
   };
   for (const query of queries) {
