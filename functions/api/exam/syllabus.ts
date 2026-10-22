@@ -24,10 +24,10 @@ function isOfficial(url: string) {
 }
 let envForSearch: Pick<Env, "GOOGLE_CSE_API_KEY" | "GOOGLE_CSE_CX"> = {};\nasync function searchGoogle(query: string): Promise<Result[]> {
   // Prefer Google's supported Programmable Search JSON API when credentials are configured.
-  if (envForSearch.GOOGLE_CSE_API_KEY && envForSearch.GOOGLE_CSE_CX) {
+  if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) {
     const api = new URL("https://www.googleapis.com/customsearch/v1");
-    api.searchParams.set("key", envForSearch.GOOGLE_CSE_API_KEY);
-    api.searchParams.set("cx", envForSearch.GOOGLE_CSE_CX);
+    api.searchParams.set("key", env.GOOGLE_CSE_API_KEY);
+    api.searchParams.set("cx", env.GOOGLE_CSE_CX);
     api.searchParams.set("q", query);
     api.searchParams.set("num", "8");
     const response = await fetch(api, { signal: AbortSignal.timeout(12_000) });
@@ -122,7 +122,6 @@ async function searchWikipedia(query: string): Promise<Result[]> {
   }).slice(0, 8);
 }
 async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> {
-  envForSearch = { GOOGLE_CSE_API_KEY: env.GOOGLE_CSE_API_KEY, GOOGLE_CSE_CX: env.GOOGLE_CSE_CX };
   const queries = [
     'India "' + exam.replace(/"/g, " ") + '" official syllabus exam pattern',
     '"' + exam.replace(/"/g, " ") + '" syllabus official exam conducting body',
@@ -130,7 +129,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
   let searchErrors = 0;
   for (const query of queries) {
     try {
-      const results = await searchGoogle(query);
+      const results = await searchGoogle(query, env);
       if (results.length) return results;
     } catch { searchErrors++; }
   }
