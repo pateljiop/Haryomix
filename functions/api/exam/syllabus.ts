@@ -128,20 +128,23 @@ async function searchBrave(query: string): Promise<Result[]> {
   if (!response.ok) throw new Error("brave_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const anchors = html.match(/<a[^>]*href="https?:[^"]+"[^>]*class="[^"]*result-header[^"]*"[^>]*>[\\s\\S]*?<\\/a>/gi) ?? html.match(/<a[^>]*class="[^"]*result-header[^"]*"[^>]*href="https?:[^"]+"[^>]*>[\\s\\S]*?<\\/a>/gi) ?? [];
+  const anchors = html.match(/<a[^>]*href="https?:[^"]+"[^>]*class="[^"]*result-header[^"]*"[^>]*>[\s\S]*?<\/a>/gi)
+    ?? html.match(/<a[^>]*class="[^"]*result-header[^"]*"[^>]*href="https?:[^"]+"[^>]*>[\s\S]*?<\/a>/gi)
+    ?? [];
   for (const item of anchors) {
     const href = item.match(/href="(https?:[^"]+)"/i)?.[1];
-    const title = stripHtml(item.replace(/<\\/?a[^>]*>/gi, ""));
+    const title = stripHtml(item.replace(/<\/?a[^>]*>/gi, ""));
     if (!href || !title) continue;
     try {
       const target = new URL(decodeHtml(href));
-      if (!["http:", "https:"].includes(target.protocol) || /(^|\\.)search\\.brave\\.com$/.test(target.hostname)) continue;
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\.)search\.brave\.com$/.test(target.hostname)) continue;
       if (!results.some(result => result.url === target.href)) results.push({ title, url: target.href, snippet: "", official: isOfficial(target.href) });
     } catch { /* Ignore malformed result cards. */ }
     if (results.length >= 8) break;
   }
   return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
 }
+
 async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> {
   const normalized = exam.replace(/"/g, " ").trim();
   const queries = [
