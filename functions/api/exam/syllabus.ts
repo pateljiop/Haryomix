@@ -46,6 +46,47 @@ async function searchWeb(query: string): Promise<Result[]> {
   }
   return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
 }
+async function searchWikipedia(query: string): Promise<Result[]> {
+  const url = new URL("https://en.wikipedia.org/w/rest.php/v1/search/page");
+  url.searchParams.set("q", query + " syllabus exam pattern");
+  url.searchParams.set("limit", "8");
+  const response = await fetch(url, {
+    headers: { "User-Agent": "HaryomixStudyAssistant/1.0 (syllabus research)" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error("secondary_search_unavailable");
+  const data = await response.json() as { pages?: Array<{ title?: string; key?: string; description?: string; excerpt?: string }> };
+  return (data.pages ?? []).flatMap(page => {
+    if (!page.title || !page.key) return [];
+    const url = "https://en.wikipedia.org/wiki/" + page.key.split(" ").map(encodeURIComponent).join("_");
+    return [{
+      title: page.title,
+      url,
+      snippet: stripHtml(page.description || page.excerpt || ""),
+      // Wikipedia is a discovery aid, never an official syllabus source.
+      official: false,
+    }];
+  }).slice(0, 8);
+}
+async function searchSyllabusSources(exam: string): Promise<Result[]> {
+  const queries = [
+    'India "' + exam.replace(/"/g, " ") + '" official syllabus exam pattern',
+    '"' + exam.replace(/"/g, " ") + '" syllabus official exam conducting body',
+  ];
+  let searchErrors = 0;
+  for (const query of queries) {
+    try {
+      const results = await searchWeb(query);
+      if (results.length) return results;
+    } catch { searchErrors++; }
+  }
+  try {
+    const fallback = await searchWikipedia(exam);
+    if (fallback.length) return fallback;
+  } catch { searchErrors++; }
+  if (searchErrors === queries.length + 1) throw new Error("search_unavailable");
+  return [];
+}
 async function askAI(env: Env, exam: string, countryContext: string, results: Result[]) {
   const system = "You are an Indian examination syllabus research assistant. Use only the supplied web search result titles/snippets; never invent a syllabus, exam pattern, eligibility rule, dates, or marks. Prioritize official government, exam-board, recruitment-board, university, and conducting-body sources. Return JSON only: {\"summary\":string,\"syllabus\":[{\"section\":string,\"topics\":[string[]]}],\"examPattern\":string,\"confidence\":\"high\"|\"medium\"|\"low\",\"limitations\":string}. If the results do not establish the actual syllabus, say it could not be verified and leave syllabus empty. Cite source names in prose using the exact result titles, and do not imply a third-party page is official.";
   const prompt = JSON.stringify({ exam, countryContext, instruction: "Identify the latest available official syllabus for this exact exam in India. Distinguish exam name variants and recruitment cycles. Return section-wise syllabus topics only when the supplied evidence supports them.", searchResults: results.map(r => ({ title: r.title, url: r.url, snippet: r.snippet, official: r.official })) });
@@ -92,9 +133,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (row.count > 8) return reply({ error: "Exam syllabus research limit reached for this hour. Please retry later.", code: "rate_limited" }, 429);
   } catch { return reply({ error: "Request protection is temporarily unavailable." }, 503); }
   let results: Result[];
-  try { results = await searchWeb('India "' + exam.replace(/"/g, " ") + '" official syllabus exam pattern'); }
-  catch { return reply({ error: "Live web search is unavailable right now. Please retry; no syllabus has been invented.", code: "search_unavailable" }, 502); }
-  if (!results.length) return reply({ error: "No searchable syllabus pages were found for this exam name. Check the spelling or include the conducting body and exam year.", code: "no_results" }, 404);
+  try { results = await searchSyllabusSources(exam); }
+  catch { return reply({ error: "Live search providers are unavailable right now. Please retry; no syllabus has been invented.", code: "search_unavailable" }, 502); }
+  if (!results.length) return reply({ error: "No searchable pages were found for this exam name. Check the spelling or include the conducting body and exam year.", code: "no_results" }, 404);
   try {
     const research = await askAI(env, exam, countryContext, results);
     return reply({ exam, researchedAt: new Date().toISOString(), results, ...research, officialSourceCount: results.filter(r => r.official).length, searchedLiveWeb: true });
