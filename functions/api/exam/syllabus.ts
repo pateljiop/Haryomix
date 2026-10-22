@@ -120,6 +120,31 @@ async function searchBing(query: string): Promise<Result[]> {
   }
   return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
 }
+async function searchBrave(query: string): Promise<Result[]> {
+  const url = new URL("https://search.brave.com/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("source", "web");
+  const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36", Accept: "text/html" }, signal: AbortSignal.timeout(12_000) });
+  if (!response.ok) throw new Error("brave_search_unavailable");
+  const html = await response.text();
+  const results: Result[] = [];
+  const anchors = html.match(/<a[^>]*href="https?:[^"]+"[^>]*class="[^"]*result-header[^"]*"[^>]*>[\s\S]*?<\/a>/gi)
+    ?? html.match(/<a[^>]*class="[^"]*result-header[^"]*"[^>]*href="https?:[^"]+"[^>]*>[\s\S]*?<\/a>/gi)
+    ?? [];
+  for (const item of anchors) {
+    const href = item.match(/href="(https?:[^"]+)"/i)?.[1];
+    const title = stripHtml(item.replace(/<\/?a[^>]*>/gi, ""));
+    if (!href || !title) continue;
+    try {
+      const target = new URL(decodeHtml(href));
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\.)search\.brave\.com$/.test(target.hostname)) continue;
+      if (!results.some(result => result.url === target.href)) results.push({ title, url: target.href, snippet: "", official: isOfficial(target.href) });
+    } catch { /* Ignore malformed result cards. */ }
+    if (results.length >= 8) break;
+  }
+  return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+}
+
 async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> {
   const normalized = exam.replace(/"/g, " ").trim();
   const queries = [
@@ -134,7 +159,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
   const search = async (query: string): Promise<Result[]> => {
     if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) return searchGoogle(query, env);
     const failures: string[] = [];
-    for (const provider of [searchDuckDuckGo, searchBing]) {
+    for (const provider of [searchDuckDuckGo, searchBing, searchBrave, (q: string) => searchGoogle(q, env)]) {
       try {
         const results = await provider(query);
         if (results.length) return results;
@@ -142,7 +167,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
         failures.push(error instanceof Error ? error.message : "search_failed");
       }
     }
-    if (failures.length === 2) throw new Error("search_providers_unavailable");
+    if (failures.length === 4) throw new Error("search_providers_unavailable");
     return [];
   };
   for (const query of queries) {
