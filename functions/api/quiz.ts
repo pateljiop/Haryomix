@@ -68,6 +68,18 @@ async function searchWebFallback(topic: string): Promise<Source[]> {
   return results;
 }
 
+async function searchWikipediaRest(topic: string): Promise<Source[]> {
+  const url = new URL("https://en.wikipedia.org/w/rest.php/v1/search/page");
+  url.search = new URLSearchParams({ q: topic, limit: "5" }).toString();
+  const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": "HaryomixStudentWorkspace/1.0 (topic research quiz)" }, signal: AbortSignal.timeout(12_000) });
+  if (!response.ok) throw new Error("wikipedia_rest_search_unavailable");
+  const data = await response.json() as { pages?: Array<{ title?: string; key?: string; excerpt?: string; description?: string }> };
+  return (data.pages ?? []).map(page => ({
+    title: (page.title ?? "").trim(),
+    url: "https://en.wikipedia.org/wiki/" + encodeURIComponent((page.key ?? page.title ?? "").replace(/ /g, "_")),
+    extract: stripHtml([page.description ?? "", page.excerpt ?? ""].filter(Boolean).join(". ")),
+  })).filter(source => source.title.length > 2 && source.extract.length > 80).slice(0, 5);
+}
 async function searchOpenAlex(topic: string): Promise<Source[]> {
   const url = new URL("https://api.openalex.org/works");
   url.search = new URLSearchParams({ search: topic, "per-page": "5", select: "id,display_name,doi,publication_year,abstract_inverted_index" }).toString();
@@ -98,6 +110,12 @@ async function searchTopic(topic: string): Promise<Source[]> {
     if (web.length) return web;
   } catch {
     // Continue to the scholarly index if HTML search is blocked.
+  }
+  try {
+    const rest = await searchWikipediaRest(topic);
+    if (rest.length) return rest;
+  } catch {
+    // Try the scholarly index if the Wikipedia REST search is unavailable.
   }
   try {
     const scholarly = await searchOpenAlex(topic);

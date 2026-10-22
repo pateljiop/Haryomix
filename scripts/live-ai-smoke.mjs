@@ -24,23 +24,6 @@ async function postJson(path, payload) {
 async function run() {
   console.log("Live AI smoke target:", baseUrl);
 
-  const quiz = await postJson("/api/quiz", {
-    topic: "Photosynthesis and chlorophyll",
-    language: "English",
-    difficulty: "easy",
-  });
-  assert.equal(quiz.searched, true, "topic quiz must search reference content");
-  assert.equal(quiz.questions?.length, 10, "topic quiz must return exactly 10 questions");
-  assert.ok(quiz.sources?.length > 0, "topic quiz must return sources");
-  for (const [index, question] of quiz.questions.entries()) {
-    assert.ok(question.question?.trim(), "question " + (index + 1) + " needs text");
-    assert.equal(question.options?.length, 4, "question " + (index + 1) + " needs four options");
-    assert.ok(Number.isInteger(question.answer) && question.answer >= 0 && question.answer < 4, "question " + (index + 1) + " needs a valid answer index");
-    assert.ok(question.explanation?.trim(), "question " + (index + 1) + " needs an explanation");
-    assert.ok(/^https?:\/\//i.test(question.sourceUrl || ""), "question " + (index + 1) + " needs a source URL");
-  }
-  console.log("PASS: live topic research + 10 source-linked MCQs + answer schema");
-
   const syllabus = await postJson("/api/exam/syllabus", {
     exam: "SSC CGL",
     context: "India",
@@ -60,6 +43,23 @@ async function run() {
   assert.ok(typeof notes.answer === "string" && notes.answer.trim().length >= 30, "live study AI must return a non-empty explanation");
   console.log("PASS: live Exam Copilot study generation (" + (notes.provider || "provider selected") + ")");
 
+  const codeDoctor = await postJson("/api/ai/chat", {
+    task: "code",
+    provider: "auto",
+    prompt: "Write a short JavaScript function that reverses a string, with one example call and expected output.",
+  });
+  assert.ok(typeof codeDoctor.answer === "string" && codeDoctor.answer.trim().length >= 30, "Code Doctor must return a useful code answer");
+  console.log("PASS: live Code Doctor generation (" + (codeDoctor.provider || "provider selected") + ")");
+
+  for (const provider of ["agentrouter", "whatstoken"]) {
+    const response = await postJson("/api/ai/chat", {
+      task: "study",
+      provider,
+      prompt: "Reply in one sentence: what is photosynthesis?",
+    });
+    assert.ok(typeof response.answer === "string" && response.answer.trim().length >= 20, provider + " route must return a useful answer");
+    console.log("PASS: requested " + provider + " route returned an answer via " + (response.provider || "provider selected") + (response.fallbackUsed ? " (fallback used)" : ""));
+  }
   const ppt = await postJson("/api/ai/ppt", {
     action: "create",
     query: "Create a short educational presentation about photosynthesis for first-year college learners. Use simple English, accurate concepts and a clear conclusion.",
@@ -80,6 +80,23 @@ async function run() {
     assert.ok(typeof status.status === "string" && status.status.length > 0, "Felo PPT task status must be readable");
     console.log("PASS: live Felo PPT task accepted and status endpoint responded (" + status.status + ")");
   }
+  const quiz = await postJson("/api/quiz", {
+    topic: "Photosynthesis and chlorophyll",
+    language: "English",
+    difficulty: "easy",
+  });
+  assert.equal(quiz.searched, true, "topic quiz must search reference content");
+  assert.equal(quiz.questions?.length, 10, "topic quiz must return exactly 10 questions");
+  assert.ok(quiz.sources?.length > 0, "topic quiz must return sources");
+  for (const [index, question] of quiz.questions.entries()) {
+    assert.ok(question.question?.trim(), "question " + (index + 1) + " needs text");
+    assert.equal(question.options?.length, 4, "question " + (index + 1) + " needs four options");
+    assert.ok(Number.isInteger(question.answer) && question.answer >= 0 && question.answer < 4, "question " + (index + 1) + " needs a valid answer index");
+    assert.ok(question.explanation?.trim(), "question " + (index + 1) + " needs an explanation");
+    assert.ok(/^https?:\/\//i.test(question.sourceUrl || ""), "question " + (index + 1) + " needs a source URL");
+  }
+  console.log("PASS: live topic research + 10 source-linked MCQs + answer schema");
+
   console.log("All live AI smoke checks passed.");
 }
 
