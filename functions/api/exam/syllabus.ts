@@ -3,6 +3,8 @@ interface Env {
   GEMINI_API_KEY?: string;
   FELO_API_KEY?: string;
   FELO_MODEL?: string;
+  GOOGLE_CSE_API_KEY?: string;
+  GOOGLE_CSE_CX?: string;
   DB?: { prepare(sql: string): { bind(...values: unknown[]): { first<T = { count: number }>(): Promise<T | null>; run(): Promise<unknown> } } };
 }
 type Result = { title: string; url: string; snippet: string; official: boolean };
@@ -20,16 +22,63 @@ function isOfficial(url: string) {
       /^(nta\.ac\.in|upsc\.gov\.in|ssc\.gov\.in|rrbcdg\.gov\.in|ibps\.in|sbi\.co\.in|ctet\.nic\.in|cbse\.gov\.in|jeemain\.nta\.ac\.in|neet\.nta\.nic\.in)$/.test(host);
   } catch { return false; }
 }
-async function searchWeb(query: string): Promise<Result[]> {
+async function searchGoogle(query: string, env: Env): Promise<Result[]> {
+  if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) {
+    const api = new URL("https://www.googleapis.com/customsearch/v1");
+    api.searchParams.set("key", env.GOOGLE_CSE_API_KEY);
+    api.searchParams.set("cx", env.GOOGLE_CSE_CX);
+    api.searchParams.set("q", query);
+    api.searchParams.set("num", "8");
+    const response = await fetch(api, { signal: AbortSignal.timeout(12_000) });
+    if (!response.ok) throw new Error("google_search_unavailable");
+    const data = await response.json() as { items?: Array<{ title?: string; link?: string; snippet?: string }> };
+    return (data.items ?? []).flatMap(item => {
+      if (!item.title || !item.link) return [];
+      try {
+        const target = new URL(item.link);
+        if (!["http:", "https:"].includes(target.protocol)) return [];
+        return [{ title: stripHtml(item.title), url: target.href, snippet: stripHtml(item.snippet || ""), official: isOfficial(target.href) }];
+      } catch { return []; }
+    }).sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+  }
+  const url = new URL("https://www.google.com/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("num", "10");
+  const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36", Accept: "text/html" }, signal: AbortSignal.timeout(12_000) });
+  if (!response.ok) throw new Error("google_search_unavailable");
+  const html = await response.text();
+  const results: Result[] = [];
+  const anchors = html.match(/<a\s[^>]*href="[^"]+"[^>]*>[\s\S]*?<h3[^>]*>[\s\S]*?<\/h3>[\s\S]*?<\/a>/gi) ?? [];
+  for (const anchor of anchors) {
+    const hrefMatch = anchor.match(/href="([^"]+)"/i);
+    const titleMatch = anchor.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i);
+    if (!hrefMatch || !titleMatch) continue;
+    try {
+      let href = decodeHtml(hrefMatch[1]);
+      if (href.startsWith("/url?")) {
+        const wrapped = new URL(href, "https://www.google.com");
+        href = wrapped.searchParams.get("q") || wrapped.searchParams.get("url") || "";
+      }
+      const target = new URL(href);
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\.)google\.com$/.test(target.hostname)) continue;
+      const title = stripHtml(titleMatch[1]);
+      if (!title || results.some(item => item.url === target.href)) continue;
+      results.push({ title, url: target.href, snippet: "", official: isOfficial(target.href) });
+    } catch { /* Ignore malformed or non-result links. */ }
+    if (results.length >= 8) break;
+  }
+  return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+}
+async function searchDuckDuckGo(query: string): Promise<Result[]> {
   const url = new URL("https://html.duckduckgo.com/html/");
   url.searchParams.set("q", query);
   const response = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; HaryomixStudyAssistant/1.0)", Accept: "text/html" }, signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) throw new Error("search_unavailable");
+  if (!response.ok) throw new Error("secondary_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) ?? [];
-  for (const block of blocks) {
-    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+  const anchors = html.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="[^"]+"[^>]*>[\s\S]*?<\/a>/gi) ?? [];
+  for (const anchorHtml of anchors) {
+    const anchor = anchorHtml.match(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!anchor) continue;
     let href = decodeHtml(anchor[1]);
     try {
@@ -37,14 +86,53 @@ async function searchWeb(query: string): Promise<Result[]> {
       if (parsed.searchParams.has("uddg")) href = decodeURIComponent(parsed.searchParams.get("uddg")!);
       const target = new URL(href);
       if (!["http:", "https:"].includes(target.protocol) || /duckduckgo\.com$/.test(target.hostname)) continue;
-      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
+      const position = html.indexOf(anchorHtml);
+      const nearby = html.slice(position, position + 1800);
+      const snippetMatch = nearby.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
       const title = stripHtml(anchor[2]);
       const snippet = snippetMatch ? stripHtml(snippetMatch[1]) : "";
-      if (title && href && !results.some(item => item.url === target.href)) results.push({ title, url: target.href, snippet, official: isOfficial(target.href) });
+      if (title && !results.some(item => item.url === target.href)) results.push({ title, url: target.href, snippet, official: isOfficial(target.href) });
     } catch { /* Ignore malformed search-result links. */ }
     if (results.length >= 8) break;
   }
   return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+}
+async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> {
+  const normalized = exam.replace(/"/g, " ").trim();
+  const queries = [
+    '"' + normalized + '" official syllabus site:gov.in OR site:nic.in',
+    '"' + normalized + '" syllabus official exam notification',
+    '"' + normalized + '" syllabus official conducting body',
+  ];
+  let errors = 0;
+  const found: Result[] = [];
+  // Google's official JSON API is optional and quota-limited; without configured credentials,
+  // use DuckDuckGo's free HTML endpoint rather than brittle Google-result-page scraping.
+  const search = env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX
+    ? (query: string) => searchGoogle(query, env)
+    : (query: string) => searchDuckDuckGo(query);
+  for (const query of queries) {
+    try {
+      const results = await search(query);
+      found.push(...results);
+      const official = results.filter(result => result.official);
+      if (official.length) return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+    } catch { errors++; }
+  }
+  // Broaden discovery only after official-domain queries; never use Wikipedia as a source.
+  for (const query of [
+    '"' + normalized + '" syllabus official',
+    '"' + normalized + '" exam pattern',
+  ]) {
+    try {
+      const results = await search(query);
+      found.push(...results);
+      const official = results.filter(result => result.official);
+      if (official.length) return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
+    } catch { errors++; }
+  }
+  if (errors === queries.length + 2) throw new Error("search_unavailable");
+  return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
 }
 async function askAI(env: Env, exam: string, countryContext: string, results: Result[]) {
   const system = "You are an Indian examination syllabus research assistant. Use only the supplied web search result titles/snippets; never invent a syllabus, exam pattern, eligibility rule, dates, or marks. Prioritize official government, exam-board, recruitment-board, university, and conducting-body sources. Return JSON only: {\"summary\":string,\"syllabus\":[{\"section\":string,\"topics\":[string[]]}],\"examPattern\":string,\"confidence\":\"high\"|\"medium\"|\"low\",\"limitations\":string}. If the results do not establish the actual syllabus, say it could not be verified and leave syllabus empty. Cite source names in prose using the exact result titles, and do not imply a third-party page is official.";
@@ -92,9 +180,9 @@ export async function onRequestPost({ request, env }: { request: Request; env: E
     if (row.count > 8) return reply({ error: "Exam syllabus research limit reached for this hour. Please retry later.", code: "rate_limited" }, 429);
   } catch { return reply({ error: "Request protection is temporarily unavailable." }, 503); }
   let results: Result[];
-  try { results = await searchWeb('India "' + exam.replace(/"/g, " ") + '" official syllabus exam pattern'); }
-  catch { return reply({ error: "Live web search is unavailable right now. Please retry; no syllabus has been invented.", code: "search_unavailable" }, 502); }
-  if (!results.length) return reply({ error: "No searchable syllabus pages were found for this exam name. Check the spelling or include the conducting body and exam year.", code: "no_results" }, 404);
+  try { results = await searchSyllabusSources(exam, env); }
+  catch { return reply({ error: "Google and backup search providers are unavailable right now. Please retry; no syllabus has been invented.", code: "search_unavailable" }, 502); }
+  if (!results.length) return reply({ error: "No searchable pages were found for this exam name. Check the spelling or include the conducting body and exam year.", code: "no_results" }, 404);
   try {
     const research = await askAI(env, exam, countryContext, results);
     return reply({ exam, researchedAt: new Date().toISOString(), results, ...research, officialSourceCount: results.filter(r => r.official).length, searchedLiveWeb: true });
