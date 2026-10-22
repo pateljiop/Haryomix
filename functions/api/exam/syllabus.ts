@@ -76,7 +76,7 @@ async function searchDuckDuckGo(query: string): Promise<Result[]> {
   if (!response.ok) throw new Error("secondary_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) ?? [];
+  const blocks = html.match(/<div[^>]*class="[^"]*result results_links[^"]*"[^>]*>[\s\S]*?(?=<div[^>]*class="[^"]*result results_links|$)/gi) ?? [];
   for (const block of blocks) {
     const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!anchor) continue;
