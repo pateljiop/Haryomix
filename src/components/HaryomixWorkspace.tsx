@@ -314,18 +314,21 @@ function createOfflineStudyGuide(input:{course:string;examType:string;subject:st
 function StudyMarkdown({content}:{content:string}){
  const lines=content.replace(/\r/g,"").split("\n");
  const nodes:React.ReactNode[]=[];
- let list:string[]=[];let listType:"ul"|"ol"="ul";let table:string[]=[];let paragraph:string[]=[];
- const flushParagraph=()=>{if(paragraph.length){nodes.push(<p key={nodes.length} style={{margin:"0 0 12px",lineHeight:1.8}}>{inlineStudyMarkdown(paragraph.join(" "))}</p>);paragraph=[];}};
- const flushList=()=>{if(list.length){const Tag=listType==="ol"?"ol":"ul";nodes.push(<Tag key={nodes.length} style={{paddingLeft:24,margin:"0 0 14px",lineHeight:1.8}}>{list.map((item,i)=><li key={i} style={{marginBottom:5}}>{inlineStudyMarkdown(item)}</li>)}</Tag>);list=[];}};
- const flushTable=()=>{if(table.length){const rows=table.filter(row=>!/^\s*\|?\s*:?-{2,}/.test(row));nodes.push(<div key={nodes.length} style={{overflowX:"auto",margin:"12px 0 18px"}}><table style={{borderCollapse:"collapse",width:"100%",fontSize:13}}><tbody>{rows.map((row,i)=><tr key={i}>{row.trim().replace(/^\||\|$/g,"").split("|").map((cell,j)=><td key={j} style={{padding:"9px 10px",border:"1px solid #354763",verticalAlign:"top",fontWeight:i===0?700:400,background:i===0?"#192943":"transparent"}}>{inlineStudyMarkdown(cell.trim())}</td>)}</tr>)}</tbody></table></div>);table=[];}};
- for(const raw of lines){const line=raw.trim();if(!line){flushParagraph();flushList();flushTable();continue;}
+ let list:string[]=[];let listType:"ul"|"ol"="ul";let table:string[]=[];let paragraph:string[]=[];let mathBlock:string[]|null=null;
+ const flushParagraph=()=>{if(paragraph.length){nodes.push(<p key={nodes.length} style={{margin:"0 0 14px",lineHeight:1.9,fontSize:15,overflowWrap:"anywhere"}}>{inlineStudyMarkdown(paragraph.join(" "))}</p>);paragraph=[];}};
+ const flushList=()=>{if(list.length){const Tag=listType==="ol"?"ol":"ul";nodes.push(<Tag key={nodes.length} style={{paddingLeft:25,margin:"0 0 18px",lineHeight:1.9,fontSize:15}}>{list.map((item,i)=><li key={i} style={{marginBottom:7,paddingLeft:3,overflowWrap:"anywhere"}}>{inlineStudyMarkdown(item)}</li>)}</Tag>);list=[];}};
+ const flushTable=()=>{if(table.length){const rows=table.filter(row=>!/^[\s|]*:?-{2,}/.test(row));nodes.push(<div key={nodes.length} role="region" aria-label="Scrollable study table" tabIndex={0} style={{overflowX:"auto",maxWidth:"100%",margin:"16px 0 22px",border:"1px solid #435777",borderRadius:9,WebkitOverflowScrolling:"touch"}}><table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%",fontSize:14,lineHeight:1.65}}><tbody>{rows.map((row,i)=><tr key={i}>{row.trim().replace(/^\||\|$/g,"").split("|").map((cell,j)=><td key={j} style={{padding:"11px 13px",borderRight:"1px solid #354763",borderBottom:"1px solid #354763",verticalAlign:"top",fontWeight:i===0?750:400,background:i===0?"#192943":"transparent",minWidth:90,maxWidth:360,whiteSpace:"normal",overflowWrap:"anywhere"}}>{inlineStudyMarkdown(cell.trim())}</td>)}</tr>)}</tbody></table></div>);table=[];}};
+ const flushMath=()=>{if(mathBlock){const value=mathBlock.join("\n").trim();nodes.push(<div key={nodes.length} role="math" aria-label={"Mathematical expression: "+value} style={{margin:"14px 0 20px",padding:"15px 16px",border:"1px solid #405779",borderLeft:"4px solid #86aaff",borderRadius:8,background:"#0a1424",color:"#f1f6ff",fontFamily:"'Cambria Math','STIX Two Math',serif",fontSize:17,lineHeight:1.9,whiteSpace:"pre-wrap",overflowX:"auto",overflowWrap:"normal"}}>{value}</div>);mathBlock=null;}};
+ for(const raw of lines){const line=raw.trim();if(mathBlock){if(line==="$$"||line==="\\]"){flushMath();continue;}mathBlock.push(line);continue;}if(line==="$$"||line==="\\["){flushParagraph();flushList();flushTable();mathBlock=[];continue;}if(!line){flushParagraph();flushList();flushTable();continue;}
  if(line.includes("|")&&line.split("|").length>=3){flushParagraph();flushList();table.push(line);continue;}else flushTable();
- const heading=line.match(/^(#{1,4})\s+(.+)$/);if(heading){flushParagraph();flushList();const level=heading[1].length;const size=level===1?20:level===2?17:level===3?15:14;nodes.push(<h4 key={nodes.length} style={{fontSize:size,lineHeight:1.4,margin:"18px 0 8px",color:"#f3f7ff"}}>{inlineStudyMarkdown(heading[2])}</h4>);continue;}
+ const heading=line.match(/^(#{1,4})\s+(.+)$/);if(heading){flushParagraph();flushList();const level=heading[1].length;const size=level===1?23:level===2?19:level===3?17:15;nodes.push(<h4 key={nodes.length} style={{fontSize:size,lineHeight:1.45,margin:"24px 0 10px",color:"#f3f7ff",letterSpacing:"-.015em",overflowWrap:"anywhere"}}>{inlineStudyMarkdown(heading[2])}</h4>);continue;}
  const bullet=line.match(/^[-*+]\s+(.+)$/);const numbered=line.match(/^\d+[.)]\s+(.+)$/);if(bullet||numbered){flushParagraph();const nextType=numbered?"ol":"ul";if(list.length&&listType!==nextType)flushList();listType=nextType;list.push((bullet||numbered)![1]);continue;}
- flushList();paragraph.push(line);
+ flushList();
+ if(/(?:=|≠|≤|≥|→|↔|∑|√|∫|\^|_[{a-zA-Z0-9]|\b[A-Z]\s*=)/.test(line)&&line.length<260){nodes.push(<div key={nodes.length} style={{margin:"10px 0 16px",padding:"12px 14px",borderRadius:7,background:"#0a1424",border:"1px solid #354763",fontFamily:"'Cambria Math','STIX Two Math',monospace",fontSize:15,lineHeight:1.8,whiteSpace:"pre-wrap",overflowX:"auto",overflowWrap:"normal"}}>{inlineStudyMarkdown(line)}</div>);continue;}
+ paragraph.push(line);
  }
- flushParagraph();flushList();flushTable();
- return <div>{nodes}</div>;
+ flushParagraph();flushList();flushTable();flushMath();
+ return <div className="hmx-study-markdown" style={{minWidth:0,color:"#eaf2ff"}}>{nodes}</div>;
 }
 function inlineStudyMarkdown(value:string):React.ReactNode{
  const parts=value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
@@ -479,6 +482,7 @@ RESEARCH SOURCE RULES: ${availableSources? "Use the following retrieved source m
 
 READABILITY AND SYSTEMATIC FORMAT (MANDATORY):
 Use these exact top-level headings in order: # REVISION NOTES, # DETAILED NOTES, and if enabled # OPTIONAL PRACTICE QUIZ. Use valid Markdown only.
+For mathematics, physics and chemistry, write short formulas inline using single dollar delimiters, for example $x^2 + y^2$. Put long formulas and matrices on separate lines between double-dollar delimiters. Align matrix rows and columns consistently, define symbols, and explain each transformation step. Never flatten a matrix, fraction, exponent or multi-step derivation into an unreadable sentence. If unsure about formula syntax, use a clearly formatted preformatted text block instead of malformed notation.
 For EACH topic, follow a consistent hierarchy:
 ## [Topic name]
 ### 1. Meaning / definition
