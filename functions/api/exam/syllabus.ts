@@ -22,8 +22,7 @@ function isOfficial(url: string) {
       /^(nta\.ac\.in|upsc\.gov\.in|ssc\.gov\.in|rrbcdg\.gov\.in|ibps\.in|sbi\.co\.in|ctet\.nic\.in|cbse\.gov\.in|jeemain\.nta\.ac\.in|neet\.nta\.nic\.in)$/.test(host);
   } catch { return false; }
 }
-let envForSearch: Pick<Env, "GOOGLE_CSE_API_KEY" | "GOOGLE_CSE_CX"> = {};\nasync function searchGoogle(query: string): Promise<Result[]> {
-  // Prefer Google's supported Programmable Search JSON API when credentials are configured.
+async function searchGoogle(query: string, env: Env): Promise<Result[]> {
   if (env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX) {
     const api = new URL("https://www.googleapis.com/customsearch/v1");
     api.searchParams.set("key", env.GOOGLE_CSE_API_KEY);
@@ -42,7 +41,6 @@ let envForSearch: Pick<Env, "GOOGLE_CSE_API_KEY" | "GOOGLE_CSE_CX"> = {};\nasync
       } catch { return []; }
     }).sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
   }
-  // Keyless Google HTML fallback. Configure the JSON API for more stable production use.
   const url = new URL("https://www.google.com/search");
   url.searchParams.set("q", query);
   url.searchParams.set("num", "10");
@@ -50,10 +48,10 @@ let envForSearch: Pick<Env, "GOOGLE_CSE_API_KEY" | "GOOGLE_CSE_CX"> = {};\nasync
   if (!response.ok) throw new Error("google_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const anchors = html.match(/<a\\s[^>]*href="(?:https?:\\/\\/[^"]+|\\/url\\?q=[^"]+)"[^>]*>[\\s\\S]*?<h3[^>]*>[\\s\\S]*?<\\/h3>[\\s\\S]*?<\\/a>/gi) ?? [];
+  const anchors = html.match(/<a\s[^>]*href="[^"]+"[^>]*>[\s\S]*?<h3[^>]*>[\s\S]*?<\/h3>[\s\S]*?<\/a>/gi) ?? [];
   for (const anchor of anchors) {
     const hrefMatch = anchor.match(/href="([^"]+)"/i);
-    const titleMatch = anchor.match(/<h3[^>]*>([\\s\\S]*?)<\\/h3>/i);
+    const titleMatch = anchor.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i);
     if (!hrefMatch || !titleMatch) continue;
     try {
       let href = decodeHtml(hrefMatch[1]);
@@ -62,11 +60,10 @@ let envForSearch: Pick<Env, "GOOGLE_CSE_API_KEY" | "GOOGLE_CSE_CX"> = {};\nasync
         href = wrapped.searchParams.get("q") || wrapped.searchParams.get("url") || "";
       }
       const target = new URL(href);
-      if (!["http:", "https:"].includes(target.protocol) || /(^|\\.)google\\.com$/.test(target.hostname)) continue;
+      if (!["http:", "https:"].includes(target.protocol) || /(^|\.)google\.com$/.test(target.hostname)) continue;
       const title = stripHtml(titleMatch[1]);
-      const blockText = stripHtml(anchor.replace(/<h3[^>]*>[\\s\\S]*?<\\/h3>/i, ""));
       if (!title || results.some(item => item.url === target.href)) continue;
-      results.push({ title, url: target.href, snippet: blockText, official: isOfficial(target.href) });
+      results.push({ title, url: target.href, snippet: "", official: isOfficial(target.href) });
     } catch { /* Ignore malformed or non-result links. */ }
     if (results.length >= 8) break;
   }
@@ -79,17 +76,17 @@ async function searchDuckDuckGo(query: string): Promise<Result[]> {
   if (!response.ok) throw new Error("secondary_search_unavailable");
   const html = await response.text();
   const results: Result[] = [];
-  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\\s\\S]*?<\\/div>\\s*<\\/div>/gi) ?? [];
+  const blocks = html.match(/<div[^>]*class="[^"]*result[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) ?? [];
   for (const block of blocks) {
-    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>/i);
+    const anchor = block.match(/<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!anchor) continue;
     let href = decodeHtml(anchor[1]);
     try {
       const parsed = new URL(href, "https://duckduckgo.com");
       if (parsed.searchParams.has("uddg")) href = decodeURIComponent(parsed.searchParams.get("uddg")!);
       const target = new URL(href);
-      if (!["http:", "https:"].includes(target.protocol) || /duckduckgo\\.com$/.test(target.hostname)) continue;
-      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\\s\\S]*?)<\\/[^>]+>/i);
+      if (!["http:", "https:"].includes(target.protocol) || /duckduckgo\.com$/.test(target.hostname)) continue;
+      const snippetMatch = block.match(/class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/i);
       const title = stripHtml(anchor[2]);
       const snippet = snippetMatch ? stripHtml(snippetMatch[1]) : "";
       if (title && !results.some(item => item.url === target.href)) results.push({ title, url: target.href, snippet, official: isOfficial(target.href) });
@@ -98,54 +95,44 @@ async function searchDuckDuckGo(query: string): Promise<Result[]> {
   }
   return results.sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
 }
-
-async function searchWikipedia(query: string): Promise<Result[]> {
-  const url = new URL("https://en.wikipedia.org/w/rest.php/v1/search/page");
-  url.searchParams.set("q", query + " syllabus exam pattern");
-  url.searchParams.set("limit", "8");
-  const response = await fetch(url, {
-    headers: { "User-Agent": "HaryomixStudyAssistant/1.0 (syllabus research)" },
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw new Error("secondary_search_unavailable");
-  const data = await response.json() as { pages?: Array<{ title?: string; key?: string; description?: string; excerpt?: string }> };
-  return (data.pages ?? []).flatMap(page => {
-    if (!page.title || !page.key) return [];
-    const url = "https://en.wikipedia.org/wiki/" + page.key.split(" ").map(encodeURIComponent).join("_");
-    return [{
-      title: page.title,
-      url,
-      snippet: stripHtml(page.description || page.excerpt || ""),
-      // Wikipedia is a discovery aid, never an official syllabus source.
-      official: false,
-    }];
-  }).slice(0, 8);
-}
 async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> {
+  const normalized = exam.replace(/"/g, " ").trim();
   const queries = [
-    'India "' + exam.replace(/"/g, " ") + '" official syllabus exam pattern',
-    '"' + exam.replace(/"/g, " ") + '" syllabus official exam conducting body',
+    '"' + normalized + '" official syllabus site:gov.in OR site:nic.in',
+    '"' + normalized + '" syllabus official exam notification',
+    '"' + normalized + '" syllabus official conducting body',
   ];
-  let searchErrors = 0;
+  let errors = 0;
+  const found: Result[] = [];
   for (const query of queries) {
+    try { found.push(...await searchGoogle(query, env)); } catch { errors++; }
+  }
+  // Search for official documents explicitly, then use non-official results only as discovery leads.
+  const official = found.filter(result => result.official);
+  if (official.length) return official.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
+  const fallbackQueries = [
+    '"' + normalized + '" syllabus official',
+    '"' + normalized + '" exam pattern',
+  ];
+  for (const query of fallbackQueries) {
     try {
       const results = await searchGoogle(query, env);
-      if (results.length) return results;
-    } catch { searchErrors++; }
+      const officialResults = results.filter(result => result.official);
+      if (officialResults.length) return officialResults.slice(0, 8);
+      found.push(...results);
+    } catch { errors++; }
   }
-  // Keep a secondary engine as a resilience fallback if Google is blocked or has no results.
-  for (const query of queries) {
+  // DuckDuckGo remains only a secondary search engine; Wikipedia is deliberately not used.
+  for (const query of [...queries, ...fallbackQueries]) {
     try {
       const results = await searchDuckDuckGo(query);
-      if (results.length) return results;
-    } catch { searchErrors++; }
+      const officialResults = results.filter(result => result.official);
+      if (officialResults.length) return officialResults.slice(0, 8);
+      found.push(...results);
+    } catch { errors++; }
   }
-  try {
-    const fallback = await searchWikipedia(exam);
-    if (fallback.length) return fallback;
-  } catch { searchErrors++; }
-  if (searchErrors === queries.length * 2 + 1) throw new Error("search_unavailable");
-  return [];
+  if (errors === queries.length + fallbackQueries.length + queries.length + fallbackQueries.length) throw new Error("search_unavailable");
+  return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
 }
 async function askAI(env: Env, exam: string, countryContext: string, results: Result[]) {
   const system = "You are an Indian examination syllabus research assistant. Use only the supplied web search result titles/snippets; never invent a syllabus, exam pattern, eligibility rule, dates, or marks. Prioritize official government, exam-board, recruitment-board, university, and conducting-body sources. Return JSON only: {\"summary\":string,\"syllabus\":[{\"section\":string,\"topics\":[string[]]}],\"examPattern\":string,\"confidence\":\"high\"|\"medium\"|\"low\",\"limitations\":string}. If the results do not establish the actual syllabus, say it could not be verified and leave syllabus empty. Cite source names in prose using the exact result titles, and do not imply a third-party page is official.";
