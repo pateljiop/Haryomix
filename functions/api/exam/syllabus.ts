@@ -104,34 +104,32 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
   ];
   let errors = 0;
   const found: Result[] = [];
+  // Google's official JSON API is optional and quota-limited; without configured credentials,
+  // use DuckDuckGo's free HTML endpoint rather than brittle Google-result-page scraping.
+  const search = env.GOOGLE_CSE_API_KEY && env.GOOGLE_CSE_CX
+    ? (query: string) => searchGoogle(query, env)
+    : (query: string) => searchDuckDuckGo(query);
   for (const query of queries) {
-    try { found.push(...await searchGoogle(query, env)); } catch { errors++; }
+    try {
+      const results = await search(query);
+      found.push(...results);
+      const official = results.filter(result => result.official);
+      if (official.length) return official.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
+    } catch { errors++; }
   }
-  // Search for official documents explicitly, then use non-official results only as discovery leads.
-  const official = found.filter(result => result.official);
-  if (official.length) return official.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
-  const fallbackQueries = [
+  // Broaden discovery only after official-domain queries; never use Wikipedia as a source.
+  for (const query of [
     '"' + normalized + '" syllabus official',
     '"' + normalized + '" exam pattern',
-  ];
-  for (const query of fallbackQueries) {
+  ]) {
     try {
-      const results = await searchGoogle(query, env);
-      const officialResults = results.filter(result => result.official);
-      if (officialResults.length) return officialResults.slice(0, 8);
+      const results = await search(query);
       found.push(...results);
+      const official = results.filter(result => result.official);
+      if (official.length) return official.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
     } catch { errors++; }
   }
-  // DuckDuckGo remains only a secondary search engine; Wikipedia is deliberately not used.
-  for (const query of [...queries, ...fallbackQueries]) {
-    try {
-      const results = await searchDuckDuckGo(query);
-      const officialResults = results.filter(result => result.official);
-      if (officialResults.length) return officialResults.slice(0, 8);
-      found.push(...results);
-    } catch { errors++; }
-  }
-  if (errors === queries.length + fallbackQueries.length + queries.length + fallbackQueries.length) throw new Error("search_unavailable");
+  if (errors === queries.length + 2) throw new Error("search_unavailable");
   return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
 }
 async function askAI(env: Env, exam: string, countryContext: string, results: Result[]) {
