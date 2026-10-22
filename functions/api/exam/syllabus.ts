@@ -116,7 +116,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
       const results = await search(query);
       found.push(...results);
       const official = results.filter(result => result.official);
-      if (official.length) return official.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
+      if (official.length) return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
     } catch { errors++; }
   }
   // Broaden discovery only after official-domain queries; never use Wikipedia as a source.
@@ -128,7 +128,7 @@ async function searchSyllabusSources(exam: string, env: Env): Promise<Result[]> 
       const results = await search(query);
       found.push(...results);
       const official = results.filter(result => result.official);
-      if (official.length) return official.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).slice(0, 8);
+      if (official.length) return found.filter((r, i, all) => all.findIndex(x => x.url === r.url) === i).sort((a, b) => Number(b.official) - Number(a.official)).slice(0, 8);
     } catch { errors++; }
   }
   if (errors === queries.length + 2) throw new Error("search_unavailable");
